@@ -1,0 +1,2 @@
+# Multimodal Recommendation System
+This repository contains a multimodal recommendation system that leverages various types of data (e.g., text, images, and user interactions) to provide personalized recommendations. The system is designed to improve recommendation accuracy by integrating multiple data sources.
