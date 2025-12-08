@@ -1,1 +1,283 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from collections import Counter
+from scipy.spatial.distance import jensenshannon
+
+# ---------------------------
+# Utilities
+# ---------------------------
+def to_datetime_ms(series):
+    """Convert integer millisecond timestamps to pandas datetime (UTC)."""
+    return pd.to_datetime(series.astype('int64'), unit='ms', utc=True)
+
+def js_divergence(p, q, eps=1e-12):
+    """Compute Jensen-Shannon divergence between two probability vectors."""
+    p = np.array(p, dtype=float) + eps
+    q = np.array(q, dtype=float) + eps
+    p /= p.sum()
+    q /= q.sum()
+    m = 0.5 * (p + q)
+    return 0.5 * (np.sum(p * np.log(p / m)) + np.sum(q * np.log(q / m)))
+
+# ---------------------------
+# Basic pre-processing & checks
+# ---------------------------
+def preprocess_data(ratings_df, reviews_df, metadata_df, verbose=True):
+    # Copy to avoid side-effects
+    r_df = ratings_df.copy()
+    rev_df = reviews_df.copy()
+    m_df = metadata_df.copy()
+
+    # Ensure types
+    # Some ratings_df timestamps may be strings - coerce to int
+    r_df['timestamp'] = r_df['timestamp'].astype('int64')
+    rev_df['timestamp'] = rev_df['timestamp'].astype('int64')
+
+    # Convert to datetime (ms)
+    r_df['ts'] = to_datetime_ms(r_df['timestamp'])
+    rev_df['ts'] = to_datetime_ms(rev_df['timestamp'])
+
+    # Ratings numeric
+    if r_df['rating'].dtype == object:
+        r_df['rating'] = pd.to_numeric(r_df['rating'], errors='coerce')
+
+    if verbose:
+        print("Shapes:")
+        print(" ratings_df:", r_df.shape)
+        print(" reviews_df:", rev_df.shape)
+        print(" metadata_df:", m_df.shape)
+    return r_df, rev_df, m_df
+
+# ---------------------------
+# 1. Overall sparsity
+# ---------------------------
+def compute_sparsity(ratings_df):
+    n_interactions = len(ratings_df)
+    n_users = ratings_df['user_id'].nunique()
+    n_items = ratings_df['parent_asin'].nunique()
+    sparsity = 1 - (n_interactions / (n_users * n_items))
+    return {
+        'n_interactions': n_interactions,
+        'n_users': n_users,
+        'n_items': n_items,
+        'sparsity': sparsity
+    }
+
+# ---------------------------
+# 2. Long-tail: plots for reviews per user and per item (log-log)
+# ---------------------------
+def plot_long_tail(ratings_df, reviews_df=None, save_path=None):
+    """
+    Plot reviews per user and per item on log-log scale.
+    Also compute head/tail stats and return summary dict.
+    """
+    # Use ratings_df interactions for user-item interactions
+    user_counts = ratings_df['user_id'].value_counts()
+    item_counts = ratings_df['parent_asin'].value_counts()
+
+    # Plot - Users
+    plt.figure(figsize=(6,4))
+    plt.scatter(np.arange(len(user_counts))+1, np.sort(user_counts.values)[::-1], s=4)
+    plt.xscale('log'); plt.yscale('log')
+    plt.xlabel('Users (ranked)')
+    plt.ylabel('Number of interactions')
+    plt.title('Reviews per User (log-log)')
+    plt.tight_layout()
+    if save_path: plt.savefig(save_path + "_users_loglog.png", dpi=150)
+    plt.show()
+
+    # Plot - Items
+    plt.figure(figsize=(6,4))
+    plt.scatter(np.arange(len(item_counts))+1, np.sort(item_counts.values)[::-1], s=4)
+    plt.xscale('log'); plt.yscale('log')
+    plt.xlabel('Items (ranked)')
+    plt.ylabel('Number of interactions')
+    plt.title('Reviews per Item (log-log)')
+    plt.tight_layout()
+    if save_path: plt.savefig(save_path + "_items_loglog.png", dpi=150)
+    plt.show()
+
+    # Long-tail metrics
+    def head_tail_stats(counts, head_frac=0.01):
+        n = len(counts)
+        head_k = max(1, int(n * head_frac))
+        head = counts.head(head_k).sum()
+        total = counts.sum()
+        return {
+            'n_entities': n,
+            'head_k': head_k,
+            'head_prop_interactions': head / total,
+            'median': counts.median(),
+            'mean': counts.mean(),
+            'pct_zero': (counts == 0).mean()  # usually 0 for value_counts output
+        }
+
+    user_stats = head_tail_stats(user_counts)
+    item_stats = head_tail_stats(item_counts)
+
+    summary = {'user_counts': user_counts, 'item_counts': item_counts,
+               'user_stats': user_stats, 'item_stats': item_stats}
+    return summary
+
+# ---------------------------
+# 3. Timestamp distribution and drift analysis
+# ---------------------------
+def analyze_time_distribution(reviews_df, split_by_time=True, train_frac=0.7, val_frac=0.15, save_path=None):
+    """
+    - Plot overall review volume over time
+    - Create time-based splits (train/val/test) by quantile of timestamp if split_by_time True
+    - Compute top-k overlap between splits, rank shift, and JS divergence for item popularity distributions
+    """
+    df = reviews_df.copy()
+
+    # monthly counts
+    df['year_month'] = df['ts'].dt.to_period('M').dt.to_timestamp()
+    monthly = df.groupby('year_month').size().sort_index()
+
+    plt.figure(figsize=(10,4))
+    monthly.plot()
+    plt.title('Review Volume Over Time (monthly)')
+    plt.xlabel('Month')
+    plt.ylabel('Number of reviews')
+    plt.tight_layout()
+    if save_path: plt.savefig(save_path + "_monthly_volume.png", dpi=150)
+    plt.show()
+
+    # Create splits by time quantiles
+    if split_by_time:
+        # Use timestamp numeric values for quantiles
+        t_values = df['timestamp'].values.astype('int64')
+        t_train_end = np.quantile(t_values, train_frac)
+        t_val_end = np.quantile(t_values, train_frac + val_frac)
+
+        train = df[df['timestamp'] <= t_train_end].copy()
+        val = df[(df['timestamp'] > t_train_end) & (df['timestamp'] <= t_val_end)].copy()
+        test = df[df['timestamp'] > t_val_end].copy()
+
+        print(f"Split sizes -> train: {len(train)}, val: {len(val)}, test: {len(test)}")
+    else:
+        raise ValueError("Currently only split_by_time=True supported")
+
+    # Popularity distributions (item-level) per split
+    def popularity_distribution(subdf):
+        c = subdf['parent_asin'].value_counts()
+        return c
+
+    pop_train = popularity_distribution(train)
+    pop_val = popularity_distribution(val)
+    pop_test = popularity_distribution(test)
+
+    # Top-k overlap measures
+    def topk_overlap(a_counts, b_counts, k=50):
+        a_top = set(a_counts.head(k).index)
+        b_top = set(b_counts.head(k).index)
+        overlap = len(a_top & b_top) / k
+        return overlap
+
+    overlaps = {
+        'top50_train_test': topk_overlap(pop_train, pop_test, 50),
+        'top100_train_test': topk_overlap(pop_train, pop_test, 100),
+        'top50_train_val': topk_overlap(pop_train, pop_val, 50),
+    }
+
+    print("Top-k overlaps:", overlaps)
+
+    # Rank shift for items present in both splits
+    def rank_shift(a_counts, b_counts, top_n=1000):
+        # build rank dicts
+        a_rank = {item: rank for rank, item in enumerate(a_counts.index[:top_n], 1)}
+        b_rank = {item: rank for rank, item in enumerate(b_counts.index[:top_n], 1)}
+        common = set(a_rank.keys()) & set(b_rank.keys())
+        shifts = [abs(a_rank[i] - b_rank[i]) for i in common]
+        return {
+            'n_common_top_n': len(common),
+            'mean_rank_shift': np.mean(shifts) if shifts else np.nan,
+            'median_rank_shift': np.median(shifts) if shifts else np.nan
+        }
+
+    rankshifts = {
+        'train_test_top1k': rank_shift(pop_train, pop_test, top_n=1000),
+        'train_val_top1k': rank_shift(pop_train, pop_val, top_n=1000)
+    }
+    print("Rank shift summary:", rankshifts)
+
+    # Jensen-Shannon divergence between normalized popularity distributions
+    # Align distributions on union of items
+    union_items = sorted(set(pop_train.index) | set(pop_test.index))
+    p = np.array([pop_train.get(i, 0) for i in union_items], dtype=float)
+    q = np.array([pop_test.get(i, 0) for i in union_items], dtype=float)
+    # Use scipy's jensenshannon which returns sqrt(JS)
+    try:
+        from scipy.spatial.distance import jensenshannon as sj
+        js_scipy = sj(p / p.sum(), q / q.sum())
+        js_empirical = js_divergence(p, q)
+        print(f"Jensen-Shannon (scipy, sqrt(JS)): {js_scipy:.4f} (note: scipy returns sqrt(JS))")
+        print(f"Jensen-Shannon (empirical JS): {js_empirical:.6f}")
+    except Exception:
+        js_empirical = js_divergence(p, q)
+        print(f"Jensen-Shannon (empirical JS): {js_empirical:.6f}")
+
+    # Plot item popularity distributions (log-log histogram)
+    plt.figure(figsize=(6,4))
+    plt.scatter(np.arange(len(pop_train))+1, np.sort(pop_train.values)[::-1], s=4, label='train')
+    plt.scatter(np.arange(len(pop_test))+1, np.sort(pop_test.values)[::-1], s=4, label='test', alpha=0.6)
+    plt.xscale('log'); plt.yscale('log')
+    plt.xlabel('Items (ranked)')
+    plt.ylabel('Review count')
+    plt.title('Item popularity: Train vs Test (log-log)')
+    plt.legend()
+    plt.tight_layout()
+    if save_path: plt.savefig(save_path + "_pop_train_test.png", dpi=150)
+    plt.show()
+
+    result = {
+        'train': train, 'val': val, 'test': test,
+        'pop_train': pop_train, 'pop_val': pop_val, 'pop_test': pop_test,
+        'overlaps': overlaps, 'rankshifts': rankshifts, 'js_empirical': js_empirical
+    }
+    return result
+
+# ---------------------------
+# Run full EDA pipeline
+# ---------------------------
+def run_full_eda(ratings_df, reviews_df, metadata_df, save_path=None, verbose=True):
+    r_df, rev_df, m_df = preprocess_data(ratings_df, reviews_df, metadata_df, verbose=verbose)
+
+    # 1) Sparsity
+    s = compute_sparsity(r_df)
+    print("\n=== Sparsity ===")
+    print(f"Interactions: {s['n_interactions']}")
+    print(f"Unique users: {s['n_users']}")
+    print(f"Unique items: {s['n_items']}")
+    print(f"Sparsity: {s['sparsity']:.6f} ({s['sparsity']*100:.4f}%)")
+
+    # 2) Long-tail / log-log
+    print("\n=== Long-tail (log-log) ===")
+    lt_summary = plot_long_tail(r_df, rev_df, save_path=save_path)
+    print("User stats (head fraction 1%):", lt_summary['user_stats'])
+    print("Item stats (head fraction 1%):", lt_summary['item_stats'])
+
+    # Heuristic suggestion
+    head_prop = lt_summary['item_stats']['head_prop_interactions']
+    if head_prop > 0.2:
+        print("\nInterpretation: Top 1% items account for >20% of interactions -> strong head presence.")
+    else:
+        print("\nInterpretation: Head is small relative to tail -> long-tail dominated dataset.")
+
+    # 3) Time distribution + drift
+    print("\n=== Timestamp distribution & drift analysis ===")
+    time_res = analyze_time_distribution(rev_df, split_by_time=True, save_path=save_path)
+
+    # Summarize recommendations
+    print("\n=== EDA Summary & Recommendations ===")
+    print("- Sparse user-item matrix -> multimodal features are helpful, especially for tail items.")
+    print("- Long-tail: majority of items are in the tail (few interactions). Consider using image+text embeddings for tail items.")
+    print("- Temporal drift: check top-k overlaps and JS divergence. If overlap low or JS large -> need temporal adaptation (time-aware training/evaluation).")
+    return {
+        'sparsity': s,
+        'longtail': lt_summary,
+        'time_analysis': time_res
+    }
 
