@@ -1,0 +1,102 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import re
+
+# -----------------------------------------------------
+# Does text describe visual features?
+# -----------------------------------------------------
+
+# Common visual keywords
+COLOR_WORDS = [
+    "red", "blue", "green", "yellow", "black", "white", "gray",
+    "purple", "pink", "orange", "brown", "silver", "gold"
+]
+
+MATERIAL_WORDS = [
+    "wood", "wooden", "metal", "plastic", "steel", "leather",
+    "cotton", "wool", "ceramic", "glass", "rubber", "silk"
+]
+
+SHAPE_WORDS = [
+    "round", "square", "rectangular", "long", "short", "wide", "narrow"
+]
+
+VISUAL_KEYWORDS = COLOR_WORDS + MATERIAL_WORDS + SHAPE_WORDS
+
+
+def contains_visual_words(text):
+    """Return True if product description contains color/material/shape keywords."""
+    if not isinstance(text, str):
+        return False
+    text = text.lower()
+    return any(word in text for word in VISUAL_KEYWORDS)
+
+
+# Filter items with both images + descriptions
+df_visual = metadata_df[
+    (metadata_df["images"].apply(lambda x: isinstance(x, dict) or isinstance(x, list)))
+    & (metadata_df["description"].apply(lambda x: isinstance(x, list) or isinstance(x, str)))
+]
+
+# Convert description list → string
+def concat_desc(d):
+    if isinstance(d, list):
+        return " ".join([str(x) for x in d if isinstance(x, str)])
+    return d
+
+df_visual["description_clean"] = df_visual["description"].apply(concat_desc)
+
+# Check semantic alignment
+df_visual["has_visual_words"] = df_visual["description_clean"].apply(contains_visual_words)
+
+alignment_rate = df_visual["has_visual_words"].mean() * 100
+
+print(f"\nPercentage of items where descriptions describe visual attributes: {alignment_rate:.2f}%")
+
+# Plot
+plt.figure(figsize=(5,4))
+sns.barplot(x=["Describe Visual Features", "Do Not Describe"], 
+            y=[alignment_rate, 100 - alignment_rate])
+plt.title("Text–Image Semantic Alignment Rate")
+plt.ylabel("Percentage (%)")
+plt.show()
+
+
+# -----------------------------------------------------
+# Missing Modality Correlation
+# -----------------------------------------------------
+
+def is_missing_image(img):
+    """Returns True if image list/dict is empty or missing."""
+    if isinstance(img, list):
+        return len(img) == 0
+    if isinstance(img, dict):
+        return len(img.get("hi_res", [])) == 0 and len(img.get("large", [])) == 0
+    return True  # missing
+
+
+def is_missing_description(desc):
+    """Returns True if description is empty."""
+    if isinstance(desc, list):
+        return len(desc) == 0
+    return pd.isna(desc) or desc is None or str(desc).strip() == ""
+
+
+meta_corr = pd.DataFrame({
+    "missing_image": metadata_df["images"].apply(is_missing_image),
+    "missing_description": metadata_df["description"].apply(is_missing_description),
+    "missing_features": metadata_df["features"].apply(lambda x: len(x) == 0 if isinstance(x, list) else True),
+    "missing_price": metadata_df["price"].isna() | (metadata_df["price"] == "None")
+})
+
+# Correlation matrix
+corr_matrix = meta_corr.corr()
+print("\nMissing Modality Correlation Matrix:\n")
+print(corr_matrix)
+
+plt.figure(figsize=(6,5))
+sns.heatmap(corr_matrix, annot=True, cmap="coolwarm")
+plt.title("Correlation Matrix of Missing Modalities")
+plt.show()
