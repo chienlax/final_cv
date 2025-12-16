@@ -62,6 +62,17 @@ from eda.sparsity_analysis import (
 )
 from eda.image_download import download_images_sample, validate_downloaded_images, compute_image_statistics
 
+# Academic Analysis Modules
+from eda.modality_alignment import analyze_modality_alignment
+from eda.visual_manifold import analyze_visual_manifold
+from eda.bpr_hardness import analyze_bpr_hardness
+from eda.embedding_extractor import extract_clip_embeddings, create_dummy_embeddings
+from eda.visualizations import (
+    plot_modality_alignment,
+    plot_visual_manifold,
+    plot_bpr_hardness_distribution,
+)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -93,6 +104,7 @@ def run_eda_for_dataset(
     sample_ratio: float = 0.1,
     download_images: bool = False,
     image_sample_size: int = 500,
+    academic_analysis: bool = False,
     seed: int = 42,
 ) -> dict:
     """
@@ -115,7 +127,7 @@ def run_eda_for_dataset(
     
     logger.info(f"\n{'='*60}")
     logger.info(f"Starting EDA for: {display_name}")
-    logger.info(f"Sample ratio: {sample_ratio:.0%}")
+    logger.info(f"Sample ratio: {sample_ratio:.5%}")
     logger.info(f"{'='*60}\n")
     
     # Create output directories
@@ -284,6 +296,99 @@ def run_eda_for_dataset(
         if download_stats.downloaded > 0:
             img_stats = compute_image_statistics(images_dir)
             results["image_statistics"] = img_stats
+    
+    # =========================================================================
+    # Phase 7: Academic Analysis (Optional - requires CLIP)
+    # Implements Liu et al. (2024) and Xu et al. (2025) analysis
+    # =========================================================================
+    if academic_analysis and len(metadata_df) > 0:
+        logger.info("\nPhase 7: Running academic analysis...")
+        
+        # Extract CLIP embeddings (or use dummy for testing)
+        try:
+            embeddings, item_indices, emb_stats = extract_clip_embeddings(
+                metadata_df,
+                batch_size=32,
+                max_items=min(5000, len(metadata_df)),
+                seed=seed,
+            )
+            results["embedding_extraction"] = emb_stats.to_dict()
+        except Exception as e:
+            logger.warning(f"CLIP extraction failed: {e}, using dummy embeddings")
+            embeddings, item_indices = create_dummy_embeddings(metadata_df, seed=seed)
+            results["embedding_extraction"] = {"method": "dummy", "n_items": len(item_indices)}
+        
+        if len(item_indices) > 0:
+            # 7.1 Modality-Interaction Alignment (Liu et al., 2024)
+            logger.info("  7.1 Modality-Interaction Alignment...")
+            try:
+                alignment_result = analyze_modality_alignment(
+                    interactions_df, embeddings, item_indices,
+                    n_pairs=min(1000, len(item_indices) * (len(item_indices) - 1) // 2),
+                    seed=seed,
+                )
+                results["modality_alignment"] = alignment_result.to_dict()
+                
+                # Generate visualization
+                if len(alignment_result.visual_similarities) > 0:
+                    plot_modality_alignment(
+                        alignment_result.visual_similarities,
+                        alignment_result.interaction_similarities,
+                        alignment_result.pearson_correlation,
+                        alignment_result.pearson_pvalue,
+                        figures_dir, display_name,
+                    )
+            except Exception as e:
+                logger.warning(f"  Modality alignment failed: {e}")
+            
+            # 7.2 Visual Manifold Structure (Xu et al., 2025)
+            logger.info("  7.2 Visual Manifold Structure...")
+            try:
+                manifold_result = analyze_visual_manifold(
+                    metadata_df, embeddings, item_indices,
+                    method="umap",
+                    max_items=min(5000, len(item_indices)),
+                    seed=seed,
+                )
+                results["visual_manifold"] = manifold_result.to_dict()
+                
+                # Generate visualization
+                if len(manifold_result.projection_x) > 0:
+                    plot_visual_manifold(
+                        manifold_result.projection_x,
+                        manifold_result.projection_y,
+                        manifold_result.categories,
+                        manifold_result.ratings,
+                        manifold_result.silhouette_score_category,
+                        manifold_result.method,
+                        figures_dir, display_name,
+                    )
+            except Exception as e:
+                logger.warning(f"  Visual manifold failed: {e}")
+            
+            # 7.3 BPR Hardness Assessment (Xu et al., 2025)
+            logger.info("  7.3 BPR Hardness Assessment...")
+            try:
+                hardness_result = analyze_bpr_hardness(
+                    interactions_df, embeddings, item_indices,
+                    n_users=min(100, len(interactions_df["user_id"].unique())),
+                    n_negatives_per_user=10,
+                    seed=seed,
+                )
+                results["bpr_hardness"] = hardness_result.to_dict()
+                
+                # Generate visualization
+                if len(hardness_result.distance_distribution) > 0:
+                    plot_bpr_hardness_distribution(
+                        hardness_result.distance_distribution,
+                        hardness_result.pct_easy_negatives,
+                        hardness_result.pct_medium_negatives,
+                        hardness_result.pct_hard_negatives,
+                        hardness_result.mean_visual_distance,
+                        figures_dir, display_name,
+                    )
+            except Exception as e:
+                logger.warning(f"  BPR hardness failed: {e}")
     
     # =========================================================================
     # Save Results
@@ -490,6 +595,84 @@ Top categories in the dataset:
 2. **Multimodal Features:** Leverage text/image to address cold-start problem
 3. **Negative Sampling:** Use popularity-based hard negative sampling for BPR
 
+"""
+    
+    # Section 10: Academic Analysis (if available)
+    if results.get('modality_alignment') or results.get('visual_manifold') or results.get('bpr_hardness'):
+        md_content += """
+---
+
+## 10. Multimodal Recommendation Readiness (Academic Analysis)
+
+"""
+        # 10.1 Modality Alignment
+        if results.get('modality_alignment'):
+            ma = results['modality_alignment']
+            md_content += f"""
+### 10.1 Modality-Interaction Alignment (Liu et al., 2024)
+
+![Modality Alignment](figures/{dataset_name}/modality_alignment_{dataset_name.replace(' ', '_')}.png)
+
+Tests the **Homophily Hypothesis**: Do visually similar items share similar interaction patterns?
+
+| Metric | Value |
+|--------|-------|
+| Pairs Analyzed | {ma.get('n_pairs_sampled', 0):,} |
+| Pearson r | {ma['pearson']['correlation']:.4f} |
+| p-value | {ma['pearson']['pvalue']:.4f} |
+| Spearman ρ | {ma['spearman']['correlation']:.4f} |
+
+**Interpretation:** {ma.get('interpretation', 'N/A')}
+
+"""
+        
+        # 10.2 Visual Manifold
+        if results.get('visual_manifold'):
+            vm = results['visual_manifold']
+            md_content += f"""
+### 10.2 Visual Manifold Structure (Xu et al., 2025)
+
+![Visual Manifold](figures/{dataset_name}/visual_manifold_{dataset_name.replace(' ', '_')}.png)
+
+Analyzes whether CLIP embeddings form meaningful clusters by category.
+
+| Metric | Value |
+|--------|-------|
+| Items Projected | {vm.get('n_items', 0):,} |
+| Projection Method | {vm.get('method', 'umap').upper()} |
+| Silhouette Score | {vm['quality']['silhouette_score_category']:.4f} |
+| Unique Categories | {vm['quality']['n_unique_categories']} |
+
+**Interpretation:** {vm.get('interpretation', 'N/A')}
+
+"""
+        
+        # 10.3 BPR Hardness
+        if results.get('bpr_hardness'):
+            bh = results['bpr_hardness']
+            md_content += f"""
+### 10.3 BPR Negative Sampling Hardness (Xu et al., 2025)
+
+![BPR Hardness](figures/{dataset_name}/bpr_hardness_{dataset_name.replace(' ', '_')}.png)
+
+Evaluates whether random negative sampling produces informative training signal.
+
+| Metric | Value |
+|--------|-------|
+| Users Analyzed | {bh.get('n_users_analyzed', 0):,} |
+| Pairs Analyzed | {bh.get('n_pairs_analyzed', 0):,} |
+| Mean Visual Distance | {bh['visual_distance']['mean']:.4f} |
+| Easy Negatives (>0.8) | {bh['hardness_distribution']['easy_pct']:.1f}% |
+| Medium Negatives | {bh['hardness_distribution']['medium_pct']:.1f}% |
+| Hard Negatives (<0.3) | {bh['hardness_distribution']['hard_pct']:.1f}% |
+
+**Interpretation:** {bh.get('interpretation', 'N/A')}
+
+**Recommendation:** {bh.get('recommendation', 'N/A')}
+
+"""
+    
+    md_content += """
 ---
 
 *Report generated by EDA Pipeline for Multimodal Recommendation System*
@@ -553,6 +736,11 @@ def main():
         default=42,
         help="Random seed (default: 42)",
     )
+    parser.add_argument(
+        "--academic-analysis",
+        action="store_true",
+        help="Run academic analysis (modality alignment, visual manifold, BPR hardness)",
+    )
     
     args = parser.parse_args()
     
@@ -585,6 +773,7 @@ def main():
             sample_ratio=args.sample_ratio,
             download_images=args.download_images,
             image_sample_size=args.image_sample,
+            academic_analysis=args.academic_analysis,
             seed=args.seed,
         )
         

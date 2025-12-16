@@ -485,3 +485,289 @@ def plot_multimodal_coverage(
         save_figure(fig, output_path, f"multimodal_coverage_{dataset_name.lower().replace(' ', '_')}")
     
     return fig
+
+
+# =============================================================================
+# Academic Analysis Visualizations
+# =============================================================================
+
+def plot_modality_alignment(
+    visual_similarities: list[float],
+    interaction_similarities: list[float],
+    pearson_r: float,
+    pearson_p: float,
+    output_path: Optional[Path] = None,
+    dataset_name: str = "Dataset",
+) -> plt.Figure:
+    """
+    Plot modality-interaction alignment scatter plot.
+    
+    Visualizes the correlation between visual and interaction similarities
+    to assess the Homophily Hypothesis.
+    
+    Args:
+        visual_similarities: List of visual similarity scores.
+        interaction_similarities: List of interaction similarity scores.
+        pearson_r: Pearson correlation coefficient.
+        pearson_p: Pearson p-value.
+        output_path: Optional path to save figure.
+        dataset_name: Name for plot title.
+        
+    Returns:
+        matplotlib Figure object.
+    """
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    # Scatter plot
+    ax.scatter(
+        visual_similarities,
+        interaction_similarities,
+        alpha=0.4,
+        s=20,
+        c="steelblue",
+        edgecolors="none",
+    )
+    
+    # Add regression line
+    if len(visual_similarities) > 2:
+        z = np.polyfit(visual_similarities, interaction_similarities, 1)
+        p = np.poly1d(z)
+        x_line = np.linspace(min(visual_similarities), max(visual_similarities), 100)
+        ax.plot(x_line, p(x_line), "r-", linewidth=2, label=f"r = {pearson_r:.3f}")
+    
+    ax.set_xlabel("Visual Similarity (Cosine)", fontsize=12)
+    ax.set_ylabel("Interaction Similarity (Jaccard)", fontsize=12)
+    ax.set_title(
+        f"Modality-Interaction Alignment - {dataset_name}\n"
+        f"(Pearson r = {pearson_r:.3f}, p = {pearson_p:.4f})",
+        fontsize=14, fontweight="bold"
+    )
+    
+    # Add interpretation
+    if pearson_p > 0.05:
+        interpretation = "No significant correlation"
+        color = "orange"
+    elif abs(pearson_r) < 0.1:
+        interpretation = "Very weak correlation"
+        color = "orange"
+    elif pearson_r > 0.3:
+        interpretation = "Moderate-strong positive correlation"
+        color = "green"
+    else:
+        interpretation = "Weak positive correlation"
+        color = "lightgreen"
+    
+    ax.annotate(
+        f"Interpretation: {interpretation}",
+        xy=(0.05, 0.95), xycoords="axes fraction",
+        fontsize=11, ha="left", va="top",
+        bbox=dict(boxstyle="round", facecolor=color, alpha=0.3),
+    )
+    
+    ax.legend(loc="lower right", fontsize=10)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    
+    if output_path:
+        save_figure(fig, output_path, f"modality_alignment_{dataset_name.lower().replace(' ', '_')}")
+    
+    return fig
+
+
+def plot_visual_manifold(
+    projection_x: list[float],
+    projection_y: list[float],
+    categories: list[str],
+    ratings: list[float],
+    silhouette_score: float,
+    method: str = "umap",
+    output_path: Optional[Path] = None,
+    dataset_name: str = "Dataset",
+) -> plt.Figure:
+    """
+    Plot visual manifold UMAP/t-SNE projection.
+    
+    Args:
+        projection_x: X coordinates from projection.
+        projection_y: Y coordinates from projection.
+        categories: Category labels for coloring.
+        ratings: Rating values for secondary coloring.
+        silhouette_score: Cluster quality score.
+        method: Projection method name.
+        output_path: Optional path to save figure.
+        dataset_name: Name for plot title.
+        
+    Returns:
+        matplotlib Figure object.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+    
+    # Left: Color by category
+    ax1 = axes[0]
+    unique_categories = list(set(categories))
+    n_categories = len(unique_categories)
+    
+    # Limit colors if too many categories
+    if n_categories <= 20:
+        palette = sns.color_palette("husl", n_colors=n_categories)
+        category_to_color = {cat: palette[i] for i, cat in enumerate(unique_categories)}
+        colors = [category_to_color[cat] for cat in categories]
+        
+        scatter = ax1.scatter(
+            projection_x, projection_y,
+            c=colors, alpha=0.6, s=15, edgecolors="none"
+        )
+        
+        # Add legend for top categories
+        from matplotlib.patches import Patch
+        top_categories = sorted(set(categories), key=categories.count, reverse=True)[:10]
+        legend_elements = [
+            Patch(facecolor=category_to_color[cat], label=cat[:30])
+            for cat in top_categories
+        ]
+        ax1.legend(handles=legend_elements, loc="upper right", fontsize=8, title="Categories")
+    else:
+        # Too many categories, use a simple color
+        ax1.scatter(projection_x, projection_y, alpha=0.5, s=10, c="steelblue")
+        ax1.annotate(
+            f"{n_categories} categories (too many to color)",
+            xy=(0.05, 0.95), xycoords="axes fraction",
+            fontsize=10, ha="left", va="top",
+        )
+    
+    ax1.set_xlabel(f"{method.upper()} Dimension 1", fontsize=11)
+    ax1.set_ylabel(f"{method.upper()} Dimension 2", fontsize=11)
+    ax1.set_title(f"Colored by Category\n(Silhouette: {silhouette_score:.3f})", fontsize=12, fontweight="bold")
+    ax1.grid(True, alpha=0.2)
+    
+    # Right: Color by rating
+    ax2 = axes[1]
+    valid_ratings = [r if r > 0 else np.nan for r in ratings]
+    
+    scatter = ax2.scatter(
+        projection_x, projection_y,
+        c=valid_ratings, cmap="RdYlGn", alpha=0.6, s=15, edgecolors="none",
+        vmin=1, vmax=5,
+    )
+    cbar = plt.colorbar(scatter, ax=ax2, shrink=0.8)
+    cbar.set_label("Average Rating", fontsize=10)
+    
+    ax2.set_xlabel(f"{method.upper()} Dimension 1", fontsize=11)
+    ax2.set_ylabel(f"{method.upper()} Dimension 2", fontsize=11)
+    ax2.set_title("Colored by Average Rating", fontsize=12, fontweight="bold")
+    ax2.grid(True, alpha=0.2)
+    
+    fig.suptitle(
+        f"Visual Manifold Structure ({method.upper()}) - {dataset_name}\n"
+        f"({len(projection_x):,} items projected)",
+        fontsize=14, fontweight="bold"
+    )
+    plt.tight_layout()
+    
+    if output_path:
+        save_figure(fig, output_path, f"visual_manifold_{dataset_name.lower().replace(' ', '_')}")
+    
+    return fig
+
+
+def plot_bpr_hardness_distribution(
+    distance_distribution: list[float],
+    pct_easy: float,
+    pct_medium: float,
+    pct_hard: float,
+    mean_distance: float,
+    output_path: Optional[Path] = None,
+    dataset_name: str = "Dataset",
+) -> plt.Figure:
+    """
+    Plot BPR negative sampling hardness distribution.
+    
+    Args:
+        distance_distribution: Visual distances for positive-negative pairs.
+        pct_easy: Percentage of easy negatives.
+        pct_medium: Percentage of medium negatives.
+        pct_hard: Percentage of hard negatives.
+        mean_distance: Mean visual distance.
+        output_path: Optional path to save figure.
+        dataset_name: Name for plot title.
+        
+    Returns:
+        matplotlib Figure object.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left: Histogram of visual distances
+    ax1 = axes[0]
+    
+    ax1.hist(
+        distance_distribution,
+        bins=50,
+        color="steelblue",
+        edgecolor="black",
+        alpha=0.7,
+    )
+    
+    # Add threshold lines
+    ax1.axvline(0.3, color="green", linestyle="--", linewidth=2, label="Hard threshold (0.3)")
+    ax1.axvline(0.8, color="red", linestyle="--", linewidth=2, label="Easy threshold (0.8)")
+    ax1.axvline(mean_distance, color="orange", linestyle="-", linewidth=2, label=f"Mean: {mean_distance:.3f}")
+    
+    ax1.set_xlabel("Visual Distance (1 - Cosine Similarity)", fontsize=11)
+    ax1.set_ylabel("Frequency", fontsize=11)
+    ax1.set_title("Distribution of Positive-Negative Visual Distances", fontsize=12, fontweight="bold")
+    ax1.legend(loc="upper right", fontsize=9)
+    ax1.grid(True, alpha=0.3)
+    
+    # Right: Stacked bar for hardness categories
+    ax2 = axes[1]
+    
+    categories = ["Hard\n(<0.3)", "Medium\n(0.3-0.8)", "Easy\n(>0.8)"]
+    percentages = [pct_hard, pct_medium, pct_easy]
+    colors = ["#27ae60", "#f39c12", "#e74c3c"]  # Green, Orange, Red
+    
+    bars = ax2.bar(categories, percentages, color=colors, edgecolor="black")
+    
+    for bar, pct in zip(bars, percentages):
+        height = bar.get_height()
+        ax2.annotate(
+            f"{pct:.1f}%",
+            xy=(bar.get_x() + bar.get_width() / 2, height),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="center", va="bottom",
+            fontsize=12, fontweight="bold",
+        )
+    
+    ax2.set_ylabel("Percentage of Negative Samples", fontsize=11)
+    ax2.set_title("Negative Sample Hardness Categories", fontsize=12, fontweight="bold")
+    ax2.set_ylim(0, max(percentages) * 1.15)
+    
+    # Add recommendation
+    if pct_easy > 80:
+        recommendation = "⚠️ Most negatives are trivially easy!\nRecommend: Hard negative sampling"
+        color = "#ffcccb"
+    elif pct_easy > 50:
+        recommendation = "⚡ Majority negatives are easy\nConsider: Mixed sampling strategy"
+        color = "#fff3cd"
+    else:
+        recommendation = "✓ Good hardness distribution\nRandom sampling may suffice"
+        color = "#d4edda"
+    
+    ax2.annotate(
+        recommendation,
+        xy=(0.5, 0.02), xycoords="axes fraction",
+        fontsize=10, ha="center", va="bottom",
+        bbox=dict(boxstyle="round", facecolor=color, alpha=0.8),
+    )
+    
+    fig.suptitle(
+        f"BPR Negative Sampling Hardness - {dataset_name}\n"
+        f"({len(distance_distribution):,} pairs analyzed)",
+        fontsize=14, fontweight="bold"
+    )
+    plt.tight_layout()
+    
+    if output_path:
+        save_figure(fig, output_path, f"bpr_hardness_{dataset_name.lower().replace(' ', '_')}")
+    
+    return fig
