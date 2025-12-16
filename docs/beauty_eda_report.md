@@ -30,7 +30,7 @@
 
 ## 2. Rating Distribution
 
-![Rating Distribution](figures/beauty/rating_distribution_beauty.png)
+![Rating Distribution](figures/beauty/rating_distribution_beauty_and_personal_care.png)
 
 | Rating | Count | Percentage |
 |--------|-------|------------|
@@ -46,7 +46,7 @@
 
 ### Power-Law Distribution
 
-![Interaction Frequency](figures/beauty/interaction_frequency_beauty.png)
+![Interaction Frequency](figures/beauty/interaction_frequency_beauty_and_personal_care.png)
 
 **User Patterns:**
 - Mean interactions/user: 2.07
@@ -77,7 +77,7 @@ Top users account for a disproportionate share of interactions:
 
 ## 4. Temporal Analysis
 
-![Temporal Patterns](figures/beauty/temporal_patterns_beauty.png)
+![Temporal Patterns](figures/beauty/temporal_patterns_beauty_and_personal_care.png)
 
 **Date Range:** 2003-11-21 to 2023-09-11  
 **Duration:** 7,233 days
@@ -86,7 +86,7 @@ Top users account for a disproportionate share of interactions:
 
 ## 5. Text Analysis
 
-![Text Length Distribution](figures/beauty/text_length_beauty.png)
+![Text Length Distribution](figures/beauty/text_length_beauty_and_personal_care.png)
 
 | Metric | Value |
 |--------|-------|
@@ -99,7 +99,7 @@ Top users account for a disproportionate share of interactions:
 ## 6. Multimodal Analysis
 
 
-![Multimodal Coverage](figures/beauty/multimodal_coverage_beauty.png)
+![Multimodal Coverage](figures/beauty/multimodal_coverage_beauty_and_personal_care.png)
 
 ### Feature Coverage
 
@@ -122,9 +122,9 @@ Top users account for a disproportionate share of interactions:
 
 ## 7. Sparsity and K-Core Analysis
 
-![Sparsity](figures/beauty/sparsity_beauty.png)
+![Sparsity](figures/beauty/sparsity_beauty_and_personal_care.png)
 
-**Matrix Sparsity:** 99.99794906%  
+**Matrix Sparsity:** 99.99794906%
 **Density:** 0.00205094%
 
 ### K-Core Filtering Impact
@@ -141,7 +141,7 @@ Top users account for a disproportionate share of interactions:
 
 ## 8. Category Distribution
 
-![Categories](figures/beauty/category_distribution_beauty.png)
+![Categories](figures/beauty/category_distribution_beauty_and_personal_care.png)
 
 Top categories in the dataset:
 
