@@ -903,14 +903,14 @@ def main():
         "--dataset",
         nargs="+",
         choices=["beauty", "clothing", "electronics", "all"],
-        default=["all"],
-        help="Dataset(s) to analyze (default: all). Can specify multiple: --dataset beauty clothing",
+        default=["beauty"],
+        help="Dataset(s) to analyze (default: beauty). Can specify multiple: --dataset beauty clothing",
     )
     parser.add_argument(
         "--sampling-strategy",
         type=str,
         choices=["random", "kcore", "temporal", "dense"],
-        default="random",
+        default="dense",
         help="Sampling strategy: random (legacy 1%%), kcore (k-core filter), temporal (time-window), dense (both)",
     )
     parser.add_argument(
