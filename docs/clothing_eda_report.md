@@ -1,7 +1,7 @@
 # EDA Report: Clothing, Shoes and Jewelry
 
-**Generated:** 2025-12-15T10:20:43.008264  
-**Sample Ratio:** 1%
+**Generated:** 2025-12-17T16:34:15.529452  
+**Sampling Strategy:** Dense (K-Core k=5 + 12 months)
 
 ---
 
@@ -12,19 +12,19 @@
 | Metric | Interactions | Metadata |
 |--------|-------------|----------|
 | Total Records | 66,033,346 | 7,218,481 |
-| Sampled Records | 659,208 | 337,008 |
-| Memory (MB) | 288.64 | 578.04 |
+| Sampled Records | 852,544 | 61,078 |
+| Memory (MB) | 532.12 | 141.09 |
 
 ### Interaction Statistics
 
 | Metric | Value |
 |--------|-------|
-| Users | 225,764 |
-| Items | 337,008 |
-| Interactions | 659,208 |
-| Avg Rating | 4.18 |
-| Rating Std | 1.31 |
-| Sparsity | 99.99913358% |
+| Users | 65,116 |
+| Items | 61,078 |
+| Interactions | 852,544 |
+| Avg Rating | 4.46 |
+| Rating Std | 0.94 |
+| Sparsity | 99.97856397% |
 
 ---
 
@@ -34,11 +34,11 @@
 
 | Rating | Count | Percentage |
 |--------|-------|------------|
-| 1.0 | 58,303 | 8.8% |
-| 2.0 | 36,421 | 5.5% |
-| 3.0 | 54,870 | 8.3% |
-| 4.0 | 89,415 | 13.6% |
-| 5.0 | 420,199 | 63.7% |
+| 1.0 | 22,205 | 2.6% |
+| 2.0 | 24,584 | 2.9% |
+| 3.0 | 66,431 | 7.8% |
+| 4.0 | 161,835 | 19.0% |
+| 5.0 | 577,489 | 67.7% |
 
 ---
 
@@ -49,16 +49,16 @@
 ![Interaction Frequency](figures/clothing/interaction_frequency_clothing,_shoes_and_jewelry.png)
 
 **User Patterns:**
-- Mean interactions/user: 2.92
-- Median interactions/user: 2.0
-- Cold-start users (<5 interactions): 84.8%
-- Power-law exponent α: 1.74
+- Mean interactions/user: 13.09
+- Median interactions/user: 7.0
+- Cold-start users (<5 interactions): 0.0%
+- Power-law exponent α: 2.50
 
 **Item Patterns:**
-- Mean interactions/item: 1.96
-- Median interactions/item: 1.0
-- Cold-start items (<5 interactions): 93.8%
-- Power-law exponent α: 2.01
+- Mean interactions/item: 13.96
+- Median interactions/item: 11.0
+- Cold-start items (<5 interactions): 0.0%
+- Power-law exponent α: 2.09
 
 ### Pareto Analysis (Interaction Concentration)
 
@@ -67,10 +67,10 @@ Top users account for a disproportionate share of interactions:
 | User Tier | % of Total Interactions |
 |-----------|------------------------|
 | Top 1% | 11.7% |
-| Top 5% | 29.1% |
-| Top 10% | 41.5% |
-| Top 20% | 57.4% |
-| Top 50% | 82.3% |
+| Top 5% | 32.2% |
+| Top 10% | 45.2% |
+| Top 20% | 59.1% |
+| Top 50% | 79.4% |
 | Top 100% | 100.0% |
 
 ---
@@ -79,8 +79,8 @@ Top users account for a disproportionate share of interactions:
 
 ![Temporal Patterns](figures/clothing/temporal_patterns_clothing,_shoes_and_jewelry.png)
 
-**Date Range:** 1998-07-11 to 2023-09-08  
-**Duration:** 9,190 days
+**Date Range:** 2022-09-18 to 2023-09-12  
+**Duration:** 359 days
 
 ---
 
@@ -90,8 +90,8 @@ Top users account for a disproportionate share of interactions:
 
 | Metric | Value |
 |--------|-------|
-| Avg Review Length | 146 chars |
-| Avg Title Length | 20 chars |
+| Avg Review Length | 278 chars |
+| Avg Title Length | 21 chars |
 | Reviews with Text | 100.0% |
 
 ---
@@ -106,17 +106,17 @@ Top users account for a disproportionate share of interactions:
 | Feature | Coverage |
 |---------|----------|
 | Title | 100.0% |
-| Description | 50.2% |
-| Features | 94.2% |
-| Images | 99.9% |
-| **Complete (Text + Image)** | 99.9% |
+| Description | 21.9% |
+| Features | 99.5% |
+| Images | 100.0% |
+| **Complete (Text + Image)** | 100.0% |
 
 ### Image Statistics
 
 | Metric | Value |
 |--------|-------|
-| Items with Images | 336,797 |
-| Avg Images/Item | 5.19 |
+| Items with Images | 61,077 |
+| Avg Images/Item | 6.16 |
 
 ---
 
@@ -124,17 +124,17 @@ Top users account for a disproportionate share of interactions:
 
 ![Sparsity](figures/clothing/sparsity_clothing,_shoes_and_jewelry.png)
 
-**Matrix Sparsity:** 99.99913358%  
-**Density:** 0.00086642%
+**Matrix Sparsity:** 99.97856397%  
+**Density:** 0.02143603%
 
 ### K-Core Filtering Impact
 
 | k | Users Retained | Items Retained | Interactions Retained |
 |---|----------------|----------------|----------------------|
-| 2 | 32.5% | 18.7% | 42.9% |
-| 3 | 10.7% | 5.7% | 18.1% |
-| 5 | 0.0% | 0.0% | 0.1% |
-| 10 | 0.0% | 0.0% | 0.0% |
+| 2 | 100.0% | 100.0% | 100.0% |
+| 3 | 100.0% | 100.0% | 100.0% |
+| 5 | 100.0% | 100.0% | 100.0% |
+| 10 | 17.6% | 35.8% | 43.6% |
 | 20 | 0.0% | 0.0% | 0.0% |
 
 ---
@@ -147,8 +147,8 @@ Top categories in the dataset:
 
 | Category | Count |
 |----------|-------|
-| Clothing, Shoes & Jewelry | 336,776 |
-| Shoe, Jewelry & Watch Accessories | 232 |
+| Clothing, Shoes & Jewelry | 61,030 |
+| Shoe, Jewelry & Watch Accessories | 48 |
 
 ---
 
@@ -163,6 +163,104 @@ Top categories in the dataset:
 1. **K-Core Filtering:** Use k=5 as baseline (balances data quality vs. coverage)
 2. **Multimodal Features:** Leverage text/image to address cold-start problem
 3. **Negative Sampling:** Use popularity-based hard negative sampling for BPR
+
+
+---
+
+## 10. Multimodal Recommendation Readiness (Academic Analysis)
+
+
+### 10.1 Modality-Interaction Alignment (Liu et al., 2024)
+
+![Modality Alignment](figures/clothing/modality_alignment_clothing,_shoes_and_jewelry.png)
+
+Tests the **Homophily Hypothesis**: Do visually similar items share similar interaction patterns?
+
+| Metric | Value |
+|--------|-------|
+| Pairs Analyzed | 1,000 |
+| Pearson r | 0.0465 |
+| p-value | 0.1421 |
+| Spearman ρ | 0.0483 |
+
+**Interpretation:** No significant correlation - visual features may not align with user preferences
+
+
+### 10.2 Visual Manifold Structure (Xu et al., 2025)
+
+![Visual Manifold](figures/clothing/visual_manifold_clothing,_shoes_and_jewelry.png)
+
+Analyzes whether CLIP embeddings form meaningful clusters by category.
+
+| Metric | Value |
+|--------|-------|
+| Items Projected | 5,000 |
+| Projection Method | UMAP |
+| Silhouette Score | -0.0646 |
+| Unique Categories | 2 |
+
+**Interpretation:** No meaningful visual clustering - visual features may not align with categories
+
+
+### 10.3 BPR Negative Sampling Hardness (Xu et al., 2025)
+
+![BPR Hardness](figures/clothing/bpr_hardness_clothing,_shoes_and_jewelry.png)
+
+Evaluates whether random negative sampling produces informative training signal.
+
+| Metric | Value |
+|--------|-------|
+| Users Analyzed | 100 |
+| Pairs Analyzed | 1,000 |
+| Mean Visual Distance | 0.3360 |
+| Easy Negatives (>0.8) | 0.0% |
+| Medium Negatives | 65.4% |
+| Hard Negatives (<0.3) | 34.6% |
+
+**Interpretation:** Good distribution of hard negatives - random sampling may suffice
+
+**Recommendation:** Standard BPR with random negatives should work
+
+
+---
+
+## 11. LATTICE Feasibility Assessment
+
+> [!CAUTION]
+> ⛔ **STOP** - LATTICE feasibility checks failed. Revisit Feature Extraction.
+
+### 11.1 Graph Connectivity (k-NN, k=5)
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Connected Components | 1 | - |
+| Giant Component Size | 5,000 | - |
+| Giant Component Coverage | 100.0% | ✅ PASS |
+| Threshold | >50.0% | - |
+
+**Interpretation:** PASS: Giant component covers 100.0% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE.
+
+### 11.2 Feature Collapse Detection (White Wall Test)
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Pairs Sampled | 10,000 | - |
+| Avg Cosine Similarity | 0.6672 | ⚠️ WARNING |
+| Std Cosine Similarity | 0.0885 | - |
+| High Similarity Pairs (>0.9) | 0.2% | - |
+| Pass Threshold | <0.5 | - |
+
+**Interpretation:** WARNING: Avg cosine similarity = 0.667 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder.
+
+### Summary
+
+| Check | Value | Status |
+|-------|-------|--------|
+| Alignment (Pearson r) | 0.0465 | ✅ |
+| Connectivity (Giant %) | 100.0% | ✅ |
+| No Collapse (Avg Cosine) | 0.6672 | ❌ |
+
+**Decision:** STOP
 
 ---
 

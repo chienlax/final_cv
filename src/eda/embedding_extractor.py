@@ -3,13 +3,22 @@ CLIP Embedding Extractor for Visual Features.
 
 Extracts CLIP image embeddings for multimodal recommendation analysis.
 Supports GPU acceleration when available.
+
+Optimized with:
+- Parallel image downloads (ThreadPoolExecutor)
+- Background prefetching of next batch
+- Increased batch size for GPU efficiency
 """
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
+from queue import Queue
+from threading import Thread
 from typing import Optional, Any
 import io
+import time
 
 import numpy as np
 import pandas as pd
@@ -56,6 +65,8 @@ class EmbeddingExtractionResult:
     n_items_failed: int = 0
     embedding_dim: int = 0
     device_used: str = "cpu"
+    processing_time_sec: float = 0.0
+    items_per_second: float = 0.0
     
     # Mapping and embeddings
     item_ids: list[str] = field(default_factory=list)
@@ -70,6 +81,8 @@ class EmbeddingExtractionResult:
             "success_rate": round(self.n_items_successful / max(1, self.n_items_attempted) * 100, 2),
             "embedding_dim": self.embedding_dim,
             "device_used": self.device_used,
+            "processing_time_sec": round(self.processing_time_sec, 2),
+            "items_per_second": round(self.items_per_second, 2),
         }
 
 
@@ -118,27 +131,124 @@ def load_image_from_url(url: str, timeout: int = 10) -> Optional["Image.Image"]:
         return None
 
 
+def download_item_image(row: pd.Series, timeout: int = 10) -> tuple[str, Optional["Image.Image"]]:
+    """
+    Download image for a single item, trying multiple URLs.
+    
+    Args:
+        row: DataFrame row with 'item_id' and 'image_urls'.
+        timeout: Request timeout in seconds.
+        
+    Returns:
+        Tuple of (item_id, image or None).
+    """
+    item_id = row["item_id"]
+    image_urls = row["image_urls"]
+    
+    # Try first 3 URLs
+    for url in image_urls[:3]:
+        image = load_image_from_url(url, timeout=timeout)
+        if image is not None:
+            return (item_id, image)
+    
+    return (item_id, None)
+
+
+def download_batch_images_parallel(
+    batch_df: pd.DataFrame,
+    max_workers: int = 16,
+    timeout: int = 10,
+) -> list[tuple[str, Optional["Image.Image"]]]:
+    """
+    Download images for a batch in parallel using ThreadPoolExecutor.
+    
+    Args:
+        batch_df: DataFrame batch with 'item_id' and 'image_urls'.
+        max_workers: Number of parallel download threads.
+        timeout: Request timeout per image.
+        
+    Returns:
+        List of (item_id, image or None) tuples.
+    """
+    results = []
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(download_item_image, row, timeout): row["item_id"]
+            for _, row in batch_df.iterrows()
+        }
+        
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                item_id = futures[future]
+                logger.debug(f"Download failed for {item_id}: {e}")
+                results.append((item_id, None))
+    
+    return results
+
+
+def prefetch_worker(
+    batch_queue: Queue,
+    image_queue: Queue,
+    max_workers: int = 16,
+    timeout: int = 10,
+):
+    """
+    Background worker to prefetch images for next batch.
+    
+    Runs in a separate thread, continuously downloading batches
+    while the main thread processes them on GPU.
+    
+    Args:
+        batch_queue: Input queue of batch DataFrames (None = stop signal).
+        image_queue: Output queue of downloaded images.
+        max_workers: Parallel download threads.
+        timeout: Request timeout per image.
+    """
+    while True:
+        batch_df = batch_queue.get()
+        
+        if batch_df is None:  # Poison pill - stop signal
+            image_queue.put(None)
+            break
+        
+        # Download images in parallel
+        images = download_batch_images_parallel(batch_df, max_workers, timeout)
+        image_queue.put(images)
+
+
 def extract_clip_embeddings(
     metadata_df: pd.DataFrame,
     model_name: str = "openai/clip-vit-base-patch32",
-    batch_size: int = 32,
+    batch_size: int = 128,
     max_items: int = 5000,
+    download_workers: int = 16,
+    download_timeout: int = 10,
     seed: int = 42,
 ) -> tuple[np.ndarray, dict[str, int], EmbeddingExtractionResult]:
     """
     Extract CLIP embeddings for items from image URLs.
     
+    Optimized with parallel downloads and batch prefetching for maximum throughput.
+    
     Args:
         metadata_df: DataFrame with 'item_id' and 'image_urls' columns.
         model_name: CLIP model to use.
-        batch_size: Batch size for inference.
+        batch_size: Batch size for GPU inference (default: 128).
         max_items: Maximum items to process.
+        download_workers: Number of parallel download threads (default: 16).
+        download_timeout: Timeout per image download in seconds.
         seed: Random seed for sampling.
         
     Returns:
         Tuple of (embeddings array, item_indices dict, result stats).
     """
-    logger.info("Extracting CLIP embeddings...")
+    start_time = time.time()
+    logger.info("Extracting CLIP embeddings (optimized parallel mode)...")
+    logger.info(f"  Settings: batch_size={batch_size}, download_workers={download_workers}")
     
     result = EmbeddingExtractionResult()
     
@@ -182,30 +292,54 @@ def extract_clip_embeddings(
         items_with_images = items_with_images.sample(n=max_items, random_state=seed)
     
     result.n_items_attempted = len(items_with_images)
-    logger.info(f"  Processing {result.n_items_attempted} items...")
+    logger.info(f"  Processing {result.n_items_attempted} items with prefetching...")
     
     embeddings_list = []
     item_ids_list = []
     
-    # Process in batches
+    # Create batch list
+    batches = []
     for batch_start in range(0, len(items_with_images), batch_size):
         batch_end = min(batch_start + batch_size, len(items_with_images))
         batch_df = items_with_images.iloc[batch_start:batch_end]
+        batches.append(batch_df)
+    
+    # Setup prefetch queues
+    batch_queue = Queue(maxsize=2)  # Max 2 batches prefetched
+    image_queue = Queue(maxsize=2)
+    
+    # Start prefetch worker thread
+    prefetch_thread = Thread(
+        target=prefetch_worker,
+        args=(batch_queue, image_queue, download_workers, download_timeout),
+        daemon=True,
+    )
+    prefetch_thread.start()
+    
+    # Enqueue first batch for prefetching
+    if len(batches) > 0:
+        batch_queue.put(batches[0])
+    
+    # Process batches with prefetching
+    for batch_idx, batch_df in enumerate(batches):
+        # Enqueue next batch for prefetching (while we process current)
+        if batch_idx + 1 < len(batches):
+            batch_queue.put(batches[batch_idx + 1])
+        else:
+            # No more batches, send stop signal
+            batch_queue.put(None)
         
+        # Get prefetched images for current batch
+        downloaded = image_queue.get()
+        
+        if downloaded is None:
+            break
+        
+        # Separate successful downloads
         batch_images = []
         batch_item_ids = []
         
-        for _, row in batch_df.iterrows():
-            item_id = row["item_id"]
-            image_urls = row["image_urls"]
-            
-            # Try to load first available image
-            image = None
-            for url in image_urls[:3]:  # Try first 3 URLs
-                image = load_image_from_url(url)
-                if image is not None:
-                    break
-            
+        for item_id, image in downloaded:
             if image is not None:
                 batch_images.append(image)
                 batch_item_ids.append(item_id)
@@ -215,7 +349,7 @@ def extract_clip_embeddings(
         if len(batch_images) == 0:
             continue
         
-        # Extract embeddings
+        # Extract embeddings on GPU
         try:
             with torch.no_grad():
                 inputs = processor(images=batch_images, return_tensors="pt", padding=True)
@@ -228,12 +362,20 @@ def extract_clip_embeddings(
                 embeddings_list.append(image_features.cpu().numpy())
                 item_ids_list.extend(batch_item_ids)
         except Exception as e:
-            logger.warning(f"  Batch {batch_start}-{batch_end} failed: {e}")
+            logger.warning(f"  Batch {batch_idx} GPU inference failed: {e}")
             result.n_items_failed += len(batch_images)
             continue
         
-        if (batch_start // batch_size) % 10 == 0:
-            logger.info(f"  Processed {batch_end}/{result.n_items_attempted} items...")
+        # Progress logging
+        processed = (batch_idx + 1) * batch_size
+        elapsed = time.time() - start_time
+        rate = len(item_ids_list) / elapsed if elapsed > 0 else 0
+        
+        if batch_idx % 5 == 0 or batch_idx == len(batches) - 1:
+            logger.info(f"  Batch {batch_idx+1}/{len(batches)}: {len(item_ids_list)} embeddings ({rate:.1f} items/sec)")
+    
+    # Wait for prefetch thread to finish
+    prefetch_thread.join(timeout=5)
     
     if len(embeddings_list) == 0:
         logger.warning("  No embeddings extracted")
@@ -246,7 +388,12 @@ def extract_clip_embeddings(
     result.item_ids = item_ids_list
     result.item_indices = {item_id: idx for idx, item_id in enumerate(item_ids_list)}
     
+    # Calculate timing stats
+    result.processing_time_sec = time.time() - start_time
+    result.items_per_second = result.n_items_successful / max(0.1, result.processing_time_sec)
+    
     logger.info(f"  Extracted {result.n_items_successful} embeddings (dim={result.embedding_dim})")
+    logger.info(f"  Total time: {result.processing_time_sec:.1f}s ({result.items_per_second:.1f} items/sec)")
     
     return embeddings, result.item_indices, result
 
