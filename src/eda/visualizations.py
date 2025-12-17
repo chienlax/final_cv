@@ -13,6 +13,11 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+# Use non-interactive backend to avoid tkinter thread-safety issues
+# This must be done BEFORE importing pyplot
+import matplotlib
+matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import numpy as np
@@ -769,5 +774,177 @@ def plot_bpr_hardness_distribution(
     
     if output_path:
         save_figure(fig, output_path, f"bpr_hardness_{dataset_name.lower().replace(' ', '_')}")
+    
+    return fig
+
+
+def plot_semantic_alignment(
+    text_similarities: list[float],
+    interaction_similarities: list[float],
+    pearson_r: float,
+    pearson_p: float,
+    signal_strength: str,
+    output_path: Optional[Path] = None,
+    dataset_name: str = "Dataset",
+) -> plt.Figure:
+    """
+    Plot semantic-interaction alignment scatter plot.
+    
+    Visualizes the correlation between text similarity and interaction patterns.
+    
+    Args:
+        text_similarities: List of text similarity scores (cosine).
+        interaction_similarities: List of interaction similarity scores (Jaccard).
+        pearson_r: Pearson correlation coefficient.
+        pearson_p: Pearson p-value.
+        signal_strength: Interpretation category.
+        output_path: Optional path to save figure.
+        dataset_name: Name for plot title.
+        
+    Returns:
+        matplotlib Figure object.
+    """
+    fig, ax = plt.subplots(figsize=(10, 8))
+    
+    # Scatter plot with density
+    ax.scatter(
+        text_similarities,
+        interaction_similarities,
+        alpha=0.3,
+        s=15,
+        c="steelblue",
+        edgecolors="none",
+    )
+    
+    # Add regression line
+    if len(text_similarities) > 2 and not np.isnan(pearson_r):
+        z = np.polyfit(text_similarities, interaction_similarities, 1)
+        p = np.poly1d(z)
+        x_line = np.linspace(min(text_similarities), max(text_similarities), 100)
+        ax.plot(x_line, p(x_line), "r-", linewidth=2.5, label=f"r = {pearson_r:.4f}")
+    
+    ax.set_xlabel("Text Similarity (SBERT Cosine)", fontsize=12)
+    ax.set_ylabel("Interaction Similarity (Jaccard)", fontsize=12)
+    
+    # Title with interpretation
+    p_str = f"{pearson_p:.4f}" if not np.isnan(pearson_p) else "N/A"
+    r_str = f"{pearson_r:.4f}" if not np.isnan(pearson_r) else "N/A"
+    ax.set_title(
+        f"Semantic-Interaction Alignment - {dataset_name}\n"
+        f"(Pearson r = {r_str}, p = {p_str})",
+        fontsize=14, fontweight="bold"
+    )
+    
+    # Signal strength indicator
+    color_map = {
+        "noise": "#e74c3c",
+        "weak": "#f39c12",
+        "moderate": "#3498db",
+        "strong": "#27ae60",
+    }
+    bg_color = color_map.get(signal_strength, "#95a5a6")
+    
+    ax.annotate(
+        f"Signal: {signal_strength.upper()}",
+        xy=(0.05, 0.95), xycoords="axes fraction",
+        fontsize=12, ha="left", va="top", fontweight="bold",
+        bbox=dict(boxstyle="round,pad=0.3", facecolor=bg_color, alpha=0.7),
+    )
+    
+    ax.legend(loc="lower right", fontsize=11)
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    
+    if output_path:
+        save_figure(fig, output_path, f"semantic_alignment_{dataset_name.lower().replace(' ', '_')}")
+    
+    return fig
+
+
+def plot_cross_modal_consistency(
+    similarities: list[float],
+    mean_sim: float,
+    alignment_status: str,
+    output_path: Optional[Path] = None,
+    dataset_name: str = "Dataset",
+) -> plt.Figure:
+    """
+    Plot cross-modal consistency distribution.
+    
+    Args:
+        similarities: Per-item text-image similarities.
+        mean_sim: Mean similarity.
+        alignment_status: Interpretation category.
+        output_path: Optional path to save figure.
+        dataset_name: Name for plot title.
+        
+    Returns:
+        matplotlib Figure object.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left: Histogram with regions
+    ax1 = axes[0]
+    
+    ax1.hist(similarities, bins=50, color="steelblue", edgecolor="black", alpha=0.7)
+    
+    # Add region shading
+    ax1.axvspan(-1, 0.3, alpha=0.2, color="red", label="Low (<0.3)")
+    ax1.axvspan(0.3, 0.6, alpha=0.2, color="yellow", label="Moderate (0.3-0.6)")
+    ax1.axvspan(0.6, 1, alpha=0.2, color="green", label="High (>0.6)")
+    
+    # Mean line
+    ax1.axvline(mean_sim, color="darkred", linestyle="-", linewidth=2.5, 
+                label=f"Mean: {mean_sim:.3f}")
+    
+    ax1.set_xlabel("Text-Image Cosine Similarity", fontsize=11)
+    ax1.set_ylabel("Number of Items", fontsize=11)
+    ax1.set_title("Per-Item Cross-Modal Similarity Distribution", fontsize=12, fontweight="bold")
+    ax1.legend(loc="upper left", fontsize=9)
+    ax1.set_xlim(-0.2, 1.0)
+    ax1.grid(True, alpha=0.3)
+    
+    # Right: Summary pie chart
+    ax2 = axes[1]
+    
+    sims_arr = np.array(similarities)
+    low_pct = (sims_arr < 0.3).mean() * 100
+    mod_pct = ((sims_arr >= 0.3) & (sims_arr < 0.6)).mean() * 100
+    high_pct = (sims_arr >= 0.6).mean() * 100
+    
+    sizes = [low_pct, mod_pct, high_pct]
+    labels = [f"Low\n{low_pct:.1f}%", f"Moderate\n{mod_pct:.1f}%", f"High\n{high_pct:.1f}%"]
+    colors = ["#e74c3c", "#f1c40f", "#27ae60"]
+    explode = (0.02, 0.02, 0.02)
+    
+    ax2.pie(sizes, labels=labels, colors=colors, explode=explode,
+            autopct="", startangle=90, pctdistance=0.85)
+    
+    # Status annotation
+    color_map = {
+        "disagree": "#e74c3c",
+        "moderate": "#f39c12",
+        "agree": "#27ae60",
+    }
+    bg_color = color_map.get(alignment_status, "#95a5a6")
+    
+    ax2.annotate(
+        f"Status: {alignment_status.upper()}",
+        xy=(0.5, 0.02), xycoords="axes fraction",
+        fontsize=12, ha="center", va="bottom", fontweight="bold",
+        bbox=dict(boxstyle="round,pad=0.3", facecolor=bg_color, alpha=0.7),
+    )
+    
+    ax2.set_title("Agreement Distribution", fontsize=12, fontweight="bold")
+    
+    fig.suptitle(
+        f"Cross-Modal Consistency (Text vs Image) - {dataset_name}\n"
+        f"({len(similarities):,} items analyzed)",
+        fontsize=14, fontweight="bold"
+    )
+    plt.tight_layout()
+    
+    if output_path:
+        save_figure(fig, output_path, f"cross_modal_consistency_{dataset_name.lower().replace(' ', '_')}")
     
     return fig

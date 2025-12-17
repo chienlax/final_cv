@@ -222,7 +222,7 @@ def prefetch_worker(
 
 def extract_clip_embeddings(
     metadata_df: pd.DataFrame,
-    model_name: str = "openai/clip-vit-base-patch32",
+    model_name: str = "openai/clip-vit-large-patch14",
     batch_size: int = 128,
     max_items: int = 5000,
     download_workers: int = 16,

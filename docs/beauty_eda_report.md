@@ -1,7 +1,7 @@
 # EDA Report: Beauty and Personal Care
 
-**Generated:** 2025-12-17T15:56:05.680387  
-**Sampling Strategy:** Dense (K-Core k=5 + 12 months)
+**Generated:** 2025-12-17T19:08:17.407319  
+**Sampling Strategy:** Dense (K-Core k=5 + 36 months)
 
 ---
 
@@ -12,19 +12,19 @@
 | Metric | Interactions | Metadata |
 |--------|-------------|----------|
 | Total Records | 23,911,390 | 1,028,914 |
-| Sampled Records | 377,060 | 24,318 |
-| Memory (MB) | 267.4 | 66.28 |
+| Sampled Records | 1,778,010 | 86,436 |
+| Memory (MB) | 1084.68 | 208.44 |
 
 ### Interaction Statistics
 
 | Metric | Value |
 |--------|-------|
-| Users | 23,893 |
-| Items | 24,318 |
-| Interactions | 377,060 |
-| Avg Rating | 4.46 |
-| Rating Std | 0.93 |
-| Sparsity | 99.93510490% |
+| Users | 178,621 |
+| Items | 86,436 |
+| Interactions | 1,778,010 |
+| Avg Rating | 4.26 |
+| Rating Std | 1.22 |
+| Sparsity | 99.98848386% |
 
 ---
 
@@ -34,11 +34,11 @@
 
 | Rating | Count | Percentage |
 |--------|-------|------------|
-| 1.0 | 9,517 | 2.5% |
-| 2.0 | 9,705 | 2.6% |
-| 3.0 | 29,179 | 7.7% |
-| 4.0 | 79,346 | 21.0% |
-| 5.0 | 249,313 | 66.1% |
+| 1.0 | 128,382 | 7.2% |
+| 2.0 | 79,346 | 4.5% |
+| 3.0 | 147,686 | 8.3% |
+| 4.0 | 262,524 | 14.8% |
+| 5.0 | 1,160,072 | 65.2% |
 
 ---
 
@@ -49,16 +49,16 @@
 ![Interaction Frequency](figures/beauty/interaction_frequency_beauty_and_personal_care.png)
 
 **User Patterns:**
-- Mean interactions/user: 15.78
-- Median interactions/user: 7.0
+- Mean interactions/user: 9.95
+- Median interactions/user: 6.0
 - Cold-start users (<5 interactions): 0.0%
-- Power-law exponent α: 2.37
+- Power-law exponent α: 3.00
 
 **Item Patterns:**
-- Mean interactions/item: 15.51
-- Median interactions/item: 12.0
+- Mean interactions/item: 20.57
+- Median interactions/item: 11.0
 - Cold-start items (<5 interactions): 0.0%
-- Power-law exponent α: 2.01
+- Power-law exponent α: 1.95
 
 ### Pareto Analysis (Interaction Concentration)
 
@@ -66,11 +66,11 @@ Top users account for a disproportionate share of interactions:
 
 | User Tier | % of Total Interactions |
 |-----------|------------------------|
-| Top 1% | 15.8% |
-| Top 5% | 39.2% |
-| Top 10% | 52.1% |
-| Top 20% | 64.6% |
-| Top 50% | 82.4% |
+| Top 1% | 18.3% |
+| Top 5% | 31.4% |
+| Top 10% | 39.3% |
+| Top 20% | 50.5% |
+| Top 50% | 73.2% |
 | Top 100% | 100.0% |
 
 ---
@@ -79,8 +79,8 @@ Top users account for a disproportionate share of interactions:
 
 ![Temporal Patterns](figures/beauty/temporal_patterns_beauty_and_personal_care.png)
 
-**Date Range:** 2022-09-18 to 2023-09-12  
-**Duration:** 358 days
+**Date Range:** 2020-09-28 to 2023-09-12  
+**Duration:** 1,078 days
 
 ---
 
@@ -90,7 +90,7 @@ Top users account for a disproportionate share of interactions:
 
 | Metric | Value |
 |--------|-------|
-| Avg Review Length | 332 chars |
+| Avg Review Length | 250 chars |
 | Avg Title Length | 21 chars |
 | Reviews with Text | 100.0% |
 
@@ -106,8 +106,8 @@ Top users account for a disproportionate share of interactions:
 | Feature | Coverage |
 |---------|----------|
 | Title | 100.0% |
-| Description | 26.2% |
-| Features | 92.7% |
+| Description | 34.2% |
+| Features | 88.9% |
 | Images | 100.0% |
 | **Complete (Text + Image)** | 100.0% |
 
@@ -115,8 +115,8 @@ Top users account for a disproportionate share of interactions:
 
 | Metric | Value |
 |--------|-------|
-| Items with Images | 24,318 |
-| Avg Images/Item | 6.82 |
+| Items with Images | 86,434 |
+| Avg Images/Item | 6.52 |
 
 ---
 
@@ -124,8 +124,8 @@ Top users account for a disproportionate share of interactions:
 
 ![Sparsity](figures/beauty/sparsity_beauty_and_personal_care.png)
 
-**Matrix Sparsity:** 99.93510490%  
-**Density:** 0.06489510%
+**Matrix Sparsity:** 99.98848386%  
+**Density:** 0.01151614%
 
 ### K-Core Filtering Impact
 
@@ -134,8 +134,8 @@ Top users account for a disproportionate share of interactions:
 | 2 | 100.0% | 100.0% | 100.0% |
 | 3 | 100.0% | 100.0% | 100.0% |
 | 5 | 100.0% | 100.0% | 100.0% |
-| 10 | 18.7% | 41.5% | 51.3% |
-| 20 | 0.1% | 0.1% | 0.4% |
+| 10 | 6.1% | 26.4% | 24.2% |
+| 20 | 0.0% | 0.1% | 0.2% |
 
 ---
 
@@ -147,7 +147,7 @@ Top categories in the dataset:
 
 | Category | Count |
 |----------|-------|
-| Beauty & Personal Care | 24,318 |
+| Beauty & Personal Care | 86,436 |
 
 ---
 
@@ -177,12 +177,12 @@ Tests the **Homophily Hypothesis**: Do visually similar items share similar inte
 
 | Metric | Value |
 |--------|-------|
-| Pairs Analyzed | 1,000 |
-| Pearson r | 0.0323 |
-| p-value | 0.3079 |
-| Spearman ρ | 0.0225 |
+| Pairs Analyzed | 5,000 |
+| Pearson r | 0.0347 |
+| p-value | 0.0141 |
+| Spearman ρ | 0.0280 |
 
-**Interpretation:** No significant correlation - visual features may not align with user preferences
+**Interpretation:** Very weak correlation - visual signal exists but is minimal
 
 
 ### 10.2 Visual Manifold Structure (Xu et al., 2025)
@@ -209,12 +209,12 @@ Evaluates whether random negative sampling produces informative training signal.
 
 | Metric | Value |
 |--------|-------|
-| Users Analyzed | 100 |
-| Pairs Analyzed | 1,000 |
-| Mean Visual Distance | 0.4418 |
-| Easy Negatives (>0.8) | 0.0% |
-| Medium Negatives | 92.3% |
-| Hard Negatives (<0.3) | 7.7% |
+| Users Analyzed | 1,000 |
+| Pairs Analyzed | 10,000 |
+| Mean Visual Distance | 0.5063 |
+| Easy Negatives (>0.8) | 0.1% |
+| Medium Negatives | 98.8% |
+| Hard Negatives (<0.3) | 1.2% |
 
 **Interpretation:** Moderate negative difficulty - room for improvement
 
@@ -225,41 +225,41 @@ Evaluates whether random negative sampling produces informative training signal.
 
 ## 11. LATTICE Feasibility Assessment
 
-> [!CAUTION]
-> ⛔ **STOP** - LATTICE feasibility checks failed. Revisit Feature Extraction.
+> [!TIP]
+> ✅ **PROCEED** with LATTICE architecture - All feasibility checks passed.
 
 ### 11.1 Graph Connectivity (k-NN, k=5)
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| Connected Components | 1 | - |
-| Giant Component Size | 5,000 | - |
-| Giant Component Coverage | 100.0% | ✅ PASS |
+| Connected Components | 2 | - |
+| Giant Component Size | 9,990 | - |
+| Giant Component Coverage | 99.9% | ✅ PASS |
 | Threshold | >50.0% | - |
 
-**Interpretation:** PASS: Giant component covers 100.0% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE.
+**Interpretation:** PASS: Giant component covers 99.9% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE.
 
 ### 11.2 Feature Collapse Detection (White Wall Test)
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| Pairs Sampled | 10,000 | - |
-| Avg Cosine Similarity | 0.5598 | ⚠️ WARNING |
-| Std Cosine Similarity | 0.0959 | - |
+| Pairs Sampled | 20,000 | - |
+| Avg Cosine Similarity | 0.4932 | ✅ PASS |
+| Std Cosine Similarity | 0.0904 | - |
 | High Similarity Pairs (>0.9) | 0.0% | - |
 | Pass Threshold | <0.5 | - |
 
-**Interpretation:** WARNING: Avg cosine similarity = 0.560 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder.
+**Interpretation:** PASS: Avg cosine similarity = 0.493 (threshold: 0.5). Features show good variance. Visual encoder is producing discriminative embeddings.
 
 ### Summary
 
 | Check | Value | Status |
 |-------|-------|--------|
-| Alignment (Pearson r) | 0.0323 | ✅ |
-| Connectivity (Giant %) | 100.0% | ✅ |
-| No Collapse (Avg Cosine) | 0.5598 | ❌ |
+| Alignment (Pearson r) | 0.0347 | ✅ |
+| Connectivity (Giant %) | 99.9% | ✅ |
+| No Collapse (Avg Cosine) | 0.4932 | ✅ |
 
-**Decision:** STOP
+**Decision:** PROCEED
 
 ---
 

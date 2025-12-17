@@ -15,7 +15,7 @@ Usage:
     python src/run_eda.py --dataset clothing --sample-ratio 0.01 --output docs/ --download-images
     python src/run_eda.py --dataset both --sample-ratio 0.01 --output docs/ --download-images
     python src/run_eda.py --dataset beauty --sample-ratio 0.01 --output docs/ --download-images --academic-analysis
-    python src/run_eda.py --dataset all --sampling-strategy dense --kcore-k 5 --temporal-months 12 --academic-analysis
+    python src/run_eda.py --dataset all --sample-ratio 0.05 --sampling-strategy dense --kcore-k 5 --temporal-months 36 --academic-analysis
 """
 
 import argparse
@@ -77,10 +77,18 @@ from eda.bpr_hardness import analyze_bpr_hardness
 from eda.graph_connectivity import analyze_graph_connectivity
 from eda.feature_collapse import analyze_feature_collapse
 from eda.embedding_extractor import extract_clip_embeddings, create_dummy_embeddings
+
+# Text Embedding Modules
+from eda.text_embedding_extractor import extract_text_embeddings, create_dummy_text_embeddings
+from eda.semantic_alignment import analyze_semantic_alignment
+from eda.cross_modal_consistency import analyze_cross_modal_consistency
+
 from eda.visualizations import (
     plot_modality_alignment,
     plot_visual_manifold,
     plot_bpr_hardness_distribution,
+    plot_semantic_alignment,
+    plot_cross_modal_consistency,
 )
 
 # Configure logging
@@ -350,8 +358,8 @@ def run_eda_for_dataset(
         try:
             embeddings, item_indices, emb_stats = extract_clip_embeddings(
                 metadata_df,
-                batch_size=32,
-                max_items=min(5000, len(metadata_df)),
+                batch_size=128,
+                max_items=min(20000, len(metadata_df)),
                 seed=seed,
             )
             results["embedding_extraction"] = emb_stats.to_dict()
@@ -366,7 +374,7 @@ def run_eda_for_dataset(
             try:
                 alignment_result = analyze_modality_alignment(
                     interactions_df, embeddings, item_indices,
-                    n_pairs=min(1000, len(item_indices) * (len(item_indices) - 1) // 2),
+                    n_pairs=min(10000, len(item_indices) * (len(item_indices) - 1) // 2),
                     seed=seed,
                 )
                 results["modality_alignment"] = alignment_result.to_dict()
@@ -389,7 +397,7 @@ def run_eda_for_dataset(
                 manifold_result = analyze_visual_manifold(
                     metadata_df, embeddings, item_indices,
                     method="umap",
-                    max_items=min(5000, len(item_indices)),
+                    max_items=min(10000, len(item_indices)),
                     seed=seed,
                 )
                 results["visual_manifold"] = manifold_result.to_dict()
@@ -413,8 +421,8 @@ def run_eda_for_dataset(
             try:
                 hardness_result = analyze_bpr_hardness(
                     interactions_df, embeddings, item_indices,
-                    n_users=min(100, len(interactions_df["user_id"].unique())),
-                    n_negatives_per_user=10,
+                    n_users=min(2000, len(interactions_df["user_id"].unique())),
+                    n_negatives_per_user=20,
                     seed=seed,
                 )
                 results["bpr_hardness"] = hardness_result.to_dict()
@@ -450,7 +458,7 @@ def run_eda_for_dataset(
             try:
                 collapse_result = analyze_feature_collapse(
                     embeddings,
-                    n_pairs=10000,
+                    n_pairs=min(50000, len(item_indices) * (len(item_indices) - 1) // 2),
                     pass_threshold=0.5,
                     collapse_threshold=0.9,
                     seed=seed,
@@ -460,6 +468,72 @@ def run_eda_for_dataset(
                 logger.info(f"    {status}: Avg cosine similarity {collapse_result.avg_cosine_similarity:.4f}")
             except Exception as e:
                 logger.warning(f"  Feature collapse check failed: {e}")
+            
+            # 7.6 Text Embedding Extraction (Sentence-BERT)
+            logger.info("  7.6 Text Embedding Extraction (Sentence-BERT)...")
+            text_embeddings = None
+            text_item_indices = {}
+            try:
+                text_embeddings, text_item_indices, text_stats = extract_text_embeddings(
+                    metadata_df,
+                    model_name="sentence-transformers/all-mpnet-base-v2",
+                    batch_size=128,
+                    max_items=min(25000, len(metadata_df)),
+                    seed=seed,
+                )
+                results["text_embedding_extraction"] = text_stats.to_dict()
+                logger.info(f"    Extracted {text_stats.n_items_successful} text embeddings ({text_stats.items_per_second:.1f} items/sec)")
+            except Exception as e:
+                logger.warning(f"  Text embedding extraction failed: {e}")
+            
+            # 7.7 Semantic-Interaction Alignment (Text)
+            if text_embeddings is not None and len(text_item_indices) > 0:
+                logger.info("  7.7 Semantic-Interaction Alignment (Text)...")
+                try:
+                    semantic_result = analyze_semantic_alignment(
+                        interactions_df, text_embeddings, text_item_indices,
+                        n_pairs=min(7500, len(text_item_indices) * (len(text_item_indices) - 1) // 2),
+                        seed=seed,
+                    )
+                    results["semantic_alignment"] = semantic_result.to_dict()
+                    
+                    # Generate visualization
+                    if len(semantic_result.text_similarities) > 0:
+                        plot_semantic_alignment(
+                            semantic_result.text_similarities,
+                            semantic_result.interaction_similarities,
+                            semantic_result.pearson_correlation,
+                            semantic_result.pearson_pvalue,
+                            semantic_result.signal_strength,
+                            figures_dir, display_name,
+                        )
+                    
+                    logger.info(f"    Signal Strength: {semantic_result.signal_strength.upper()} (r={semantic_result.pearson_correlation:.4f})")
+                except Exception as e:
+                    logger.warning(f"  Semantic alignment failed: {e}")
+                
+                # 7.8 Cross-Modal Consistency (Text vs Image)
+                logger.info("  7.8 Cross-Modal Consistency (Text vs Image)...")
+                try:
+                    crossmodal_result = analyze_cross_modal_consistency(
+                        text_embeddings, embeddings,
+                        text_item_indices, item_indices,
+                        projection_method="linear",
+                    )
+                    results["cross_modal_consistency"] = crossmodal_result.to_dict()
+                    
+                    # Generate visualization
+                    if len(crossmodal_result.similarities) > 0:
+                        plot_cross_modal_consistency(
+                            crossmodal_result.similarities,
+                            crossmodal_result.mean_similarity,
+                            crossmodal_result.alignment_status,
+                            figures_dir, display_name,
+                        )
+                    
+                    logger.info(f"    Cross-Modal Status: {crossmodal_result.alignment_status.upper()} (mean={crossmodal_result.mean_similarity:.4f})")
+                except Exception as e:
+                    logger.warning(f"  Cross-modal consistency failed: {e}")
             
             # Generate LATTICE Go/No-Go Summary
             logger.info("\n  === LATTICE FEASIBILITY SUMMARY ===")
