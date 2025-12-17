@@ -15,7 +15,7 @@ Usage:
     python src/run_eda.py --dataset clothing --sample-ratio 0.01 --output docs/ --download-images
     python src/run_eda.py --dataset both --sample-ratio 0.01 --output docs/ --download-images
     python src/run_eda.py --dataset beauty --sample-ratio 0.01 --output docs/ --download-images --academic-analysis
-    python src/run_eda.py --dataset all --sampling-strategy dense --kcore-k 5 --temporal-months 6 --academic-analysis
+    python src/run_eda.py --dataset all --sampling-strategy dense --kcore-k 5 --temporal-months 12 --academic-analysis
 """
 
 import argparse

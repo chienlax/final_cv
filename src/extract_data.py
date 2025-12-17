@@ -19,8 +19,10 @@ DATA_DIR = Path("data")
 FILES = [
     "Beauty_and_Personal_Care.jsonl.gz",
     "Clothing_Shoes_and_Jewelry.jsonl.gz",
+    "Electronics.jsonl.gz",
     "meta_Beauty_and_Personal_Care.jsonl.gz",
     "meta_Clothing_Shoes_and_Jewelry.jsonl.gz",
+    "meta_Electronics.jsonl.gz",
 ]
 
 
