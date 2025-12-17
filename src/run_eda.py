@@ -30,7 +30,11 @@ src_dir = Path(__file__).parent
 if str(src_dir) not in sys.path:
     sys.path.insert(0, str(src_dir))
 
-from eda.data_loader import load_interactions_sample, load_metadata_sample
+from eda.data_loader import (
+    load_interactions_sample,
+    load_metadata_sample,
+    load_interactions_dense_subgraph,
+)
 from eda.basic_stats import (
     compute_basic_statistics,
     compute_rating_distribution,
@@ -67,6 +71,10 @@ from eda.image_download import download_images_sample, validate_downloaded_image
 from eda.modality_alignment import analyze_modality_alignment
 from eda.visual_manifold import analyze_visual_manifold
 from eda.bpr_hardness import analyze_bpr_hardness
+
+# LATTICE Feasibility Modules
+from eda.graph_connectivity import analyze_graph_connectivity
+from eda.feature_collapse import analyze_feature_collapse
 from eda.embedding_extractor import extract_clip_embeddings, create_dummy_embeddings
 from eda.visualizations import (
     plot_modality_alignment,
@@ -95,6 +103,11 @@ DATASETS = {
         "metadata": "meta_Clothing_Shoes_and_Jewelry.jsonl.gz",
         "display_name": "Clothing, Shoes and Jewelry",
     },
+    "electronics": {
+        "interactions": "Electronics.jsonl.gz",
+        "metadata": "meta_Electronics.jsonl.gz",
+        "display_name": "Electronics",
+    },
 }
 
 
@@ -103,6 +116,9 @@ def run_eda_for_dataset(
     data_dir: Path,
     output_dir: Path,
     sample_ratio: float = 0.1,
+    sampling_strategy: str = "random",
+    kcore_k: int = 5,
+    temporal_months: int = 6,
     download_images: bool = False,
     image_sample_size: int = 500,
     academic_analysis: bool = False,
@@ -112,12 +128,16 @@ def run_eda_for_dataset(
     Run complete EDA pipeline for a single dataset.
     
     Args:
-        dataset_name: "beauty" or "clothing".
+        dataset_name: "beauty", "clothing", or "electronics".
         data_dir: Path to data directory.
         output_dir: Path to output directory.
-        sample_ratio: Fraction of data to sample.
+        sample_ratio: Fraction of data to sample (for random strategy).
+        sampling_strategy: "random", "kcore", "temporal", or "dense".
+        kcore_k: K-Core threshold (for kcore/dense strategies).
+        temporal_months: Time window in months (for temporal/dense strategies).
         download_images: Whether to download sample images.
         image_sample_size: Number of images to download.
+        academic_analysis: Run LATTICE feasibility checks.
         seed: Random seed.
         
     Returns:
@@ -128,7 +148,13 @@ def run_eda_for_dataset(
     
     logger.info(f"\n{'='*60}")
     logger.info(f"Starting EDA for: {display_name}")
-    logger.info(f"Sample ratio: {sample_ratio:.5%}")
+    logger.info(f"Sampling strategy: {sampling_strategy}")
+    if sampling_strategy == "random":
+        logger.info(f"Sample ratio: {sample_ratio:.5%}")
+    elif sampling_strategy in ["kcore", "dense"]:
+        logger.info(f"K-Core k: {kcore_k}")
+    if sampling_strategy in ["temporal", "dense"]:
+        logger.info(f"Temporal months: {temporal_months}")
     logger.info(f"{'='*60}\n")
     
     # Create output directories
@@ -138,7 +164,10 @@ def run_eda_for_dataset(
     results = {
         "dataset": dataset_name,
         "display_name": display_name,
-        "sample_ratio": sample_ratio,
+        "sampling_strategy": sampling_strategy,
+        "sample_ratio": sample_ratio if sampling_strategy == "random" else None,
+        "kcore_k": kcore_k if sampling_strategy in ["kcore", "dense"] else None,
+        "temporal_months": temporal_months if sampling_strategy in ["temporal", "dense"] else None,
         "timestamp": datetime.now().isoformat(),
     }
     
@@ -150,14 +179,25 @@ def run_eda_for_dataset(
     interactions_path = data_dir / config["interactions"]
     metadata_path = data_dir / config["metadata"]
     
-    # Load interactions
-    interactions_df, int_load_stats = load_interactions_sample(
-        interactions_path, sample_ratio=sample_ratio, seed=seed
-    )
+    # Load interactions based on sampling strategy
+    if sampling_strategy == "random":
+        interactions_df, int_load_stats = load_interactions_sample(
+            interactions_path, sample_ratio=sample_ratio, seed=seed
+        )
+    else:
+        interactions_df, int_load_stats = load_interactions_dense_subgraph(
+            interactions_path,
+            strategy=sampling_strategy,
+            k=kcore_k,
+            months=temporal_months,
+        )
+    
     results["interactions_load_stats"] = {
         "total_records": int_load_stats.total_records,
         "sampled_records": int_load_stats.sampled_records,
         "memory_mb": round(int_load_stats.memory_mb, 2),
+        "sampling_method": int_load_stats.sampling_method,
+        "sampling_params": int_load_stats.sampling_params,
     }
     
     # Get unique item IDs for metadata filtering
@@ -390,6 +430,68 @@ def run_eda_for_dataset(
                     )
             except Exception as e:
                 logger.warning(f"  BPR hardness failed: {e}")
+            
+            # 7.4 Graph Connectivity Check (LATTICE Feasibility)
+            logger.info("  7.4 Graph Connectivity Check (LATTICE Feasibility)...")
+            try:
+                connectivity_result = analyze_graph_connectivity(
+                    embeddings, item_indices,
+                    k=5,
+                    pass_threshold=50.0,
+                )
+                results["graph_connectivity"] = connectivity_result.to_dict()
+                logger.info(f"    {'PASS' if connectivity_result.is_pass else 'FAIL'}: Giant component {connectivity_result.giant_component_coverage_pct:.1f}%")
+            except Exception as e:
+                logger.warning(f"  Graph connectivity failed: {e}")
+            
+            # 7.5 Feature Collapse Check (White Wall Test)
+            logger.info("  7.5 Feature Collapse Check (White Wall Test)...")
+            try:
+                collapse_result = analyze_feature_collapse(
+                    embeddings,
+                    n_pairs=10000,
+                    pass_threshold=0.5,
+                    collapse_threshold=0.9,
+                    seed=seed,
+                )
+                results["feature_collapse"] = collapse_result.to_dict()
+                status = 'PASS' if collapse_result.is_pass else ('COLLAPSED' if collapse_result.is_collapsed else 'WARNING')
+                logger.info(f"    {status}: Avg cosine similarity {collapse_result.avg_cosine_similarity:.4f}")
+            except Exception as e:
+                logger.warning(f"  Feature collapse check failed: {e}")
+            
+            # Generate LATTICE Go/No-Go Summary
+            logger.info("\n  === LATTICE FEASIBILITY SUMMARY ===")
+            go_nogo = {"checks": {}, "decision": "UNKNOWN"}
+            
+            # Check 1: Alignment (non-NaN)
+            if results.get("modality_alignment"):
+                ma = results["modality_alignment"]
+                pearson = ma.get("pearson", {}).get("correlation")
+                alignment_pass = pearson is not None and not (isinstance(pearson, float) and (pearson != pearson))  # NaN check
+                go_nogo["checks"]["alignment"] = {"pass": alignment_pass, "value": pearson}
+                logger.info(f"    Alignment Check: {'PASS' if alignment_pass else 'FAIL'} (Pearson r = {pearson})")
+            
+            # Check 2: Connectivity (>50%)
+            if results.get("graph_connectivity"):
+                gc = results["graph_connectivity"]
+                go_nogo["checks"]["connectivity"] = {"pass": gc["is_pass"], "value": gc["giant_component_coverage_pct"]}
+                logger.info(f"    Connectivity Check: {'PASS' if gc['is_pass'] else 'FAIL'} ({gc['giant_component_coverage_pct']:.1f}%)")
+            
+            # Check 3: No Collapse (<0.5 avg sim)
+            if results.get("feature_collapse"):
+                fc = results["feature_collapse"]
+                go_nogo["checks"]["collapse"] = {"pass": fc["is_pass"], "value": fc["statistics"]["mean"]}
+                logger.info(f"    Collapse Check: {'PASS' if fc['is_pass'] else 'FAIL'} (Avg cosine = {fc['statistics']['mean']:.4f})")
+            
+            # Overall decision
+            all_pass = all(c.get("pass", False) for c in go_nogo["checks"].values())
+            go_nogo["decision"] = "PROCEED" if all_pass else "STOP"
+            results["lattice_feasibility"] = go_nogo
+            
+            logger.info(f"\n    >>> LATTICE Decision: {go_nogo['decision']} <<<")
+            if not all_pass:
+                logger.warning("    Recommendation: Revisit Feature Extraction (e.g., use CLIP-Fashion)")
     
     # =========================================================================
     # Save Results
@@ -424,10 +526,21 @@ def generate_markdown_report(
     # Create figure suffix matching visualization functions: display_name.lower().replace(' ', '_')
     figure_suffix = display_name.lower().replace(' ', '_')
     
+    # Build sampling info string
+    sampling_info = results.get('sampling_strategy', 'random')
+    if sampling_info == 'kcore':
+        sampling_info = f"K-Core (k={results.get('kcore_k', 5)})"
+    elif sampling_info == 'temporal':
+        sampling_info = f"Temporal ({results.get('temporal_months', 6)} months)"
+    elif sampling_info == 'dense':
+        sampling_info = f"Dense (K-Core k={results.get('kcore_k', 5)} + {results.get('temporal_months', 6)} months)"
+    elif results.get('sample_ratio'):
+        sampling_info = f"Random {results['sample_ratio']:.0%}"
+    
     md_content = f"""# EDA Report: {display_name}
 
 **Generated:** {results['timestamp']}  
-**Sample Ratio:** {results['sample_ratio']:.0%}
+**Sampling Strategy:** {sampling_info}
 
 ---
 
@@ -675,6 +788,95 @@ Evaluates whether random negative sampling produces informative training signal.
 
 """
     
+    # Section 11: LATTICE Feasibility (if available)
+    if results.get('graph_connectivity') or results.get('feature_collapse') or results.get('lattice_feasibility'):
+        md_content += """
+---
+
+## 11. LATTICE Feasibility Assessment
+
+"""
+        # Go/No-Go Decision Banner
+        if results.get('lattice_feasibility'):
+            lf = results['lattice_feasibility']
+            decision = lf.get('decision', 'UNKNOWN')
+            if decision == "PROCEED":
+                md_content += """> [!TIP]
+> ✅ **PROCEED** with LATTICE architecture - All feasibility checks passed.
+
+"""
+            else:
+                md_content += """> [!CAUTION]
+> ⛔ **STOP** - LATTICE feasibility checks failed. Revisit Feature Extraction.
+
+"""
+        
+        # 11.1 Graph Connectivity
+        if results.get('graph_connectivity'):
+            gc = results['graph_connectivity']
+            status = "✅ PASS" if gc.get('is_pass', False) else "❌ FAIL"
+            md_content += f"""### 11.1 Graph Connectivity (k-NN, k={gc.get('k_neighbors', 5)})
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Connected Components | {gc.get('n_components', 0):,} | - |
+| Giant Component Size | {gc.get('giant_component_size', 0):,} | - |
+| Giant Component Coverage | {gc.get('giant_component_coverage_pct', 0):.1f}% | {status} |
+| Threshold | >{gc.get('pass_threshold', 50)}% | - |
+
+**Interpretation:** {gc.get('interpretation', 'N/A')}
+
+"""
+        
+        # 11.2 Feature Collapse
+        if results.get('feature_collapse'):
+            fc = results['feature_collapse']
+            stats = fc.get('statistics', {})
+            is_pass = fc.get('is_pass', False)
+            is_collapsed = fc.get('is_collapsed', False)
+            
+            if is_collapsed:
+                status = "❌ COLLAPSED"
+            elif is_pass:
+                status = "✅ PASS"
+            else:
+                status = "⚠️ WARNING"
+            
+            md_content += f"""### 11.2 Feature Collapse Detection (White Wall Test)
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| Pairs Sampled | {fc.get('n_pairs_sampled', 0):,} | - |
+| Avg Cosine Similarity | {stats.get('mean', 0):.4f} | {status} |
+| Std Cosine Similarity | {stats.get('std', 0):.4f} | - |
+| High Similarity Pairs (>0.9) | {fc.get('distribution', {}).get('very_high_pct', 0):.1f}% | - |
+| Pass Threshold | <{fc.get('thresholds', {}).get('pass', 0.5)} | - |
+
+**Interpretation:** {fc.get('interpretation', 'N/A')}
+
+"""
+        
+        # Summary Table
+        if results.get('lattice_feasibility'):
+            lf = results['lattice_feasibility']
+            checks = lf.get('checks', {})
+            md_content += """### Summary
+
+| Check | Value | Status |
+|-------|-------|--------|
+"""
+            if 'alignment' in checks:
+                status = "✅" if checks['alignment'].get('pass') else "❌"
+                md_content += f"| Alignment (Pearson r) | {checks['alignment'].get('value', 'N/A')} | {status} |\n"
+            if 'connectivity' in checks:
+                status = "✅" if checks['connectivity'].get('pass') else "❌"
+                md_content += f"| Connectivity (Giant %) | {checks['connectivity'].get('value', 0):.1f}% | {status} |\n"
+            if 'collapse' in checks:
+                status = "✅" if checks['collapse'].get('pass') else "❌"
+                md_content += f"| No Collapse (Avg Cosine) | {checks['collapse'].get('value', 0):.4f} | {status} |\n"
+            
+            md_content += f"\n**Decision:** {lf.get('decision', 'UNKNOWN')}\n"
+    
     md_content += """
 ---
 
@@ -699,10 +901,29 @@ def main():
     
     parser.add_argument(
         "--dataset",
+        nargs="+",
+        choices=["beauty", "clothing", "electronics", "all"],
+        default=["all"],
+        help="Dataset(s) to analyze (default: all). Can specify multiple: --dataset beauty clothing",
+    )
+    parser.add_argument(
+        "--sampling-strategy",
         type=str,
-        choices=["beauty", "clothing", "both"],
-        default="both",
-        help="Dataset to analyze (default: both)",
+        choices=["random", "kcore", "temporal", "dense"],
+        default="random",
+        help="Sampling strategy: random (legacy 1%%), kcore (k-core filter), temporal (time-window), dense (both)",
+    )
+    parser.add_argument(
+        "--kcore-k",
+        type=int,
+        default=5,
+        help="Minimum interactions for K-Core filtering (default: 5)",
+    )
+    parser.add_argument(
+        "--temporal-months",
+        type=int,
+        default=6,
+        help="Number of months for time-window sampling (default: 6)",
     )
     parser.add_argument(
         "--sample-ratio",
@@ -752,7 +973,10 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     
     # Determine which datasets to process
-    datasets = ["beauty", "clothing"] if args.dataset == "both" else [args.dataset]
+    if "all" in args.dataset:
+        datasets = ["beauty", "clothing", "electronics"]
+    else:
+        datasets = args.dataset
     
     all_results = {}
     
@@ -774,6 +998,9 @@ def main():
             data_dir=data_dir,
             output_dir=output_dir,
             sample_ratio=args.sample_ratio,
+            sampling_strategy=args.sampling_strategy,
+            kcore_k=args.kcore_k,
+            temporal_months=args.temporal_months,
             download_images=args.download_images,
             image_sample_size=args.image_sample,
             academic_analysis=args.academic_analysis,

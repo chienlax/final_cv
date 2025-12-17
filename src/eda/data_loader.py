@@ -28,11 +28,13 @@ class DataStats:
     sample_ratio: float = 1.0
     columns: list[str] = field(default_factory=list)
     memory_mb: float = 0.0
+    sampling_method: str = "random"  # random, kcore, temporal, dense
+    sampling_params: dict = field(default_factory=dict)
     
     def __repr__(self) -> str:
         return (
             f"DataStats(total={self.total_records:,}, sampled={self.sampled_records:,}, "
-            f"ratio={self.sample_ratio:.2%}, memory={self.memory_mb:.1f}MB)"
+            f"ratio={self.sample_ratio:.2%}, method={self.sampling_method}, memory={self.memory_mb:.1f}MB)"
         )
 
 
@@ -290,3 +292,341 @@ def count_total_records(file_path: Path) -> int:
         if count % 1_000_000 == 0:
             logger.info(f"  Counted {count:,} records...")
     return count
+
+
+# =============================================================================
+# Dense Subgraph Sampling Functions
+# =============================================================================
+
+def _apply_kcore_filter(
+    df: pd.DataFrame,
+    k: int,
+    max_iterations: int = 100,
+) -> pd.DataFrame:
+    """
+    Apply iterative k-core filtering.
+    
+    K-core filtering removes users/items with < k interactions until convergence.
+    This preserves network density critical for graph-based models like LATTICE.
+    
+    Args:
+        df: DataFrame with 'user_id' and 'item_id' columns.
+        k: Minimum interaction threshold.
+        max_iterations: Maximum convergence iterations.
+        
+    Returns:
+        Filtered DataFrame.
+    """
+    for iteration in range(max_iterations):
+        n_before = len(df)
+        
+        # Filter users with < k interactions
+        user_counts = df["user_id"].value_counts()
+        valid_users = user_counts[user_counts >= k].index
+        df = df[df["user_id"].isin(valid_users)]
+        
+        # Filter items with < k interactions
+        item_counts = df["item_id"].value_counts()
+        valid_items = item_counts[item_counts >= k].index
+        df = df[df["item_id"].isin(valid_items)]
+        
+        n_after = len(df)
+        
+        if n_after == n_before:
+            logger.info(f"  K-Core converged at iteration {iteration + 1}")
+            break
+    
+    return df
+
+
+def load_interactions_all(
+    file_path: Path,
+    max_records: Optional[int] = None,
+) -> tuple[pd.DataFrame, DataStats]:
+    """
+    Load ALL interactions without any sampling.
+    
+    Use with caution on large datasets - may run out of memory.
+    
+    Args:
+        file_path: Path to the interaction .jsonl.gz file.
+        max_records: Optional limit on total records to process.
+        
+    Returns:
+        Tuple of (DataFrame, DataStats).
+    """
+    file_path = Path(file_path)
+    records: list[dict[str, Any]] = []
+    total_count = 0
+    
+    logger.info(f"Loading ALL interactions from {file_path.name}...")
+    
+    for record in stream_jsonl_gz(file_path):
+        total_count += 1
+        
+        if max_records and total_count > max_records:
+            break
+        
+        processed = {
+            "user_id": record.get("user_id", ""),
+            "item_id": record.get("parent_asin", record.get("asin", "")),
+            "rating": record.get("rating", np.nan),
+            "timestamp": record.get("timestamp", 0),
+            "review_text": record.get("text", ""),
+            "review_title": record.get("title", ""),
+            "verified_purchase": record.get("verified_purchase", False),
+            "helpful_vote": record.get("helpful_vote", 0),
+        }
+        records.append(processed)
+        
+        if total_count % 1_000_000 == 0:
+            logger.info(f"  Processed {total_count:,} records")
+    
+    df = pd.DataFrame(records)
+    
+    if "timestamp" in df.columns and len(df) > 0:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", errors="coerce")
+    
+    stats = DataStats(
+        total_records=total_count,
+        sampled_records=len(df),
+        sample_ratio=1.0,
+        columns=list(df.columns),
+        memory_mb=df.memory_usage(deep=True).sum() / 1024 / 1024,
+        sampling_method="all",
+    )
+    
+    logger.info(f"Loaded {stats}")
+    return df, stats
+
+
+def load_interactions_kcore(
+    file_path: Path,
+    k: int = 5,
+    max_iterations: int = 50,
+    max_records: Optional[int] = None,
+) -> tuple[pd.DataFrame, DataStats]:
+    """
+    Load ALL interactions, then apply iterative K-Core filtering.
+    
+    Preserves network density for graph-based analysis (LATTICE, GCN).
+    This is the recommended sampling for structural analysis.
+    
+    Args:
+        file_path: Path to the interaction .jsonl.gz file.
+        k: Minimum interactions per user AND per item.
+        max_iterations: Maximum k-core convergence iterations.
+        max_records: Optional limit on records to load before filtering.
+        
+    Returns:
+        Tuple of (Filtered DataFrame, DataStats).
+    """
+    logger.info(f"Loading interactions with K-Core filtering (k={k})...")
+    
+    # Load all data first
+    df, load_stats = load_interactions_all(file_path, max_records=max_records)
+    
+    original_size = len(df)
+    original_users = df["user_id"].nunique()
+    original_items = df["item_id"].nunique()
+    
+    # Apply k-core filtering
+    logger.info(f"  Applying k-core filter (k={k})...")
+    df = _apply_kcore_filter(df, k=k, max_iterations=max_iterations)
+    
+    final_size = len(df)
+    final_users = df["user_id"].nunique()
+    final_items = df["item_id"].nunique()
+    
+    retention_pct = final_size / original_size * 100 if original_size > 0 else 0
+    
+    logger.info(f"  K-Core filtering: {original_size:,} -> {final_size:,} ({retention_pct:.1f}% retained)")
+    logger.info(f"  Users: {original_users:,} -> {final_users:,}, Items: {original_items:,} -> {final_items:,}")
+    
+    stats = DataStats(
+        total_records=load_stats.total_records,
+        sampled_records=len(df),
+        sample_ratio=len(df) / load_stats.total_records if load_stats.total_records > 0 else 0.0,
+        columns=list(df.columns),
+        memory_mb=df.memory_usage(deep=True).sum() / 1024 / 1024,
+        sampling_method="kcore",
+        sampling_params={
+            "k": k,
+            "original_interactions": original_size,
+            "original_users": original_users,
+            "original_items": original_items,
+            "retention_pct": round(retention_pct, 2),
+        },
+    )
+    
+    logger.info(f"Loaded {stats}")
+    return df, stats
+
+
+def load_interactions_temporal(
+    file_path: Path,
+    months: int = 6,
+    end_date: Optional[str] = None,
+    max_records: Optional[int] = None,
+) -> tuple[pd.DataFrame, DataStats]:
+    """
+    Load interactions from the last N months only.
+    
+    Time-window sampling preserves temporal density and recent trends.
+    More representative than random sampling from a 20-year span.
+    
+    Args:
+        file_path: Path to the interaction .jsonl.gz file.
+        months: Number of months to include (from end_date backwards).
+        end_date: Optional end date (YYYY-MM-DD). Defaults to latest in data.
+        max_records: Optional limit on total records to process.
+        
+    Returns:
+        Tuple of (Filtered DataFrame, DataStats).
+    """
+    from datetime import datetime, timedelta
+    
+    logger.info(f"Loading interactions with temporal filtering (last {months} months)...")
+    
+    # First pass: find date range if end_date not specified
+    if end_date is None:
+        logger.info("  First pass: finding date range...")
+        max_timestamp = 0
+        count = 0
+        for record in stream_jsonl_gz(file_path):
+            ts = record.get("timestamp", 0)
+            if ts > max_timestamp:
+                max_timestamp = ts
+            count += 1
+            if max_records and count > max_records:
+                break
+        
+        if max_timestamp > 0:
+            end_dt = datetime.fromtimestamp(max_timestamp / 1000)
+        else:
+            end_dt = datetime.now()
+        logger.info(f"  Found max date: {end_dt.strftime('%Y-%m-%d')}")
+    else:
+        end_dt = datetime.strptime(end_date, "%Y-%m-%d")
+    
+    # Calculate cutoff
+    cutoff_dt = end_dt - timedelta(days=months * 30)
+    cutoff_ts = int(cutoff_dt.timestamp() * 1000)
+    
+    logger.info(f"  Filtering: {cutoff_dt.strftime('%Y-%m-%d')} to {end_dt.strftime('%Y-%m-%d')}")
+    
+    # Second pass: load data within time window
+    records: list[dict[str, Any]] = []
+    total_count = 0
+    filtered_count = 0
+    
+    for record in stream_jsonl_gz(file_path):
+        total_count += 1
+        
+        if max_records and total_count > max_records:
+            break
+        
+        ts = record.get("timestamp", 0)
+        if ts >= cutoff_ts:
+            processed = {
+                "user_id": record.get("user_id", ""),
+                "item_id": record.get("parent_asin", record.get("asin", "")),
+                "rating": record.get("rating", np.nan),
+                "timestamp": ts,
+                "review_text": record.get("text", ""),
+                "review_title": record.get("title", ""),
+                "verified_purchase": record.get("verified_purchase", False),
+                "helpful_vote": record.get("helpful_vote", 0),
+            }
+            records.append(processed)
+            filtered_count += 1
+        
+        if total_count % 1_000_000 == 0:
+            logger.info(f"  Processed {total_count:,}, kept {filtered_count:,}")
+    
+    df = pd.DataFrame(records)
+    
+    if "timestamp" in df.columns and len(df) > 0:
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", errors="coerce")
+    
+    stats = DataStats(
+        total_records=total_count,
+        sampled_records=len(df),
+        sample_ratio=len(df) / total_count if total_count > 0 else 0.0,
+        columns=list(df.columns),
+        memory_mb=df.memory_usage(deep=True).sum() / 1024 / 1024,
+        sampling_method="temporal",
+        sampling_params={
+            "months": months,
+            "start_date": cutoff_dt.strftime("%Y-%m-%d"),
+            "end_date": end_dt.strftime("%Y-%m-%d"),
+        },
+    )
+    
+    logger.info(f"Loaded {stats}")
+    return df, stats
+
+
+def load_interactions_dense_subgraph(
+    file_path: Path,
+    strategy: str = "kcore",
+    k: int = 5,
+    months: int = 6,
+    max_records: Optional[int] = None,
+) -> tuple[pd.DataFrame, DataStats]:
+    """
+    Main entry point for dense subgraph sampling.
+    
+    Supports multiple strategies:
+    - "kcore": K-Core filtering (recommended for structural analysis)
+    - "temporal": Time-window filtering (last N months)
+    - "dense": Combined approach (temporal first, then k-core)
+    
+    Args:
+        file_path: Path to the interaction .jsonl.gz file.
+        strategy: Sampling strategy ("kcore", "temporal", or "dense").
+        k: K-Core threshold (for "kcore" and "dense").
+        months: Time window in months (for "temporal" and "dense").
+        max_records: Optional limit on records.
+        
+    Returns:
+        Tuple of (Filtered DataFrame, DataStats).
+    """
+    if strategy == "kcore":
+        return load_interactions_kcore(file_path, k=k, max_records=max_records)
+    elif strategy == "temporal":
+        return load_interactions_temporal(file_path, months=months, max_records=max_records)
+    elif strategy == "dense":
+        # Combined: temporal first, then k-core
+        logger.info(f"Loading with dense subgraph (temporal {months}mo + k-core k={k})...")
+        
+        # Load temporal subset
+        df, temp_stats = load_interactions_temporal(file_path, months=months, max_records=max_records)
+        
+        if len(df) == 0:
+            return df, temp_stats
+        
+        # Apply k-core on temporal subset
+        original_size = len(df)
+        df = _apply_kcore_filter(df, k=k)
+        
+        stats = DataStats(
+            total_records=temp_stats.total_records,
+            sampled_records=len(df),
+            sample_ratio=len(df) / temp_stats.total_records if temp_stats.total_records > 0 else 0.0,
+            columns=list(df.columns),
+            memory_mb=df.memory_usage(deep=True).sum() / 1024 / 1024,
+            sampling_method="dense",
+            sampling_params={
+                "months": months,
+                "k": k,
+                "temporal_size": original_size,
+                "kcore_size": len(df),
+            },
+        )
+        
+        logger.info(f"Loaded {stats}")
+        return df, stats
+    else:
+        raise ValueError(f"Unknown sampling strategy: {strategy}. Use 'kcore', 'temporal', or 'dense'.")
+
