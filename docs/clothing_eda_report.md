@@ -2,6 +2,7 @@
 
 **Generated:** 2025-12-17T21:06:24.172778  
 **Sampling Strategy:** Dense (K-Core k=5 + 60 months)
+**Sampling Ratio:** 0.01
 
 ---
 
