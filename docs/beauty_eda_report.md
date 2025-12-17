@@ -1,6 +1,6 @@
 # EDA Report: Beauty and Personal Care
 
-**Generated:** 2025-12-15T10:17:18.489110  
+**Generated:** 2025-12-17T10:17:36.231980  
 **Sample Ratio:** 1%
 
 ---
@@ -124,7 +124,7 @@ Top users account for a disproportionate share of interactions:
 
 ![Sparsity](figures/beauty/sparsity_beauty_and_personal_care.png)
 
-**Matrix Sparsity:** 99.99794906%
+**Matrix Sparsity:** 99.99794906%  
 **Density:** 0.00205094%
 
 ### K-Core Filtering Impact
@@ -162,6 +162,64 @@ Top categories in the dataset:
 1. **K-Core Filtering:** Use k=5 as baseline (balances data quality vs. coverage)
 2. **Multimodal Features:** Leverage text/image to address cold-start problem
 3. **Negative Sampling:** Use popularity-based hard negative sampling for BPR
+
+
+---
+
+## 10. Multimodal Recommendation Readiness (Academic Analysis)
+
+
+### 10.1 Modality-Interaction Alignment (Liu et al., 2024)
+
+![Modality Alignment](figures/beauty/modality_alignment_beauty_and_personal_care.png)
+
+Tests the **Homophily Hypothesis**: Do visually similar items share similar interaction patterns?
+
+| Metric | Value |
+|--------|-------|
+| Pairs Analyzed | 1,000 |
+| Pearson r | nan |
+| p-value | nan |
+| Spearman ρ | nan |
+
+**Interpretation:** Strong correlation - visual features strongly predict interaction patterns
+
+
+### 10.2 Visual Manifold Structure (Xu et al., 2025)
+
+![Visual Manifold](figures/beauty/visual_manifold_beauty_and_personal_care.png)
+
+Analyzes whether CLIP embeddings form meaningful clusters by category.
+
+| Metric | Value |
+|--------|-------|
+| Items Projected | 5,000 |
+| Projection Method | UMAP |
+| Silhouette Score | 0.0000 |
+| Unique Categories | 1 |
+
+**Interpretation:** No meaningful visual clustering - visual features may not align with categories
+
+
+### 10.3 BPR Negative Sampling Hardness (Xu et al., 2025)
+
+![BPR Hardness](figures/beauty/bpr_hardness_beauty_and_personal_care.png)
+
+Evaluates whether random negative sampling produces informative training signal.
+
+| Metric | Value |
+|--------|-------|
+| Users Analyzed | 100 |
+| Pairs Analyzed | 1,000 |
+| Mean Visual Distance | 0.4398 |
+| Easy Negatives (>0.8) | 0.0% |
+| Medium Negatives | 94.4% |
+| Hard Negatives (<0.3) | 5.6% |
+
+**Interpretation:** Moderate negative difficulty - room for improvement
+
+**Recommendation:** Consider mixing random and hard negative sampling
+
 
 ---
 

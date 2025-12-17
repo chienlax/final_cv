@@ -2,7 +2,7 @@
   "dataset": "beauty",
   "display_name": "Beauty and Personal Care",
   "sample_ratio": 0.01,
-  "timestamp": "2025-12-15T10:17:18.489110",
+  "timestamp": "2025-12-17T10:17:36.231980",
   "interactions_load_stats": {
     "total_records": 23911390,
     "sampled_records": 235765,
@@ -1710,7 +1710,7 @@
       "interaction_stats": {
         "mean": 2.074829931972789,
         "median": 1.0,
-        "std": 3.6121460949337667,
+        "std": 3.612146094933766,
         "min": 1,
         "max": 393,
         "p25": 1.0,
@@ -1725,7 +1725,7 @@
       "interaction_stats": {
         "mean": 2.330499678742648,
         "median": 1.0,
-        "std": 5.218268528231882,
+        "std": 5.218268528231885,
         "min": 1,
         "max": 373,
         "p25": 1.0,
@@ -1996,34 +1996,73 @@
     }
   },
   "image_download": {
-    "downloaded": 200,
+    "downloaded": 0,
     "failed": 0,
-    "success_rate": 100.0,
-    "total_mb": 4.77
+    "success_rate": 0.0,
+    "total_mb": 0.0
   },
-  "image_statistics": {
-    "n_images": 200,
-    "n_analyzed": 200,
-    "width": {
-      "mean": 436.22,
-      "median": 500.0,
-      "min": 116,
-      "max": 500
+  "embedding_extraction": {
+    "n_items_attempted": 5000,
+    "n_items_successful": 5000,
+    "n_items_failed": 0,
+    "success_rate": 100.0,
+    "embedding_dim": 512,
+    "device_used": "cuda"
+  },
+  "modality_alignment": {
+    "n_pairs_sampled": 1000,
+    "pearson": {
+      "correlation": NaN,
+      "pvalue": NaN
     },
-    "height": {
-      "mean": 474.305,
-      "median": 500.0,
-      "min": 223,
-      "max": 500
+    "spearman": {
+      "correlation": NaN,
+      "pvalue": NaN
     },
-    "file_size_kb": {
-      "mean": 28.6171728515625,
-      "median": 24.37646484375,
-      "total_mb": 5.589291572570801
+    "visual_similarity": {
+      "mean": 0.5569,
+      "std": 0.0886
     },
-    "aspect_ratio": {
-      "mean": 0.9359684227590097,
-      "median": 1.0
+    "interaction_similarity": {
+      "mean": 0.0,
+      "std": 0.0
+    },
+    "interpretation": "Strong correlation - visual features strongly predict interaction patterns"
+  },
+  "visual_manifold": {
+    "n_items": 5000,
+    "method": "umap",
+    "quality": {
+      "silhouette_score_category": 0.0,
+      "n_unique_categories": 1
+    },
+    "interpretation": "No meaningful visual clustering - visual features may not align with categories",
+    "projection_summary": {
+      "x_range": [
+        -5.659175872802734,
+        6.526111125946045
+      ],
+      "y_range": [
+        2.1831390857696533,
+        12.019822120666504
+      ]
     }
+  },
+  "bpr_hardness": {
+    "n_users_analyzed": 100,
+    "n_pairs_analyzed": 1000,
+    "visual_distance": {
+      "mean": 0.4398,
+      "median": 0.4422,
+      "std": 0.0882
+    },
+    "hardness_distribution": {
+      "easy_pct": 0.0,
+      "medium_pct": 94.4,
+      "hard_pct": 5.6
+    },
+    "n_hard_negative_examples": 20,
+    "interpretation": "Moderate negative difficulty - room for improvement",
+    "recommendation": "Consider mixing random and hard negative sampling"
   }
 }

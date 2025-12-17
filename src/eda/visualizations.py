@@ -27,7 +27,7 @@ sns.set_palette("husl")
 
 # Default figure settings
 DEFAULT_FIG_SIZE = (10, 6)
-DEFAULT_DPI = 150
+DEFAULT_DPI = 300
 
 
 def save_figure(fig: plt.Figure, output_path: Path, name: str) -> Path:

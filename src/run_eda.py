@@ -11,9 +11,10 @@ Performs comprehensive exploratory data analysis including:
 - Image downloading (optional)
 
 Usage:
-    python src/run_eda.py --dataset beauty --sample-ratio 0.1 --output docs/
-    python src/run_eda.py --dataset clothing --sample-ratio 0.1 --output docs/
-    python src/run_eda.py --dataset both --sample-ratio 0.1 --output docs/ --download-images
+    python src/run_eda.py --dataset beauty --sample-ratio 0.01 --output docs/ --download-images
+    python src/run_eda.py --dataset clothing --sample-ratio 0.01 --output docs/ --download-images
+    python src/run_eda.py --dataset both --sample-ratio 0.01 --output docs/ --download-images
+    python src/run_eda.py --dataset beauty --sample-ratio 0.01 --output docs/ --download-images --academic-analysis
 """
 
 import argparse
@@ -420,6 +421,8 @@ def generate_markdown_report(
         Path to generated markdown file.
     """
     display_name = results["display_name"]
+    # Create figure suffix matching visualization functions: display_name.lower().replace(' ', '_')
+    figure_suffix = display_name.lower().replace(' ', '_')
     
     md_content = f"""# EDA Report: {display_name}
 
@@ -453,7 +456,7 @@ def generate_markdown_report(
 
 ## 2. Rating Distribution
 
-![Rating Distribution](figures/{dataset_name}/rating_distribution_{dataset_name.replace(' ', '_')}.png)
+![Rating Distribution](figures/{dataset_name}/rating_distribution_{figure_suffix}.png)
 
 | Rating | Count | Percentage |
 |--------|-------|------------|
@@ -469,7 +472,7 @@ def generate_markdown_report(
 
 ### Power-Law Distribution
 
-![Interaction Frequency](figures/{dataset_name}/interaction_frequency_{dataset_name.replace(' ', '_')}.png)
+![Interaction Frequency](figures/{dataset_name}/interaction_frequency_{figure_suffix}.png)
 
 **User Patterns:**
 - Mean interactions/user: {results['user_item_patterns']['users']['interaction_stats'].get('mean', 0):.2f}
@@ -499,7 +502,7 @@ Top users account for a disproportionate share of interactions:
 
 ## 4. Temporal Analysis
 
-![Temporal Patterns](figures/{dataset_name}/temporal_patterns_{dataset_name.replace(' ', '_')}.png)
+![Temporal Patterns](figures/{dataset_name}/temporal_patterns_{figure_suffix}.png)
 
 **Date Range:** {results['interaction_stats']['temporal']['date_min']} to {results['interaction_stats']['temporal']['date_max']}  
 **Duration:** {results['interaction_stats']['temporal']['date_range_days']:,} days
@@ -508,7 +511,7 @@ Top users account for a disproportionate share of interactions:
 
 ## 5. Text Analysis
 
-![Text Length Distribution](figures/{dataset_name}/text_length_{dataset_name.replace(' ', '_')}.png)
+![Text Length Distribution](figures/{dataset_name}/text_length_{figure_suffix}.png)
 
 | Metric | Value |
 |--------|-------|
@@ -524,7 +527,7 @@ Top users account for a disproportionate share of interactions:
     if results.get('multimodal_coverage'):
         mc = results['multimodal_coverage']
         md_content += f"""
-![Multimodal Coverage](figures/{dataset_name}/multimodal_coverage_{dataset_name.replace(' ', '_')}.png)
+![Multimodal Coverage](figures/{dataset_name}/multimodal_coverage_{figure_suffix}.png)
 
 ### Feature Coverage
 
@@ -549,7 +552,7 @@ Top users account for a disproportionate share of interactions:
 
 ## 7. Sparsity and K-Core Analysis
 
-![Sparsity](figures/{dataset_name}/sparsity_{dataset_name.replace(' ', '_')}.png)
+![Sparsity](figures/{dataset_name}/sparsity_{figure_suffix}.png)
 
 **Matrix Sparsity:** {results['sparsity']['sparsity']}  
 **Density:** {results['sparsity']['density']}
@@ -568,7 +571,7 @@ Top users account for a disproportionate share of interactions:
 
 ## 8. Category Distribution
 
-![Categories](figures/{dataset_name}/category_distribution_{dataset_name.replace(' ', '_')}.png)
+![Categories](figures/{dataset_name}/category_distribution_{figure_suffix}.png)
 
 Top categories in the dataset:
 
@@ -611,7 +614,7 @@ Top categories in the dataset:
             md_content += f"""
 ### 10.1 Modality-Interaction Alignment (Liu et al., 2024)
 
-![Modality Alignment](figures/{dataset_name}/modality_alignment_{dataset_name.replace(' ', '_')}.png)
+![Modality Alignment](figures/{dataset_name}/modality_alignment_{figure_suffix}.png)
 
 Tests the **Homophily Hypothesis**: Do visually similar items share similar interaction patterns?
 
@@ -632,7 +635,7 @@ Tests the **Homophily Hypothesis**: Do visually similar items share similar inte
             md_content += f"""
 ### 10.2 Visual Manifold Structure (Xu et al., 2025)
 
-![Visual Manifold](figures/{dataset_name}/visual_manifold_{dataset_name.replace(' ', '_')}.png)
+![Visual Manifold](figures/{dataset_name}/visual_manifold_{figure_suffix}.png)
 
 Analyzes whether CLIP embeddings form meaningful clusters by category.
 
@@ -653,7 +656,7 @@ Analyzes whether CLIP embeddings form meaningful clusters by category.
             md_content += f"""
 ### 10.3 BPR Negative Sampling Hardness (Xu et al., 2025)
 
-![BPR Hardness](figures/{dataset_name}/bpr_hardness_{dataset_name.replace(' ', '_')}.png)
+![BPR Hardness](figures/{dataset_name}/bpr_hardness_{figure_suffix}.png)
 
 Evaluates whether random negative sampling produces informative training signal.
 
@@ -679,7 +682,7 @@ Evaluates whether random negative sampling produces informative training signal.
 """
     
     report_path = output_dir / f"{dataset_name}_eda_report.md"
-    with open(report_path, "w", encoding="utf-8") as f:
+    with open(report_path, "w+", encoding="utf-8") as f:
         f.write(md_content)
     
     logger.info(f"Markdown report saved to: {report_path}")
@@ -704,8 +707,8 @@ def main():
     parser.add_argument(
         "--sample-ratio",
         type=float,
-        default=0.1,
-        help="Fraction of data to sample (default: 0.1 = 10%%)",
+        default=0.01,
+        help="Fraction of data to sample (default: 0.01 = 1%%)",
     )
     parser.add_argument(
         "--data-dir",
