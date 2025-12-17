@@ -15,7 +15,7 @@ Usage:
     python src/run_eda.py --dataset clothing --sample-ratio 0.01 --output docs/ --download-images
     python src/run_eda.py --dataset both --sample-ratio 0.01 --output docs/ --download-images
     python src/run_eda.py --dataset beauty --sample-ratio 0.01 --output docs/ --download-images --academic-analysis
-    python src/run_eda.py --dataset all --sample-ratio 0.05 --sampling-strategy dense --kcore-k 5 --temporal-months 36 --academic-analysis
+    python src/run_eda.py --dataset clothing electronics --sample-ratio 0.01 --sampling-strategy dense --kcore-k 5 --temporal-months 60 --academic-analysis
 """
 
 import argparse
@@ -358,8 +358,8 @@ def run_eda_for_dataset(
         try:
             embeddings, item_indices, emb_stats = extract_clip_embeddings(
                 metadata_df,
-                batch_size=128,
-                max_items=min(20000, len(metadata_df)),
+                batch_size=256,
+                max_items=min(10000, len(metadata_df)),
                 seed=seed,
             )
             results["embedding_extraction"] = emb_stats.to_dict()
@@ -374,7 +374,7 @@ def run_eda_for_dataset(
             try:
                 alignment_result = analyze_modality_alignment(
                     interactions_df, embeddings, item_indices,
-                    n_pairs=min(10000, len(item_indices) * (len(item_indices) - 1) // 2),
+                    n_pairs=min(10000*2, len(item_indices) * (len(item_indices) - 1) // 2),
                     seed=seed,
                 )
                 results["modality_alignment"] = alignment_result.to_dict()
@@ -397,7 +397,7 @@ def run_eda_for_dataset(
                 manifold_result = analyze_visual_manifold(
                     metadata_df, embeddings, item_indices,
                     method="umap",
-                    max_items=min(10000, len(item_indices)),
+                    max_items=min(10000*2, len(item_indices)),
                     seed=seed,
                 )
                 results["visual_manifold"] = manifold_result.to_dict()
@@ -477,7 +477,7 @@ def run_eda_for_dataset(
                 text_embeddings, text_item_indices, text_stats = extract_text_embeddings(
                     metadata_df,
                     model_name="sentence-transformers/all-mpnet-base-v2",
-                    batch_size=128,
+                    batch_size=256,
                     max_items=min(25000, len(metadata_df)),
                     seed=seed,
                 )
@@ -860,6 +860,104 @@ Evaluates whether random negative sampling produces informative training signal.
 **Interpretation:** {bh.get('interpretation', 'N/A')}
 
 **Recommendation:** {bh.get('recommendation', 'N/A')}
+
+"""
+        
+        # 10.4 Text Embedding Extraction
+        if results.get('text_embedding_extraction'):
+            te = results['text_embedding_extraction']
+            md_content += f"""### 10.4 Text Embedding Extraction (Sentence-BERT)
+
+| Metric | Value |
+|--------|-------|
+| Model | `{te.get('model_name', 'N/A')}` |
+| Items Processed | {te.get('n_items_successful', 0):,} |
+| Success Rate | {te.get('success_rate', 0):.1f}% |
+| Embedding Dimension | {te.get('embedding_dim', 0)} |
+| Processing Time | {te.get('processing_time_sec', 0):.1f}s |
+| Throughput | {te.get('items_per_second', 0):.1f} items/sec |
+| Avg Text Length | {te.get('avg_text_length', 0):.0f} chars |
+
+"""
+        
+        # 10.5 Semantic-Interaction Alignment
+        if results.get('semantic_alignment'):
+            sa = results['semantic_alignment']
+            signal = sa.get('signal_strength', 'unknown').upper()
+            
+            # Signal badge
+            if signal == "STRONG":
+                signal_badge = "🟢 STRONG"
+            elif signal == "MODERATE":
+                signal_badge = "🟡 MODERATE"
+            elif signal == "WEAK":
+                signal_badge = "🟠 WEAK"
+            else:
+                signal_badge = "🔴 NOISE"
+            
+            pearson = sa.get('pearson', {})
+            stats = sa.get('statistics', {})
+            
+            md_content += f"""### 10.5 Semantic-Interaction Alignment (Text)
+
+![Semantic Alignment](figures/{dataset_name}/semantic_alignment_{figure_suffix}.png)
+
+Tests whether items with similar text descriptions have similar buyers.
+
+| Metric | Value |
+|--------|-------|
+| Pairs Analyzed | {sa.get('n_pairs_sampled', 0):,} |
+| Pearson r | {pearson.get('correlation', 'N/A')} |
+| p-value | {pearson.get('pvalue', 'N/A')} |
+| Mean Text Similarity | {stats.get('mean_text_similarity', 0):.4f} |
+| Mean Interaction Similarity | {stats.get('mean_interaction_similarity', 0):.4f} |
+| **Signal Strength** | {signal_badge} |
+
+**Interpretation:** {sa.get('interpretation', 'N/A')}
+
+**Recommendation:** {sa.get('recommendation', 'N/A')}
+
+"""
+        
+        # 10.6 Cross-Modal Consistency
+        if results.get('cross_modal_consistency'):
+            cm = results['cross_modal_consistency']
+            status = cm.get('alignment_status', 'unknown').upper()
+            
+            # Status badge
+            if status == "AGREE":
+                status_badge = "🟢 AGREE"
+            elif status == "MODERATE":
+                status_badge = "🟡 MODERATE"
+            else:
+                status_badge = "🔴 DISAGREE"
+            
+            stats = cm.get('statistics', {})
+            dist = cm.get('distribution', {})
+            proj = cm.get('projection', {})
+            
+            md_content += f"""### 10.6 Cross-Modal Consistency (Text vs Image)
+
+![Cross-Modal Consistency](figures/{dataset_name}/cross_modal_consistency_{figure_suffix}.png)
+
+Measures whether text and image embeddings agree for the same items.
+
+| Metric | Value |
+|--------|-------|
+| Items with Both Modalities | {cm.get('n_items_with_both', 0):,} |
+| Projection Method | {proj.get('method', 'N/A')} |
+| Text Dim → Projected | {proj.get('text_dim', 0)} → {proj.get('projected_dim', 0)} |
+| Image Dim → Projected | {proj.get('image_dim', 0)} → {proj.get('projected_dim', 0)} |
+| **Mean Similarity** | {stats.get('mean', 0):.4f} |
+| Std Similarity | {stats.get('std', 0):.4f} |
+| Low Agreement (<0.3) | {dist.get('low_agreement_pct', 0):.1f}% |
+| Moderate (0.3-0.6) | {dist.get('moderate_agreement_pct', 0):.1f}% |
+| High Agreement (>0.6) | {dist.get('high_agreement_pct', 0):.1f}% |
+| **Status** | {status_badge} |
+
+**Interpretation:** {cm.get('interpretation', 'N/A')}
+
+**Recommendation:** {cm.get('recommendation', 'N/A')}
 
 """
     
