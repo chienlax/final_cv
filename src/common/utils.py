@@ -73,6 +73,137 @@ def setup_logging(log_file: str = None, level: int = logging.INFO) -> None:
     )
 
 
+def create_run_logger(
+    run_type: str,
+    dataset: str = None,
+    model: str = None,
+    base_dir: str = "logs",
+) -> tuple[logging.Logger, Path]:
+    """
+    Create a logger for a specific run with timestamped export folder.
+    
+    Creates: logs/{run_type}/{dataset}_{model}_{timestamp}/
+    
+    Args:
+        run_type: Type of run ("preprocessing", "training", "evaluation").
+        dataset: Dataset name.
+        model: Model name (for training runs).
+        base_dir: Base directory for logs.
+        
+    Returns:
+        Tuple of (logger, run_dir) where run_dir is the timestamped directory.
+    """
+    from datetime import datetime
+    
+    # Create timestamped run directory
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    if model:
+        run_name = f"{dataset}_{model}_{timestamp}"
+    elif dataset:
+        run_name = f"{dataset}_{timestamp}"
+    else:
+        run_name = timestamp
+    
+    run_dir = Path(base_dir) / run_type / run_name
+    run_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Create log file path
+    log_file = run_dir / "run.log"
+    
+    # Configure root logger
+    handlers = [
+        logging.StreamHandler(),
+        logging.FileHandler(log_file, encoding="utf-8"),
+    ]
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=handlers,
+        force=True,
+    )
+    
+    logger = logging.getLogger(__name__)
+    
+    # Log run info
+    logger.info("=" * 70)
+    logger.info(f"RUN TYPE: {run_type.upper()}")
+    if dataset:
+        logger.info(f"DATASET: {dataset}")
+    if model:
+        logger.info(f"MODEL: {model}")
+    logger.info(f"TIMESTAMP: {timestamp}")
+    logger.info(f"LOG DIR: {run_dir}")
+    logger.info("=" * 70)
+    
+    return logger, run_dir
+
+
+def log_system_info(logger: logging.Logger = None) -> dict:
+    """
+    Log comprehensive system information.
+    
+    Args:
+        logger: Logger to use, or None to use root logger.
+        
+    Returns:
+        Dictionary with system info.
+    """
+    import platform
+    import psutil
+    
+    if logger is None:
+        logger = logging.getLogger(__name__)
+    
+    info = {
+        "platform": platform.platform(),
+        "python_version": platform.python_version(),
+        "cpu_count": psutil.cpu_count(),
+        "ram_total_gb": psutil.virtual_memory().total / 1024**3,
+        "ram_available_gb": psutil.virtual_memory().available / 1024**3,
+    }
+    
+    if torch.cuda.is_available():
+        info["gpu_name"] = torch.cuda.get_device_name(0)
+        info["gpu_memory_gb"] = torch.cuda.get_device_properties(0).total_memory / 1024**3
+        info["cuda_version"] = torch.version.cuda
+    
+    logger.info("System Information:")
+    for key, value in info.items():
+        if isinstance(value, float):
+            logger.info(f"  {key}: {value:.2f}")
+        else:
+            logger.info(f"  {key}: {value}")
+    
+    return info
+
+
+def log_config(config: object, logger: logging.Logger = None) -> None:
+    """
+    Log configuration parameters.
+    
+    Args:
+        config: Config object (dataclass or dict).
+        logger: Logger to use.
+    """
+    if logger is None:
+        logger = logging.getLogger(__name__)
+    
+    logger.info("Configuration:")
+    
+    if hasattr(config, "to_dict"):
+        config_dict = config.to_dict()
+    elif hasattr(config, "__dict__"):
+        config_dict = {k: v for k, v in config.__dict__.items() if not k.startswith("_")}
+    else:
+        config_dict = dict(config)
+    
+    for key, value in sorted(config_dict.items()):
+        logger.info(f"  {key}: {value}")
+
+
 class EarlyStopping:
     """Early stopping to prevent overfitting."""
     

@@ -63,7 +63,7 @@ def load_interactions(config: InductivePreprocessConfig) -> pd.DataFrame:
 def recursive_kcore_filter(
     df: pd.DataFrame,
     k: int = 5,
-    max_iterations: int = 100,
+    max_iterations: int = 200,
 ) -> pd.DataFrame:
     """
     Apply recursive k-core filtering until convergence.

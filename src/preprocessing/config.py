@@ -30,7 +30,7 @@ class PreprocessConfig:
     sample_ratio: float = 1.0  # 1.0 = use full dataset
     
     # Negative sampling
-    n_negatives: int = 4  # Negatives per positive for BPR
+    n_negatives: int = 16  # Negatives per positive for BPR
     negative_strategy: str = "uniform"  # "uniform" or "popularity"
     
     # Random seed

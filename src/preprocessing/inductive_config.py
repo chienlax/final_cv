@@ -27,8 +27,8 @@ class InductivePreprocessConfig:
     test_warm_ratio: float = 0.10
     
     # Feature Extraction (optimized for RTX 3060)
-    feature_batch_size: int = 64    # GPU batch size (uses ~3GB extra VRAM)
-    n_download_workers: int = 16    # Parallel image downloads
+    feature_batch_size: int = 128    # GPU batch size (uses ~3GB extra VRAM)
+    n_download_workers: int = 14    # Parallel image downloads
     download_timeout: int = 10      # Per-image timeout in seconds
     clip_model: str = "openai/clip-vit-large-patch14"
     sbert_model: str = "sentence-transformers/all-mpnet-base-v2"

@@ -3,9 +3,11 @@ CLI entry point for inductive preprocessing.
 
 Usage:
     python src/preprocessing/run_preprocessing.py --dataset electronics --seed-users 10000
+    python src/preprocessing/run_preprocessing.py --dataset electronics beauty clothing  # Multiple
 """
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -16,15 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.preprocessing.inductive_config import InductivePreprocessConfig
 from src.preprocessing.inductive_pipeline import run_preprocessing
-
-
-def setup_logging():
-    """Configure logging for preprocessing."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-        datefmt="%H:%M:%S",
-    )
+from src.common.utils import create_run_logger, log_system_info, log_config
 
 
 def main():
@@ -35,9 +29,10 @@ def main():
     parser.add_argument(
         "--dataset",
         type=str,
-        default="electronics",
+        nargs="+",  # Allow multiple datasets
+        default=["electronics"],
         choices=["electronics", "beauty", "clothing"],
-        help="Dataset to preprocess",
+        help="Dataset(s) to preprocess (can specify multiple)",
     )
     parser.add_argument(
         "--seed-users",
@@ -86,34 +81,51 @@ def main():
     # Set OMP threads for P-cores
     os.environ["OMP_NUM_THREADS"] = "6"
     
-    setup_logging()
-    logger = logging.getLogger(__name__)
-    
-    logger.info("=" * 60)
-    logger.info("Inductive Preprocessing for Multimodal Recommendation")
-    logger.info("=" * 60)
-    
-    # Create config
-    config = InductivePreprocessConfig(
-        dataset=args.dataset,
-        seed_users=args.seed_users,
-        k_core=args.k_core,
-        cold_item_ratio=args.cold_ratio,
-        output_dir=Path(args.output_dir),
-        data_dir=Path(args.data_dir),
-        seed=args.seed,
-    )
-    
-    logger.info(f"Dataset: {config.dataset}")
-    logger.info(f"Seed Users: {config.seed_users:,}")
-    logger.info(f"K-Core: {config.k_core}")
-    logger.info(f"Cold Item Ratio: {config.cold_item_ratio}")
-    logger.info(f"Output: {config.dataset_output_dir}")
-    
-    # Run preprocessing
-    run_preprocessing(config)
-    
-    logger.info("Done!")
+    # Process each dataset
+    for dataset in args.dataset:
+        # Create timestamped logger for this run
+        logger, run_dir = create_run_logger(
+            run_type="preprocessing",
+            dataset=dataset,
+        )
+        
+        # Log system info
+        log_system_info(logger)
+        
+        # Create config
+        config = InductivePreprocessConfig(
+            dataset=dataset,
+            seed_users=args.seed_users,
+            k_core=args.k_core,
+            cold_item_ratio=args.cold_ratio,
+            output_dir=Path(args.output_dir),
+            data_dir=Path(args.data_dir),
+            seed=args.seed,
+        )
+        
+        # Log config
+        log_config(config, logger)
+        
+        logger.info("")
+        logger.info(f"Output directory: {config.dataset_output_dir}")
+        logger.info("")
+        
+        try:
+            # Run preprocessing
+            run_preprocessing(config)
+            
+            # Copy log to output dir for easy access
+            import shutil
+            shutil.copy(run_dir / "run.log", config.dataset_output_dir / "preprocessing.log")
+            logger.info(f"Log copied to: {config.dataset_output_dir / 'preprocessing.log'}")
+            
+        except Exception as e:
+            logger.error(f"Preprocessing failed: {e}", exc_info=True)
+            raise
+        
+        logger.info("=" * 70)
+        logger.info("PREPROCESSING COMPLETE")
+        logger.info("=" * 70)
 
 
 if __name__ == "__main__":
