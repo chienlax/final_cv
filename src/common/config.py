@@ -1,7 +1,12 @@
 """
 Unified configuration for LATTICE/MICRO/DiffMM training.
 
-Hardware-optimized for RTX 3060 (12GB VRAM).
+Hardware-optimized for:
+- CPU: i5-13500 (6P+8E = 20 threads)
+- RAM: 64GB
+- GPU: RTX 3060 (12GB VRAM)
+
+Target VRAM usage: 8-10GB (leave headroom for peaks)
 """
 
 
@@ -16,47 +21,62 @@ class Config:
     DATA_PATH = "data/processed/"
     
     # =========================================================================
-    # UNIVERSAL TRAINING PARAMS (Fair Comparison)
+    # DATALOADER (Optimized for i5-13500)
     # =========================================================================
-    BATCH_SIZE = 1024      # Safe for 3060, agreed by both papers
-    EPOCHS = 100
-    PATIENCE = 20          # Early stopping (generative models have noisy loss)
-    LR = 1e-3              # Industry standard
-    L2_REG = 1e-4          # Balance: 1e-3 hurts cold-start, 1e-5 overfits
+    NUM_WORKERS = 6          # P-cores for parallel data loading
+    PIN_MEMORY = True        # Faster CPU→GPU transfer
+    PREFETCH_FACTOR = 4      # Batches to prefetch per worker
+    PERSISTENT_WORKERS = True  # Avoid worker restart overhead
     
     # =========================================================================
-    # MODEL ARCHITECTURE (Hardware-Optimized)
+    # MIXED PRECISION (AMP)
     # =========================================================================
-    EMBED_DIM = 64         # Both papers agree
-    N_LAYERS = 2           # Sweet spot for VRAM (3 layers → ~11GB with kNN)
+    USE_AMP = True           # ~25% VRAM savings, ~15% speedup
+    
+    # =========================================================================
+    # UNIVERSAL TRAINING PARAMS
+    # =========================================================================
+    # Aggressive GPU utilization for 12GB VRAM
+    BATCH_SIZE = 4096        # Doubled - more GPU parallelism
+    EPOCHS = 200
+    PATIENCE = 30            # Early stopping
+    LR = 1e-3                # Industry standard
+    L2_REG = 1e-4            # Regularization
+    LR_SCHEDULER = "cosine"  # Cosine annealing
+    
+    # =========================================================================
+    # MODEL ARCHITECTURE (Increased for GPU utilization)
+    # =========================================================================
+    EMBED_DIM = 128          # Doubled from 64 → 4x more computation
+    N_LAYERS = 4             # Increased from 3 → more GCN passes
     
     # =========================================================================
     # EVALUATION
     # =========================================================================
-    TOP_K = [10, 20, 50]   # Recall@K, NDCG@K, Precision@K
-    EVAL_BATCH_SIZE = 256
+    TOP_K = [10, 20, 50]     # Recall@K, NDCG@K, Precision@K
+    EVAL_BATCH_SIZE = 4096   # Large (no gradients during eval)
     
     # =========================================================================
     # NEGATIVE SAMPLING
     # =========================================================================
-    N_NEGATIVES = 1        # 1 hard negative per positive (BPR)
-    NEGATIVE_STRATEGY = "uniform"  # Not popularity-weighted
+    N_NEGATIVES = 8          # Increased from 4 → more negative pairs
+    NEGATIVE_STRATEGY = "uniform"
     
     # =========================================================================
     # LATTICE SPECIFICS
     # =========================================================================
-    LATTICE_K = 10         # k-NN neighbors for graph learning
-    LATTICE_LAMBDA = 0.5   # Balance original vs learned graph
+    LATTICE_K = 20           # Increased from 10 → denser k-NN graph
+    LATTICE_LAMBDA = 0.5     # Balance original vs learned graph
     
     # =========================================================================
     # MICRO SPECIFICS
     # =========================================================================
-    MICRO_TAU = 0.2        # InfoNCE temperature (0.2 > 0.5 for graphs)
-    MICRO_ALPHA = 0.1      # Auxiliary loss weight (don't overpower BPR)
+    MICRO_TAU = 0.2          # InfoNCE temperature
+    MICRO_ALPHA = 0.1        # Contrastive loss weight
     
     # =========================================================================
     # DiffMM SPECIFICS
     # =========================================================================
-    DIFFMM_STEPS = 5       # Fast diffusion (100 unnecessary for graphs)
+    DIFFMM_STEPS = 10        # Increased from 5 → better generation quality
     DIFFMM_NOISE_SCALE = 0.1
-    DIFFMM_LAMBDA_MSI = 1e-2  # Modality Signal Injection weight
+    DIFFMM_LAMBDA_MSI = 1e-2

@@ -150,10 +150,10 @@ class RecDataset:
         # Symmetric normalization
         norm_adj = d_mat @ adj @ d_mat
         
-        # Convert to sparse torch tensor
+        # Convert to sparse torch tensor (avoid slow list-to-tensor conversion)
         norm_adj = norm_adj.tocoo()
-        indices = torch.LongTensor([norm_adj.row, norm_adj.col])
-        values = torch.FloatTensor(norm_adj.data)
+        indices = torch.LongTensor(np.array([norm_adj.row, norm_adj.col]))
+        values = torch.FloatTensor(np.array(norm_adj.data))
         
         return torch.sparse_coo_tensor(
             indices, values, norm_adj.shape
@@ -205,13 +205,22 @@ class RecDataset:
 class BPRDataset(Dataset):
     """
     Dataset for BPR training with uniform negative sampling.
+    
+    Returns:
+        - When n_negatives=1: (user, pos_item, neg_item) - all int64 scalars
+        - When n_negatives>1: (user, pos_item, neg_items) where neg_items is (n_negatives,) array
+    
+    After batching by DataLoader:
+        - users: (batch_size,) int64
+        - pos_items: (batch_size,) int64
+        - neg_items: (batch_size,) or (batch_size, n_negatives) int64
     """
     
     def __init__(
         self,
-        interactions: np.ndarray,
+        interactions: np.ndarray,  # (N, 2) user-item pairs
         n_items: int,
-        user_positive_items: dict,
+        user_positive_items: dict,  # {user_idx: set(item_idx, ...)}
         n_negatives: int = 1,
     ):
         """
@@ -219,7 +228,7 @@ class BPRDataset(Dataset):
             interactions: (N, 2) array of (user_idx, item_idx) pairs.
             n_items: Total number of items.
             user_positive_items: Dict mapping user to set of positive items.
-            n_negatives: Number of negatives per positive.
+            n_negatives: Number of negatives per positive (1-16 typical).
         """
         self.interactions = interactions
         self.n_items = n_items
@@ -242,6 +251,9 @@ class BPRDataset(Dataset):
                 neg = np.random.randint(0, self.n_items)
             neg_items.append(neg)
         
+        # Always return numpy array for proper collation
+        neg_items = np.array(neg_items, dtype=np.int64)
+        
         if self.n_negatives == 1:
             return user, pos_item, neg_items[0]
         return user, pos_item, neg_items
@@ -251,21 +263,35 @@ def create_bpr_dataloader(
     dataset: RecDataset,
     batch_size: int = 1024,
     n_negatives: int = 1,
-    num_workers: int = 0,
+    num_workers: int = 8,
     shuffle: bool = True,
+    pin_memory: bool = True,
+    persistent_workers: bool = True,
+    prefetch_factor: int = 4,
 ) -> DataLoader:
     """
     Create DataLoader for BPR training.
+    
+    Optimized for CPU/GPU pipelining with parallel data loading.
     
     Args:
         dataset: RecDataset instance.
         batch_size: Batch size.
         n_negatives: Number of negatives per positive.
-        num_workers: Number of worker processes.
+        num_workers: Number of worker processes (use P-cores).
         shuffle: Whether to shuffle data.
+        pin_memory: Pin memory for faster CPU→GPU transfer.
+        persistent_workers: Keep workers alive between epochs.
+        prefetch_factor: Batches to prefetch per worker.
         
     Returns:
         DataLoader for training.
+        
+    Shapes:
+        Each batch yields:
+        - users: (batch_size,) int64
+        - pos_items: (batch_size,) int64
+        - neg_items: (batch_size,) or (batch_size, n_negatives) int64
     """
     user_positive = dataset.get_user_positive_items("train")
     
@@ -276,10 +302,16 @@ def create_bpr_dataloader(
         n_negatives=n_negatives,
     )
     
-    return DataLoader(
-        bpr_dataset,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        num_workers=num_workers,
-        pin_memory=True,
-    )
+    # Only use persistent_workers and prefetch_factor if num_workers > 0
+    loader_kwargs = {
+        "batch_size": batch_size,
+        "shuffle": shuffle,
+        "num_workers": num_workers,
+        "pin_memory": pin_memory,
+    }
+    
+    if num_workers > 0:
+        loader_kwargs["persistent_workers"] = persistent_workers
+        loader_kwargs["prefetch_factor"] = prefetch_factor
+    
+    return DataLoader(bpr_dataset, **loader_kwargs)

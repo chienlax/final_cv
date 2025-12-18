@@ -123,44 +123,57 @@ class BaseMultimodalModel(ABC, nn.Module):
     @abstractmethod
     def forward(
         self,
-        adj: torch.Tensor,
-        users: torch.Tensor,
-        pos_items: torch.Tensor,
-        neg_items: torch.Tensor,
+        adj: torch.Tensor,        # (N, N) sparse - N = n_users + n_items
+        users: torch.Tensor,      # (batch,) int64 user indices
+        pos_items: torch.Tensor,  # (batch,) int64 positive item indices
+        neg_items: torch.Tensor,  # (batch,) or (batch, n_neg) int64 negative indices
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass for training.
         
         Args:
-            adj: Normalized adjacency matrix (sparse).
-            users: (batch,) user indices.
-            pos_items: (batch,) positive item indices.
-            neg_items: (batch,) negative item indices.
+            adj: Normalized bipartite adjacency matrix (sparse).
+                 Shape: (n_users + n_items, n_users + n_items)
+            users: User indices for this batch.
+                   Shape: (batch_size,)
+            pos_items: Positive item indices.
+                       Shape: (batch_size,)
+            neg_items: Negative item indices.
+                       Shape: (batch_size,) when n_negatives=1
+                       Shape: (batch_size, n_negatives) when n_negatives>1
             
         Returns:
-            Tuple of (user_emb, pos_emb, neg_emb) after GCN propagation.
+            user_emb:  User embeddings. Shape: (batch_size, embed_dim)
+            pos_emb:   Positive item embeddings. Shape: (batch_size, embed_dim)
+            neg_emb:   Negative item embeddings.
+                       Shape: (batch_size, embed_dim) when n_negatives=1
+                       Shape: (batch_size, n_negatives, embed_dim) when n_negatives>1
         """
         pass
     
     @abstractmethod
     def inductive_forward(
         self,
-        adj: torch.Tensor,
-        users: torch.Tensor,
-        items: torch.Tensor,
+        adj: torch.Tensor,        # (N, N) sparse
+        users: torch.Tensor,      # (batch,) int64
+        items: torch.Tensor,      # (batch,) int64 - may include cold items
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Inductive forward pass for cold items.
         
-        Cold items use ONLY modal embeddings (no ID lookup).
+        Cold items (idx >= n_warm) use ONLY modal embeddings (no ID lookup).
         
         Args:
             adj: Normalized adjacency matrix.
-            users: (batch,) user indices.
-            items: (batch,) item indices (may include cold items).
+                 Shape: (n_users + n_items, n_users + n_items)
+            users: User indices.
+                   Shape: (batch_size,)
+            items: Item indices (may include cold items with idx >= n_warm).
+                   Shape: (batch_size,)
             
         Returns:
-            Tuple of (user_emb, item_emb).
+            user_emb: User embeddings. Shape: (batch_size, embed_dim)
+            item_emb: Item embeddings. Shape: (batch_size, embed_dim)
         """
         pass
     
@@ -176,15 +189,25 @@ class BaseMultimodalModel(ABC, nn.Module):
         Args:
             user_emb: (batch, dim) user embeddings.
             pos_emb: (batch, dim) positive item embeddings.
-            neg_emb: (batch, dim) negative item embeddings.
+            neg_emb: (batch, dim) or (batch, n_neg, dim) negative item embeddings.
             
         Returns:
             Scalar BPR loss.
         """
-        pos_scores = (user_emb * pos_emb).sum(dim=1)
-        neg_scores = (user_emb * neg_emb).sum(dim=1)
+        pos_scores = (user_emb * pos_emb).sum(dim=1)  # (batch,)
         
-        loss = -F.logsigmoid(pos_scores - neg_scores).mean()
+        # Handle multiple negatives
+        if neg_emb.dim() == 3:
+            # neg_emb: (batch, n_neg, dim)
+            # user_emb needs to be (batch, 1, dim) for broadcasting
+            user_expanded = user_emb.unsqueeze(1)  # (batch, 1, dim)
+            neg_scores = (user_expanded * neg_emb).sum(dim=2)  # (batch, n_neg)
+            # Average over negatives
+            loss = -F.logsigmoid(pos_scores.unsqueeze(1) - neg_scores).mean()
+        else:
+            # Single negative: (batch, dim)
+            neg_scores = (user_emb * neg_emb).sum(dim=1)
+            loss = -F.logsigmoid(pos_scores - neg_scores).mean()
         
         return loss
     

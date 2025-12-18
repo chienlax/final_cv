@@ -1,7 +1,12 @@
 """
 Training loop for multimodal recommendation models.
 
-Supports early stopping, checkpoint saving, and multi-loss logging.
+Supports:
+- Early stopping with patience
+- Checkpoint saving/loading  
+- Mixed precision training (AMP)
+- LR scheduling (cosine annealing)
+- Multi-loss logging
 """
 
 import logging
@@ -11,6 +16,7 @@ from typing import Optional
 
 import torch
 from torch.optim import Adam
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -21,7 +27,15 @@ logger = logging.getLogger(__name__)
 
 
 class Trainer:
-    """Trainer for multimodal recommendation models."""
+    """
+    Trainer for multimodal recommendation models.
+    
+    Features:
+    - Mixed precision training (AMP) for VRAM savings and speedup
+    - Cosine annealing LR scheduler for better convergence
+    - Early stopping with configurable patience
+    - Checkpoint saving with best model tracking
+    """
     
     def __init__(
         self,
@@ -43,12 +57,34 @@ class Trainer:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
+        # Optimizer
         self.optimizer = Adam(
             model.parameters(),
             lr=config.LR,
             weight_decay=0,  # We use explicit L2 reg in loss
         )
         
+        # LR Scheduler
+        lr_scheduler_type = getattr(config, 'LR_SCHEDULER', None)
+        if lr_scheduler_type == "cosine":
+            self.scheduler = CosineAnnealingLR(
+                self.optimizer, 
+                T_max=config.EPOCHS,
+                eta_min=config.LR * 0.01,  # Minimum LR = 1% of initial
+            )
+            logger.info(f"Using Cosine Annealing LR scheduler (T_max={config.EPOCHS})")
+        else:
+            self.scheduler = None
+        
+        # Mixed Precision (AMP)
+        self.use_amp = getattr(config, 'USE_AMP', False)
+        if self.use_amp:
+            self.scaler = torch.cuda.amp.GradScaler()
+            logger.info("Using Automatic Mixed Precision (AMP)")
+        else:
+            self.scaler = None
+        
+        # Early stopping
         self.early_stopping = EarlyStopping(
             patience=config.PATIENCE,
             mode="max",
@@ -66,6 +102,16 @@ class Trainer:
             
         Returns:
             Dict of average losses.
+            
+        Batch shapes:
+            users: (batch_size,) int64
+            pos_items: (batch_size,) int64
+            neg_items: (batch_size,) or (batch_size, n_neg) int64
+            
+        Note:
+            Sparse matrix operations don't support FP16, so we run the forward
+            pass (which contains LightGCN propagation) in FP32 and only use
+            AMP for the loss computation and backward pass.
         """
         self.model.train()
         
@@ -75,21 +121,41 @@ class Trainer:
         pbar = tqdm(dataloader, desc="Training", leave=False)
         
         for users, pos_items, neg_items in pbar:
+            # Move to device - shapes: (batch,), (batch,), (batch,) or (batch, n_neg)
             users = users.to(self.model.device)
             pos_items = pos_items.to(self.model.device)
             neg_items = neg_items.to(self.model.device)
             
             self.optimizer.zero_grad()
             
-            losses = self.model.compute_loss(
-                adj, users, pos_items, neg_items,
-                l2_reg=self.config.L2_REG,
-            )
-            
-            loss = losses["loss"]
-            loss.backward()
-            
-            self.optimizer.step()
+            # Forward pass in FP32 (sparse mm doesn't support FP16)
+            # Then use AMP only for loss computation and backward
+            if self.use_amp:
+                # Forward pass WITHOUT autocast (sparse ops need FP32)
+                user_emb, pos_emb, neg_emb = self.model.forward(
+                    adj, users, pos_items, neg_items
+                )
+                
+                # Loss computation WITH autocast
+                with torch.amp.autocast('cuda'):
+                    losses = self.model._compute_loss_from_emb(
+                        user_emb, pos_emb, neg_emb,
+                        users, pos_items, neg_items,
+                        l2_reg=self.config.L2_REG,
+                    )
+                
+                # Backward with gradient scaling
+                self.scaler.scale(losses["loss"]).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                losses = self.model.compute_loss(
+                    adj, users, pos_items, neg_items,
+                    l2_reg=self.config.L2_REG,
+                )
+                
+                losses["loss"].backward()
+                self.optimizer.step()
             
             # Update meters
             for key, value in losses.items():
@@ -122,37 +188,56 @@ class Trainer:
         
         n_epochs = n_epochs or self.config.EPOCHS
         
+        # Create DataLoader with config params
+        num_workers = getattr(self.config, 'NUM_WORKERS', 0)
+        pin_memory = getattr(self.config, 'PIN_MEMORY', True)
+        
         dataloader = create_bpr_dataloader(
             self.dataset,
             batch_size=self.config.BATCH_SIZE,
             n_negatives=self.config.N_NEGATIVES,
+            num_workers=num_workers,
+            pin_memory=pin_memory,
         )
         
         history = {
             "train_loss": [],
             "val_recall": [],
             "val_ndcg": [],
+            "learning_rate": [],
         }
         
         logger.info(f"Starting training for {n_epochs} epochs...")
         logger.info(f"  Batch size: {self.config.BATCH_SIZE}")
         logger.info(f"  Learning rate: {self.config.LR}")
         logger.info(f"  L2 reg: {self.config.L2_REG}")
+        logger.info(f"  N negatives: {self.config.N_NEGATIVES}")
+        logger.info(f"  AMP enabled: {self.use_amp}")
+        logger.info(f"  DataLoader workers: {num_workers}")
         
         start_time = time.time()
         
         for epoch in range(1, n_epochs + 1):
             epoch_start = time.time()
             
+            # Get current LR
+            current_lr = self.optimizer.param_groups[0]['lr']
+            history["learning_rate"].append(current_lr)
+            
             # Train
             train_losses = self.train_epoch(dataloader)
             history["train_loss"].append(train_losses["loss"])
+            
+            # Step LR scheduler
+            if self.scheduler is not None:
+                self.scheduler.step()
             
             epoch_time = time.time() - epoch_start
             
             logger.info(
                 f"Epoch {epoch}/{n_epochs} | "
                 f"Loss: {train_losses['loss']:.4f} | "
+                f"LR: {current_lr:.2e} | "
                 f"Time: {epoch_time:.1f}s"
             )
             
@@ -201,12 +286,20 @@ class Trainer:
     def _save_checkpoint(self, filename: str):
         """Save model checkpoint."""
         path = self.output_dir / filename
-        torch.save({
+        checkpoint = {
             "model_state_dict": self.model.state_dict(),
             "optimizer_state_dict": self.optimizer.state_dict(),
             "best_metric": self.best_metric,
             "best_epoch": self.best_epoch,
-        }, path)
+        }
+        
+        if self.scheduler is not None:
+            checkpoint["scheduler_state_dict"] = self.scheduler.state_dict()
+        
+        if self.scaler is not None:
+            checkpoint["scaler_state_dict"] = self.scaler.state_dict()
+        
+        torch.save(checkpoint, path)
     
     def _load_checkpoint(self, filename: str):
         """Load model checkpoint."""

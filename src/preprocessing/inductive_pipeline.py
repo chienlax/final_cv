@@ -121,7 +121,7 @@ def sample_and_prune(
     np.random.seed(config.seed)
     
     seed_users = config.seed_users
-    max_attempts = 5
+    max_attempts = 50
     
     for attempt in range(max_attempts):
         logger.info(f"Attempt {attempt + 1}: Sampling {seed_users:,} seed users...")
@@ -149,13 +149,13 @@ def sample_and_prune(
         if n_total < config.min_total_nodes:
             # Too small - increase seed
             old_seed = seed_users
-            seed_users = int(seed_users * 1.3)
+            seed_users = int(seed_users * 1.2)
             logger.warning(f"Graph too small ({n_total} < {config.min_total_nodes}). "
                           f"Increasing seed: {old_seed:,} → {seed_users:,}")
         elif n_total > config.max_total_nodes:
             # Too large - decrease seed
             old_seed = seed_users
-            seed_users = int(seed_users * 0.7)
+            seed_users = int(seed_users * 0.8)
             logger.warning(f"Graph too large ({n_total} > {config.max_total_nodes}). "
                           f"Decreasing seed: {old_seed:,} → {seed_users:,}")
         else:

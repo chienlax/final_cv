@@ -7,6 +7,21 @@ Complete command-line interface reference for the multimodal recommendation syst
 ## Quick Start
 
 ```bash
+# Full pipeline (all datasets + all models)
+./run_pipeline.ps1
+
+# Preprocessing only
+./run_pipeline.ps1 -PreprocessingOnly
+
+# Specific datasets/models
+./run_pipeline.ps1 -Datasets electronics,beauty -Models lattice,micro
+
+# Skip preprocessing (use existing data)
+./run_pipeline.ps1 -SkipPreprocessing
+```
+
+**Individual commands:**
+```bash
 # 1. Preprocess data
 python src/preprocessing/run_preprocessing.py --dataset electronics
 
@@ -102,6 +117,17 @@ python src/main.py --model MODEL [OPTIONS]
 ```bash
 # Train LATTICE on Electronics
 python src/main.py --model lattice --dataset electronics
+python src/main.py --model micro --dataset electronics
+python src/main.py --model diffmm --dataset electronics
+
+python src/main.py --model lattice --dataset clothing
+python src/main.py --model micro --dataset clothing
+python src/main.py --model diffmm --dataset clothing
+
+python src/main.py --model lattice --dataset beauty
+python src/main.py --model micro --dataset beauty
+python src/main.py --model diffmm --dataset beauty
+
 
 # Train MICRO with custom epochs
 python src/main.py --model micro --dataset electronics --epochs 50
@@ -214,8 +240,8 @@ python src/main.py --model lattice --dataset electronics --epochs 1
 
 ```bash
 # Set same seed as paper/friend
-python src/preprocessing/run_preprocessing.py --dataset electronics --seed 2024
-python src/main.py --model lattice --dataset electronics --seed 2024
+python src/preprocessing/run_preprocessing.py --dataset electronics --seed 42
+python src/main.py --model lattice --dataset electronics --seed 42
 ```
 
 ---

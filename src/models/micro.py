@@ -245,6 +245,28 @@ class MICROModel(BaseMultimodalModel):
         """Compute BPR + InfoNCE + L2 loss."""
         user_emb, pos_emb, neg_emb = self.forward(adj, users, pos_items, neg_items)
         
+        return self._compute_loss_from_emb(
+            user_emb, pos_emb, neg_emb,
+            users, pos_items, neg_items,
+            l2_reg=l2_reg,
+        )
+    
+    def _compute_loss_from_emb(
+        self,
+        user_emb: torch.Tensor,   # (batch, dim)
+        pos_emb: torch.Tensor,    # (batch, dim)
+        neg_emb: torch.Tensor,    # (batch, dim) or (batch, n_neg, dim)
+        users: torch.Tensor,      # (batch,)
+        pos_items: torch.Tensor,  # (batch,)
+        neg_items: torch.Tensor,  # (batch,) or (batch, n_neg)
+        l2_reg: float = 1e-4,
+    ) -> dict:
+        """
+        Compute loss from pre-computed embeddings.
+        
+        This is separated from forward() to allow AMP to run loss in FP16
+        while forward (with sparse ops) runs in FP32.
+        """
         # BPR loss
         bpr = self.bpr_loss(user_emb, pos_emb, neg_emb)
         
@@ -260,11 +282,16 @@ class MICROModel(BaseMultimodalModel):
         
         cl_loss = (cl_vi + cl_ti + cl_vt) / 3
         
-        # L2 regularization
+        # L2 regularization - handle multi-negative
+        if neg_items.dim() == 2:
+            neg_items_flat = neg_items.flatten()
+        else:
+            neg_items_flat = neg_items
+        
         reg = self.l2_reg_loss(
             self.user_embedding.weight[users],
             self.item_embedding.weight[pos_items],
-            self.item_embedding.weight[neg_items],
+            self.item_embedding.weight[neg_items_flat],
         )
         
         total = bpr + self.alpha * cl_loss + l2_reg * reg

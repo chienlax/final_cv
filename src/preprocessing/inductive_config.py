@@ -14,8 +14,8 @@ class InductivePreprocessConfig:
     
     # Topological Subsampling
     seed_users: int = 10000       # Target: ~12k-15k users, ~8k-10k items
-    min_total_nodes: int = 8000   # Below = overfitting risk, increase seed
-    max_total_nodes: int = 20000  # Above = OOM risk, decrease seed
+    min_total_nodes: int = 20000   # Below = overfitting risk, increase seed
+    max_total_nodes: int = 25000  # Above = OOM risk, decrease seed
     k_core: int = 5               # Minimum interactions per user/item
     
     # Inductive Split (Cold Items)
@@ -27,7 +27,7 @@ class InductivePreprocessConfig:
     test_warm_ratio: float = 0.10
     
     # Feature Extraction (optimized for RTX 3060)
-    feature_batch_size: int = 128    # GPU batch size (uses ~3GB extra VRAM)
+    feature_batch_size: int = 256    # GPU batch size (uses ~3GB extra VRAM)
     n_download_workers: int = 14    # Parallel image downloads
     download_timeout: int = 10      # Per-image timeout in seconds
     clip_model: str = "openai/clip-vit-large-patch14"
@@ -39,7 +39,7 @@ class InductivePreprocessConfig:
     num_workers: int = 6  # P-cores only on i5-13500
     
     # Reproducibility
-    seed: int = 2024
+    seed: int = 42
     
     # Paths
     data_dir: Path = field(default_factory=lambda: Path("data/raw"))

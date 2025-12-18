@@ -242,8 +242,8 @@ def main():
     logger.info(f"  Items (total): {dataset.n_items:,}")
     logger.info(f"  Items (warm): {dataset.n_warm:,}")
     logger.info(f"  Items (cold): {dataset.n_items - dataset.n_warm:,}")
-    logger.info(f"  Train interactions: {len(dataset.train_interactions):,}")
-    logger.info(f"  Val interactions: {len(dataset.val_interactions):,}")
+    logger.info(f"  Train interactions: {len(dataset.train_data):,}")
+    logger.info(f"  Val interactions: {len(dataset.val_data):,}")
     logger.info(f"  Visual feature dim: {dataset.feat_visual.shape[1]}")
     logger.info(f"  Text feature dim: {dataset.feat_text.shape[1]}")
     
