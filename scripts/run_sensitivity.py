@@ -31,7 +31,7 @@ SENSITIVITY_GRIDS = {
 }
 
 
-def run_experiment(dataset: str, model: str, param_name: str, param_value, epochs: int) -> dict:
+def run_experiment(dataset: str, model: str, param_name: str, param_value, epochs: int = None) -> dict:
     """Run a single training experiment and capture results."""
     print(f"\n{'='*60}")
     print(f"🧪 Testing {model.upper()} on {dataset} with {param_name}={param_value}")
@@ -42,9 +42,12 @@ def run_experiment(dataset: str, model: str, param_name: str, param_value, epoch
         sys.executable, "src/main.py",
         "--model", model,
         "--dataset", dataset,
-        "--epochs", str(epochs),
         f"--{param_name.replace('_', '-')}", str(param_value),
     ]
+    
+    # Only add --epochs if explicitly specified
+    if epochs is not None:
+        cmd.extend(["--epochs", str(epochs)])
     
     print(f"Command: {' '.join(cmd)}")
     
@@ -104,54 +107,77 @@ def run_experiment(dataset: str, model: str, param_name: str, param_value, epoch
 
 def main():
     parser = argparse.ArgumentParser(description="Run sensitivity analysis")
-    parser.add_argument("--dataset", type=str, required=True, help="Dataset name")
-    parser.add_argument("--epochs", type=int, default=20, help="Epochs per run (short for trends)")
+    parser.add_argument("--datasets", nargs="+", 
+                       default=["electronics", "beauty", "clothing"],
+                       help="Dataset names (default: all three)")
+    parser.add_argument("--epochs", type=int, default=None, 
+                       help="Epochs per run (default: use Config.EPOCHS)")
     parser.add_argument("--models", nargs="+", default=["lattice", "micro", "diffmm"],
                        choices=["lattice", "micro", "diffmm"], help="Models to test")
     args = parser.parse_args()
     
     # Create output directory
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_dir = Path("logs/sensitivity") / f"{args.dataset}_{timestamp}"
+    output_dir = Path("logs/sensitivity") / f"sensitivity_{timestamp}"
     output_dir.mkdir(parents=True, exist_ok=True)
     
+    # Calculate total runs
+    total_runs = 0
+    for model in args.models:
+        if model in SENSITIVITY_GRIDS:
+            for param_values in SENSITIVITY_GRIDS[model].values():
+                total_runs += len(param_values) * len(args.datasets)
+    
     print(f"\n🎯 Sensitivity Analysis")
-    print(f"   Dataset: {args.dataset}")
+    print(f"   Datasets: {args.datasets}")
     print(f"   Models: {args.models}")
-    print(f"   Epochs per run: {args.epochs}")
+    print(f"   Epochs per run: {args.epochs or 'Config default'}")
+    print(f"   Total runs: {total_runs}")
     print(f"   Output: {output_dir}")
     
     all_results = {}
+    current_run = 0
     
-    for model in args.models:
-        print(f"\n{'#'*60}")
-        print(f"# MODEL: {model.upper()}")
-        print(f"{'#'*60}")
+    for dataset in args.datasets:
+        print(f"\n{'@'*60}")
+        print(f"@ DATASET: {dataset.upper()}")
+        print(f"{'@'*60}")
         
-        if model not in SENSITIVITY_GRIDS:
-            print(f"⚠️  No sensitivity grid defined for {model}")
-            continue
+        all_results[dataset] = {}
         
-        model_results = {}
-        
-        for param_name, param_values in SENSITIVITY_GRIDS[model].items():
-            param_results = []
+        for model in args.models:
+            print(f"\n{'#'*60}")
+            print(f"# MODEL: {model.upper()} on {dataset}")
+            print(f"{'#'*60}")
             
-            for param_value in param_values:
-                result = run_experiment(
-                    args.dataset, model, param_name, param_value, args.epochs
-                )
-                param_results.append(result)
+            if model not in SENSITIVITY_GRIDS:
+                print(f"⚠️  No sensitivity grid defined for {model}")
+                continue
+            
+            model_results = {}
+            
+            for param_name, param_values in SENSITIVITY_GRIDS[model].items():
+                param_results = []
                 
-                # Print progress
-                if result["recall_20"]:
-                    print(f"   ✓ {param_name}={param_value}: Recall@20 = {result['recall_20']:.4f}")
-                else:
-                    print(f"   ✗ {param_name}={param_value}: Failed")
+                for param_value in param_values:
+                    current_run += 1
+                    print(f"\n[{current_run}/{total_runs}]", end=" ")
+                    
+                    result = run_experiment(
+                        dataset, model, param_name, param_value, 
+                        args.epochs  # Will use Config.EPOCHS if None
+                    )
+                    param_results.append(result)
+                    
+                    # Print progress
+                    if result["recall_20"]:
+                        print(f"   ✓ {param_name}={param_value}: Recall@20 = {result['recall_20']:.4f}")
+                    else:
+                        print(f"   ✗ {param_name}={param_value}: Failed")
+                
+                model_results[param_name] = param_results
             
-            model_results[param_name] = param_results
-        
-        all_results[model] = model_results
+            all_results[dataset][model] = model_results
     
     # Save results
     results_file = output_dir / "sensitivity_results.json"
@@ -164,17 +190,20 @@ def main():
     print("📈 SENSITIVITY ANALYSIS SUMMARY")
     print(f"{'='*60}")
     
-    for model, model_results in all_results.items():
-        print(f"\n{model.upper()}:")
-        for param_name, param_results in model_results.items():
-            recalls = [(r["param_value"], r["recall_20"]) for r in param_results if r["recall_20"]]
-            if recalls:
-                best = max(recalls, key=lambda x: x[1])
-                print(f"  {param_name}:")
-                for val, recall in recalls:
-                    marker = "★" if val == best[0] else " "
-                    print(f"    {marker} {val}: {recall:.4f}")
+    for dataset, dataset_results in all_results.items():
+        print(f"\n{dataset.upper()}:")
+        for model, model_results in dataset_results.items():
+            print(f"  {model.upper()}:")
+            for param_name, param_results in model_results.items():
+                recalls = [(r["param_value"], r["recall_20"]) for r in param_results if r["recall_20"]]
+                if recalls:
+                    best = max(recalls, key=lambda x: x[1])
+                    print(f"    {param_name}:")
+                    for val, recall in recalls:
+                        marker = "★" if val == best[0] else " "
+                        print(f"      {marker} {val}: {recall:.4f}")
 
 
 if __name__ == "__main__":
     main()
+

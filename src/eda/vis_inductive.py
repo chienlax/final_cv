@@ -80,7 +80,7 @@ def plot_inductive_gap(
     tsne = TSNE(
         n_components=2, 
         perplexity=perplexity, 
-        n_iter=1000,
+        max_iter=1000,  # renamed from n_iter in sklearn >= 1.5
         random_state=42,
         init='pca',
     )

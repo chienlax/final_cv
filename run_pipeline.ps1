@@ -206,7 +206,7 @@ if ($failedRuns.Count -gt 0) {
 # PHASE 3: Ablation Analysis
 # ============================================================
 # Tests the contribution of visual vs text modalities
-# Uses MICRO model (best cold-start performer) with base config
+# Runs ALL models × ALL datasets × 2 ablation modes
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Magenta
@@ -214,37 +214,43 @@ Write-Host " PHASE 3: ABLATION ANALYSIS" -ForegroundColor Magenta
 Write-Host "============================================" -ForegroundColor Magenta
 
 $ablationModes = @("no_visual", "no_text")
+$totalAblationRuns = $Datasets.Count * $Models.Count * $ablationModes.Count
+$currentAblationRun = 0
 
 foreach ($dataset in $Datasets) {
-    foreach ($ablation in $ablationModes) {
-        Write-Host ""
-        Write-Host ">>> Ablation: $ablation on $dataset (MICRO model)" -ForegroundColor Cyan
-        Write-Host "    Using base config, only modifying ablation mode"
-        Write-Host "-------------------------------------------"
-        
-        Show-GpuMemory
-        $startTime = Get-Date
-        
-        try {
-            # Use base config params, only modify ablation mode
-            # Output auto-routes to checkpoints_ablation/
-            python src/main.py --model micro --dataset $dataset --ablation $ablation --seed $SEED
+    foreach ($model in $Models) {
+        foreach ($ablation in $ablationModes) {
+            $currentAblationRun++
             
-            $duration = (Get-Date) - $startTime
-            Write-Host "[SUCCESS] $ablation on $dataset completed in $($duration.TotalMinutes.ToString('F1')) minutes" -ForegroundColor Green
+            Write-Host ""
+            Write-Host ">>> [$currentAblationRun/$totalAblationRuns] Ablation: $model on $dataset ($ablation)" -ForegroundColor Cyan
+            Write-Host "    Using base config, only modifying ablation mode"
+            Write-Host "-------------------------------------------"
+            
+            Show-GpuMemory
+            $startTime = Get-Date
+            
+            try {
+                # Use base config params, only modify ablation mode
+                # Output auto-routes to checkpoints_ablation/
+                python src/main.py --model $model --dataset $dataset --ablation $ablation --seed $SEED
+                
+                $duration = (Get-Date) - $startTime
+                Write-Host "[SUCCESS] $model/$ablation on $dataset completed in $($duration.TotalMinutes.ToString('F1')) minutes" -ForegroundColor Green
+            }
+            catch {
+                Write-Host "[ERROR] Ablation failed: $_" -ForegroundColor Red
+                $failedRuns += "ablation_${model}_${ablation}/${dataset}"
+            }
+            
+            Clear-CudaVram
         }
-        catch {
-            Write-Host "[ERROR] Ablation failed: $_" -ForegroundColor Red
-            $failedRuns += "ablation_${ablation}/${dataset}"
-        }
-        
-        Clear-CudaVram
     }
 }
 
 Write-Host ""
-Write-Host "[DONE] Ablation analysis complete!" -ForegroundColor Green
-Write-Host "Results saved to: checkpoints_ablation/{dataset}/micro_{ablation}/"
+Write-Host "[DONE] Ablation analysis complete! ($totalAblationRuns runs)" -ForegroundColor Green
+Write-Host "Results saved to: checkpoints_ablation/{dataset}/{model}_{ablation}/"
 
 # ============================================================
 # PHASE 4: Visualization (Inductive Gap Analysis)
