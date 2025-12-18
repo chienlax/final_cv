@@ -37,7 +37,7 @@ class PreprocessConfig:
     random_seed: int = 42
     
     # Paths
-    data_dir: Path = field(default_factory=lambda: Path("data"))
+    data_dir: Path = field(default_factory=lambda: Path("data/raw"))
     output_dir: Path = field(default_factory=lambda: Path("data/processed"))
     
     # Dataset selection

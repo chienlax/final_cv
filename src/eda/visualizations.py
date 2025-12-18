@@ -258,36 +258,69 @@ def plot_text_length_distribution(
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     
     # Review text length
+    ax1 = axes[0]
     if "review_text" in df.columns:
-        ax1 = axes[0]
         text_lengths = df["review_text"].fillna("").str.len()
         
-        # Filter to reasonable range for visualization
-        text_lengths_filtered = text_lengths[text_lengths <= text_lengths.quantile(0.99)]
+        # Check if text data is actually available (not all empty from CSV)
+        non_empty_count = (text_lengths > 0).sum()
         
-        ax1.hist(text_lengths_filtered, bins=50, color="steelblue", edgecolor="black", alpha=0.7)
-        ax1.axvline(text_lengths.mean(), color="red", linestyle="--", linewidth=2, label=f"Mean: {text_lengths.mean():.0f}")
-        ax1.axvline(text_lengths.median(), color="green", linestyle="--", linewidth=2, label=f"Median: {text_lengths.median():.0f}")
-        
-        ax1.set_xlabel("Review Text Length (characters)", fontsize=11)
-        ax1.set_ylabel("Frequency", fontsize=11)
-        ax1.set_title("Review Text Length Distribution", fontsize=12, fontweight="bold")
-        ax1.legend()
+        if non_empty_count > 0:
+            # Filter to reasonable range for visualization
+            text_lengths_filtered = text_lengths[text_lengths <= text_lengths.quantile(0.99)]
+            
+            ax1.hist(text_lengths_filtered, bins=50, color="steelblue", edgecolor="black", alpha=0.7)
+            ax1.axvline(text_lengths.mean(), color="red", linestyle="--", linewidth=2, label=f"Mean: {text_lengths.mean():.0f}")
+            ax1.axvline(text_lengths.median(), color="green", linestyle="--", linewidth=2, label=f"Median: {text_lengths.median():.0f}")
+            
+            ax1.set_xlabel("Review Text Length (characters)", fontsize=11)
+            ax1.set_ylabel("Frequency", fontsize=11)
+            ax1.set_title("Review Text Length Distribution", fontsize=12, fontweight="bold")
+            ax1.legend()
+        else:
+            # No text data available (typical for 5-core CSV files)
+            ax1.text(0.5, 0.5, 
+                     "Text data not available\n\n(5-core CSV files contain only\nuser_id, item_id, rating, timestamp)",
+                     ha="center", va="center", fontsize=12,
+                     bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
+                     transform=ax1.transAxes)
+            ax1.set_xlabel("Review Text Length (characters)", fontsize=11)
+            ax1.set_ylabel("Frequency", fontsize=11)
+            ax1.set_title("Review Text Length Distribution", fontsize=12, fontweight="bold")
+    else:
+        ax1.text(0.5, 0.5, "No review_text column", ha="center", va="center", fontsize=12)
     
     # Review title length
+    ax2 = axes[1]
     if "review_title" in df.columns:
-        ax2 = axes[1]
         title_lengths = df["review_title"].fillna("").str.len()
-        title_lengths_filtered = title_lengths[title_lengths <= title_lengths.quantile(0.99)]
         
-        ax2.hist(title_lengths_filtered, bins=50, color="darkorange", edgecolor="black", alpha=0.7)
-        ax2.axvline(title_lengths.mean(), color="red", linestyle="--", linewidth=2, label=f"Mean: {title_lengths.mean():.0f}")
-        ax2.axvline(title_lengths.median(), color="green", linestyle="--", linewidth=2, label=f"Median: {title_lengths.median():.0f}")
+        # Check if title data is actually available
+        non_empty_titles = (title_lengths > 0).sum()
         
-        ax2.set_xlabel("Review Title Length (characters)", fontsize=11)
-        ax2.set_ylabel("Frequency", fontsize=11)
-        ax2.set_title("Review Title Length Distribution", fontsize=12, fontweight="bold")
-        ax2.legend()
+        if non_empty_titles > 0:
+            title_lengths_filtered = title_lengths[title_lengths <= title_lengths.quantile(0.99)]
+            
+            ax2.hist(title_lengths_filtered, bins=50, color="darkorange", edgecolor="black", alpha=0.7)
+            ax2.axvline(title_lengths.mean(), color="red", linestyle="--", linewidth=2, label=f"Mean: {title_lengths.mean():.0f}")
+            ax2.axvline(title_lengths.median(), color="green", linestyle="--", linewidth=2, label=f"Median: {title_lengths.median():.0f}")
+            
+            ax2.set_xlabel("Review Title Length (characters)", fontsize=11)
+            ax2.set_ylabel("Frequency", fontsize=11)
+            ax2.set_title("Review Title Length Distribution", fontsize=12, fontweight="bold")
+            ax2.legend()
+        else:
+            # No title data available
+            ax2.text(0.5, 0.5,
+                     "Title data not available\n\n(5-core CSV files contain only\nuser_id, item_id, rating, timestamp)",
+                     ha="center", va="center", fontsize=12,
+                     bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
+                     transform=ax2.transAxes)
+            ax2.set_xlabel("Review Title Length (characters)", fontsize=11)
+            ax2.set_ylabel("Frequency", fontsize=11)
+            ax2.set_title("Review Title Length Distribution", fontsize=12, fontweight="bold")
+    else:
+        ax2.text(0.5, 0.5, "No review_title column", ha="center", va="center", fontsize=12)
     
     fig.suptitle(f"Text Length Analysis - {dataset_name}", fontsize=14, fontweight="bold", y=1.02)
     plt.tight_layout()

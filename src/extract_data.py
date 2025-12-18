@@ -13,7 +13,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-DATA_DIR = Path("data")
+DATA_DIR = Path("data/raw")
 
 # Files to extract
 FILES = [

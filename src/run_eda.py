@@ -1457,8 +1457,8 @@ def main():
     parser.add_argument(
         "--data-dir",
         type=str,
-        default="data",
-        help="Path to data directory (default: data)",
+        default="data/raw",
+        help="Path to data directory (default: data/raw)",
     )
     parser.add_argument(
         "--output",
