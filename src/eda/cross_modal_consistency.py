@@ -285,3 +285,138 @@ def analyze_cross_modal_consistency(
     logger.info(f"  Status: {result.alignment_status.upper()}")
     
     return result
+
+
+def compute_cca_alignment(
+    text_embeddings: np.ndarray,
+    image_embeddings: np.ndarray,
+    item_indices_text: dict[str, int],
+    item_indices_image: dict[str, int],
+    n_components: int = 10,
+    max_items: int = 5000,
+    seed: int = 42,
+) -> dict:
+    """
+    Compute Canonical Correlation Analysis (CCA) between text and image modalities.
+    
+    CCA finds linear projections that maximize correlation between two sets of variables.
+    It measures the "linear relationship capacity" between modalities, which is more
+    robust than simple cosine similarity.
+    
+    If CCA canonical correlations are low (<0.3), modalities are fundamentally
+    misaligned and MICRO's contrastive loss will dominate gradients.
+    
+    Args:
+        text_embeddings: Text embeddings (n_items, text_dim).
+        image_embeddings: Image embeddings (n_items, image_dim).
+        item_indices_text: Mapping item_id -> text embedding index.
+        item_indices_image: Mapping item_id -> image embedding index.
+        n_components: Number of CCA components to compute.
+        max_items: Maximum items to use (CCA is O(n³)).
+        seed: Random seed.
+        
+    Returns:
+        Dictionary with CCA results.
+    """
+    logger.info(f"Computing CCA alignment (n_components={n_components})...")
+    
+    # Find common items
+    common_items = list(set(item_indices_text.keys()) & set(item_indices_image.keys()))
+    
+    if len(common_items) < 100:
+        logger.warning(f"  Not enough common items for CCA: {len(common_items)}")
+        return {
+            "n_items": len(common_items),
+            "error": "Insufficient common items",
+            "canonical_correlations": [],
+        }
+    
+    # Sample if too many items
+    rng = np.random.default_rng(seed)
+    if len(common_items) > max_items:
+        common_items = list(rng.choice(common_items, size=max_items, replace=False))
+    
+    # Extract embeddings
+    text_emb = np.array([text_embeddings[item_indices_text[item]] for item in common_items])
+    image_emb = np.array([image_embeddings[item_indices_image[item]] for item in common_items])
+    
+    # Standardize (CCA is sensitive to scale)
+    text_mean = text_emb.mean(axis=0)
+    text_std = text_emb.std(axis=0) + 1e-8
+    text_emb = (text_emb - text_mean) / text_std
+    
+    image_mean = image_emb.mean(axis=0)
+    image_std = image_emb.std(axis=0) + 1e-8
+    image_emb = (image_emb - image_mean) / image_std
+    
+    try:
+        from sklearn.cross_decomposition import CCA
+        
+        # Adjust n_components to not exceed dimensions
+        n_components = min(n_components, text_emb.shape[1], image_emb.shape[1])
+        
+        cca = CCA(n_components=n_components)
+        cca.fit(text_emb, image_emb)
+        
+        # Transform and compute correlations
+        text_c, image_c = cca.transform(text_emb, image_emb)
+        
+        correlations = []
+        for i in range(n_components):
+            corr = np.corrcoef(text_c[:, i], image_c[:, i])[0, 1]
+            correlations.append(float(corr) if not np.isnan(corr) else 0.0)
+        
+        mean_corr = np.mean(correlations)
+        
+        # Interpretation
+        if mean_corr < 0.2:
+            interpretation = (
+                f"VERY LOW CCA correlation ({mean_corr:.3f}). "
+                "Modalities are linearly orthogonal. MICRO contrastive loss will struggle."
+            )
+            recommendation = "Heavy projection layers needed or skip multimodal contrastive."
+        elif mean_corr < 0.4:
+            interpretation = (
+                f"LOW CCA correlation ({mean_corr:.3f}). "
+                "Weak linear relationship between modalities."
+            )
+            recommendation = "Use separate modality encoders with late fusion."
+        elif mean_corr < 0.6:
+            interpretation = (
+                f"MODERATE CCA correlation ({mean_corr:.3f}). "
+                "Some linear alignment exists between modalities."
+            )
+            recommendation = "Multimodal contrastive should work with proper tuning."
+        else:
+            interpretation = (
+                f"STRONG CCA correlation ({mean_corr:.3f}). "
+                "Good linear relationship between modalities."
+            )
+            recommendation = "MICRO contrastive loss should converge well."
+        
+        logger.info(f"  CCA correlations: {[f'{c:.3f}' for c in correlations[:5]]}...")
+        logger.info(f"  Mean CCA: {mean_corr:.4f}")
+        
+        return {
+            "n_items": len(common_items),
+            "n_components": n_components,
+            "canonical_correlations": correlations,
+            "mean_correlation": mean_corr,
+            "interpretation": interpretation,
+            "recommendation": recommendation,
+        }
+        
+    except ImportError:
+        logger.warning("  sklearn not available for CCA")
+        return {
+            "n_items": len(common_items),
+            "error": "sklearn not installed",
+            "canonical_correlations": [],
+        }
+    except Exception as e:
+        logger.warning(f"  CCA failed: {e}")
+        return {
+            "n_items": len(common_items),
+            "error": str(e),
+            "canonical_correlations": [],
+        }

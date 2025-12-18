@@ -948,3 +948,205 @@ def plot_cross_modal_consistency(
         save_figure(fig, output_path, f"cross_modal_consistency_{dataset_name.lower().replace(' ', '_')}")
     
     return fig
+
+
+# =============================================================================
+# Anisotropy and User Consistency Visualizations
+# =============================================================================
+
+def plot_anisotropy_comparison(
+    avg_before: float,
+    std_before: float,
+    avg_after: float,
+    std_after: float,
+    cos_before: list[float],
+    cos_after: list[float],
+    output_path: Optional[Path] = None,
+    dataset_name: str = "Dataset",
+) -> plt.Figure:
+    """
+    Plot before/after centering cosine similarity distributions.
+    
+    Args:
+        avg_before: Mean cosine similarity before centering.
+        std_before: Std cosine similarity before centering.
+        avg_after: Mean cosine similarity after centering.
+        std_after: Std cosine similarity after centering.
+        cos_before: Sample cosine similarities before centering.
+        cos_after: Sample cosine similarities after centering.
+        output_path: Optional path to save figure.
+        dataset_name: Name for plot title.
+        
+    Returns:
+        matplotlib Figure object.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left: Before centering histogram
+    ax1 = axes[0]
+    ax1.hist(cos_before, bins=50, color="#e74c3c", edgecolor="black", alpha=0.7)
+    ax1.axvline(avg_before, color="darkred", linestyle="--", linewidth=2, 
+                label=f"Mean: {avg_before:.3f}")
+    ax1.axvline(0, color="gray", linestyle="-", linewidth=1, alpha=0.5)
+    
+    ax1.set_xlabel("Cosine Similarity", fontsize=11)
+    ax1.set_ylabel("Frequency", fontsize=11)
+    ax1.set_title("BEFORE Centering (Original)", fontsize=12, fontweight="bold")
+    ax1.legend(loc="upper left")
+    ax1.set_xlim(-1, 1)
+    
+    # Add warning if anisotropic
+    if avg_before > 0.4:
+        ax1.annotate(
+            "⚠️ ANISOTROPIC\n(Cone Effect)",
+            xy=(0.95, 0.95), xycoords="axes fraction",
+            fontsize=10, ha="right", va="top",
+            bbox=dict(boxstyle="round", facecolor="#ffcccb", alpha=0.9),
+        )
+    
+    # Right: After centering histogram
+    ax2 = axes[1]
+    ax2.hist(cos_after, bins=50, color="#27ae60", edgecolor="black", alpha=0.7)
+    ax2.axvline(avg_after, color="darkgreen", linestyle="--", linewidth=2,
+                label=f"Mean: {avg_after:.3f}")
+    ax2.axvline(0, color="gray", linestyle="-", linewidth=1, alpha=0.5)
+    
+    ax2.set_xlabel("Cosine Similarity", fontsize=11)
+    ax2.set_ylabel("Frequency", fontsize=11)
+    ax2.set_title("AFTER Centering (Mean Subtracted)", fontsize=12, fontweight="bold")
+    ax2.legend(loc="upper left")
+    ax2.set_xlim(-1, 1)
+    
+    # Add improvement indicator
+    if avg_after < avg_before * 0.5:
+        ax2.annotate(
+            "✓ FIXED\n(Centered)",
+            xy=(0.95, 0.95), xycoords="axes fraction",
+            fontsize=10, ha="right", va="top",
+            bbox=dict(boxstyle="round", facecolor="#d4edda", alpha=0.9),
+        )
+    
+    improvement = (avg_before - avg_after) / avg_before * 100 if avg_before > 0 else 0
+    fig.suptitle(
+        f"Anisotropy Check (Mean Centering) - {dataset_name}\n"
+        f"Improvement: {improvement:.1f}% reduction in avg cosine similarity",
+        fontsize=14, fontweight="bold"
+    )
+    plt.tight_layout()
+    
+    if output_path:
+        save_figure(fig, output_path, f"anisotropy_comparison_{dataset_name.lower().replace(' ', '_')}")
+    
+    return fig
+
+
+def plot_user_consistency(
+    mean_local: float,
+    std_local: float,
+    mean_global: float,
+    std_global: float,
+    consistency_ratio: float,
+    coherence_pct: float,
+    output_path: Optional[Path] = None,
+    dataset_name: str = "Dataset",
+) -> plt.Figure:
+    """
+    Plot user consistency (interaction homophily) comparison.
+    
+    Args:
+        mean_local: Mean local visual distance (within user).
+        std_local: Std of local distances.
+        mean_global: Mean global visual distance (random pairs).
+        std_global: Std of global distances.
+        consistency_ratio: local / global ratio.
+        coherence_pct: Percentage of coherent users.
+        output_path: Optional path to save figure.
+        dataset_name: Name for plot title.
+        
+    Returns:
+        matplotlib Figure object.
+    """
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Left: Bar comparison
+    ax1 = axes[0]
+    categories = ["Local\n(Within User)", "Global\n(Random)"]
+    values = [mean_local, mean_global]
+    errors = [std_local, std_global]
+    colors = ["#3498db", "#e74c3c"]
+    
+    bars = ax1.bar(categories, values, yerr=errors, color=colors, 
+                   edgecolor="black", capsize=5)
+    
+    for bar, val in zip(bars, values):
+        ax1.annotate(
+            f"{val:.3f}",
+            xy=(bar.get_x() + bar.get_width() / 2, val),
+            xytext=(0, 5),
+            textcoords="offset points",
+            ha="center", va="bottom",
+            fontsize=12, fontweight="bold",
+        )
+    
+    ax1.set_ylabel("Visual Distance (Cosine)", fontsize=11)
+    ax1.set_title("Local vs Global Visual Distance", fontsize=12, fontweight="bold")
+    
+    # Add ratio annotation
+    if consistency_ratio < 1:
+        status = "✓ CONSISTENT"
+        color = "#d4edda"
+    else:
+        status = "✗ INCONSISTENT"
+        color = "#f8d7da"
+    
+    ax1.annotate(
+        f"{status}\nRatio: {consistency_ratio:.3f}",
+        xy=(0.5, 0.95), xycoords="axes fraction",
+        fontsize=11, ha="center", va="top",
+        bbox=dict(boxstyle="round,pad=0.3", facecolor=color, alpha=0.9),
+    )
+    
+    # Right: Coherence gauge
+    ax2 = axes[1]
+    
+    # Create a simple gauge-like visualization
+    ax2.barh(["Users with Visual Coherence"], [coherence_pct], 
+             color="#27ae60", edgecolor="black", height=0.5)
+    ax2.barh(["Users with Visual Coherence"], [100 - coherence_pct], 
+             left=[coherence_pct], color="#e74c3c", edgecolor="black", height=0.5, alpha=0.3)
+    
+    ax2.set_xlim(0, 100)
+    ax2.set_xlabel("Percentage of Users", fontsize=11)
+    ax2.set_title("User Visual Coherence", fontsize=12, fontweight="bold")
+    
+    ax2.annotate(
+        f"{coherence_pct:.1f}%",
+        xy=(coherence_pct / 2, 0),
+        fontsize=14, fontweight="bold", ha="center", va="center", color="white",
+    )
+    
+    # Interpretation
+    if coherence_pct > 70:
+        interpretation = "Strong visual preference signal"
+    elif coherence_pct > 50:
+        interpretation = "Moderate visual preference signal"
+    else:
+        interpretation = "Weak visual preference signal"
+    
+    ax2.annotate(
+        interpretation,
+        xy=(0.5, 0.02), xycoords="axes fraction",
+        fontsize=10, ha="center", va="bottom",
+        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
+    )
+    
+    fig.suptitle(
+        f"User Consistency Analysis (Interaction Homophily) - {dataset_name}",
+        fontsize=14, fontweight="bold"
+    )
+    plt.tight_layout()
+    
+    if output_path:
+        save_figure(fig, output_path, f"user_consistency_{dataset_name.lower().replace(' ', '_')}")
+    
+    return fig

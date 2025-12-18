@@ -1,8 +1,7 @@
 # EDA Report: Clothing, Shoes and Jewelry
 
-**Generated:** 2025-12-17T21:06:24.172778  
-**Sampling Strategy:** Dense (K-Core k=5 + 60 months)
-**Sampling Ratio:** 0.01
+**Generated:** 2025-12-18T10:41:51.911706  
+**Sampling Strategy:** random
 
 ---
 
@@ -12,20 +11,20 @@
 
 | Metric | Interactions | Metadata |
 |--------|-------------|----------|
-| Total Records | 66,033,346 | 7,218,481 |
-| Sampled Records | 13,531,827 | 422,138 |
-| Memory (MB) | 6425.32 | 834.5 |
+| Total Records | 23,102,537 | 7,218,481 |
+| Sampled Records | 23,102,537 | 714,957 |
+| Memory (MB) | 5706.39 | 1378.84 |
 
 ### Interaction Statistics
 
 | Metric | Value |
 |--------|-------|
-| Users | 1,522,016 |
-| Items | 422,138 |
-| Interactions | 13,531,827 |
+| Users | 2,524,981 |
+| Items | 714,957 |
+| Interactions | 23,102,537 |
 | Avg Rating | 4.29 |
-| Rating Std | 1.20 |
-| Sparsity | 99.99789388% |
+| Rating Std | 1.19 |
+| Sparsity | 99.99872026% |
 
 ---
 
@@ -35,11 +34,11 @@
 
 | Rating | Count | Percentage |
 |--------|-------|------------|
-| 1.0 | 877,591 | 6.5% |
-| 2.0 | 652,327 | 4.8% |
-| 3.0 | 1,149,144 | 8.5% |
-| 4.0 | 1,801,625 | 13.3% |
-| 5.0 | 9,051,140 | 66.9% |
+| 1.0 | 1,415,199 | 6.1% |
+| 2.0 | 1,139,555 | 4.9% |
+| 3.0 | 2,001,386 | 8.7% |
+| 4.0 | 3,359,236 | 14.5% |
+| 5.0 | 15,187,161 | 65.7% |
 
 ---
 
@@ -50,16 +49,16 @@
 ![Interaction Frequency](figures/clothing/interaction_frequency_clothing,_shoes_and_jewelry.png)
 
 **User Patterns:**
-- Mean interactions/user: 8.89
+- Mean interactions/user: 9.15
 - Median interactions/user: 7.0
 - Cold-start users (<5 interactions): 0.0%
-- Power-law exponent α: 2.90
+- Power-law exponent α: 2.80
 
 **Item Patterns:**
-- Mean interactions/item: 32.06
-- Median interactions/item: 11.0
+- Mean interactions/item: 32.31
+- Median interactions/item: 10.0
 - Cold-start items (<5 interactions): 0.0%
-- Power-law exponent α: 1.88
+- Power-law exponent α: 1.91
 
 ### Pareto Analysis (Interaction Concentration)
 
@@ -67,11 +66,11 @@ Top users account for a disproportionate share of interactions:
 
 | User Tier | % of Total Interactions |
 |-----------|------------------------|
-| Top 1% | 7.9% |
-| Top 5% | 19.0% |
-| Top 10% | 28.1% |
-| Top 20% | 41.6% |
-| Top 50% | 69.2% |
+| Top 1% | 7.1% |
+| Top 5% | 18.4% |
+| Top 10% | 27.8% |
+| Top 20% | 41.8% |
+| Top 50% | 69.7% |
 | Top 100% | 100.0% |
 
 ---
@@ -80,8 +79,8 @@ Top users account for a disproportionate share of interactions:
 
 ![Temporal Patterns](figures/clothing/temporal_patterns_clothing,_shoes_and_jewelry.png)
 
-**Date Range:** 2018-10-09 to 2023-09-12  
-**Duration:** 1,799 days
+**Date Range:** 1999-12-01 to 2023-09-12  
+**Duration:** 8,686 days
 
 ---
 
@@ -91,9 +90,9 @@ Top users account for a disproportionate share of interactions:
 
 | Metric | Value |
 |--------|-------|
-| Avg Review Length | 158 chars |
-| Avg Title Length | 19 chars |
-| Reviews with Text | 100.0% |
+| Avg Review Length | 0 chars |
+| Avg Title Length | 0 chars |
+| Reviews with Text | 0.0% |
 
 ---
 
@@ -107,8 +106,8 @@ Top users account for a disproportionate share of interactions:
 | Feature | Coverage |
 |---------|----------|
 | Title | 100.0% |
-| Description | 41.5% |
-| Features | 97.2% |
+| Description | 49.4% |
+| Features | 95.4% |
 | Images | 100.0% |
 | **Complete (Text + Image)** | 100.0% |
 
@@ -116,8 +115,8 @@ Top users account for a disproportionate share of interactions:
 
 | Metric | Value |
 |--------|-------|
-| Items with Images | 422,087 |
-| Avg Images/Item | 5.62 |
+| Items with Images | 714,606 |
+| Avg Images/Item | 5.22 |
 
 ---
 
@@ -125,8 +124,8 @@ Top users account for a disproportionate share of interactions:
 
 ![Sparsity](figures/clothing/sparsity_clothing,_shoes_and_jewelry.png)
 
-**Matrix Sparsity:** 99.99789388%  
-**Density:** 0.00210612%
+**Matrix Sparsity:** 99.99872026%  
+**Density:** 0.00127974%
 
 ### K-Core Filtering Impact
 
@@ -135,7 +134,7 @@ Top users account for a disproportionate share of interactions:
 | 2 | 100.0% | 100.0% | 100.0% |
 | 3 | 100.0% | 100.0% | 100.0% |
 | 5 | 100.0% | 100.0% | 100.0% |
-| 10 | 14.7% | 25.8% | 27.5% |
+| 10 | 16.9% | 24.2% | 30.0% |
 | 20 | 0.0% | 0.0% | 0.0% |
 
 ---
@@ -148,8 +147,8 @@ Top categories in the dataset:
 
 | Category | Count |
 |----------|-------|
-| Clothing, Shoes & Jewelry | 421,796 |
-| Shoe, Jewelry & Watch Accessories | 342 |
+| Clothing, Shoes & Jewelry | 714,466 |
+| Shoe, Jewelry & Watch Accessories | 491 |
 
 ---
 
@@ -180,11 +179,11 @@ Tests the **Homophily Hypothesis**: Do visually similar items share similar inte
 | Metric | Value |
 |--------|-------|
 | Pairs Analyzed | 20,000 |
-| Pearson r | 0.0164 |
-| p-value | 0.0207 |
-| Spearman ρ | 0.0215 |
+| Pearson r | 0.0035 |
+| p-value | 0.6195 |
+| Spearman ρ | 0.0118 |
 
-**Interpretation:** Very weak correlation - visual signal exists but is minimal
+**Interpretation:** No significant correlation - visual features may not align with user preferences
 
 
 ### 10.2 Visual Manifold Structure (Xu et al., 2025)
@@ -195,9 +194,9 @@ Analyzes whether CLIP embeddings form meaningful clusters by category.
 
 | Metric | Value |
 |--------|-------|
-| Items Projected | 9,998 |
+| Items Projected | 10,000 |
 | Projection Method | UMAP |
-| Silhouette Score | -0.0612 |
+| Silhouette Score | -0.1931 |
 | Unique Categories | 2 |
 
 **Interpretation:** No meaningful visual clustering - visual features may not align with categories
@@ -213,10 +212,10 @@ Evaluates whether random negative sampling produces informative training signal.
 |--------|-------|
 | Users Analyzed | 2,000 |
 | Pairs Analyzed | 40,000 |
-| Mean Visual Distance | 0.3665 |
+| Mean Visual Distance | 0.3719 |
 | Easy Negatives (>0.8) | 0.0% |
-| Medium Negatives | 77.9% |
-| Hard Negatives (<0.3) | 22.1% |
+| Medium Negatives | 79.6% |
+| Hard Negatives (<0.3) | 20.4% |
 
 **Interpretation:** Moderate negative difficulty - room for improvement
 
@@ -230,9 +229,9 @@ Evaluates whether random negative sampling produces informative training signal.
 | Items Processed | 25,000 |
 | Success Rate | 100.0% |
 | Embedding Dimension | 768 |
-| Processing Time | 289.0s |
-| Throughput | 86.5 items/sec |
-| Avg Text Length | 457 chars |
+| Processing Time | 184.1s |
+| Throughput | 135.8 items/sec |
+| Avg Text Length | 429 chars |
 
 ### 10.5 Semantic-Interaction Alignment (Text)
 
@@ -243,13 +242,13 @@ Tests whether items with similar text descriptions have similar buyers.
 | Metric | Value |
 |--------|-------|
 | Pairs Analyzed | 7,500 |
-| Pearson r | 0.004 |
-| p-value | 0.7305 |
-| Mean Text Similarity | 0.3074 |
+| Pearson r | -0.0058 |
+| p-value | 0.6163 |
+| Mean Text Similarity | 0.2948 |
 | Mean Interaction Similarity | 0.0000 |
 | **Signal Strength** | 🔴 NOISE |
 
-**Interpretation:** Very weak correlation (r=0.0040): Text descriptions do NOT predict user behavior. Users likely buy based on visual appeal, brand, or price rather than descriptions.
+**Interpretation:** Very weak correlation (r=-0.0058): Text descriptions do NOT predict user behavior. Users likely buy based on visual appeal, brand, or price rather than descriptions.
 
 **Recommendation:** Deprioritize text encoder in final model, or use text only as filter/fallback.
 
@@ -261,20 +260,73 @@ Measures whether text and image embeddings agree for the same items.
 
 | Metric | Value |
 |--------|-------|
-| Items with Both Modalities | 872 |
+| Items with Both Modalities | 438 |
 | Projection Method | linear |
 | Text Dim → Projected | 768 → 768 |
 | Image Dim → Projected | 768 → 768 |
-| **Mean Similarity** | -0.0166 |
-| Std Similarity | 0.0384 |
+| **Mean Similarity** | -0.0204 |
+| Std Similarity | 0.0370 |
 | Low Agreement (<0.3) | 100.0% |
 | Moderate (0.3-0.6) | 0.0% |
 | High Agreement (>0.6) | 0.0% |
 | **Status** | 🔴 DISAGREE |
 
-**Interpretation:** LOW cross-modal agreement (avg=-0.017): Text and image embeddings point in different directions. This indicates a fundamental mismatch - either descriptions don't match images, or encoders have domain shift.
+**Interpretation:** LOW cross-modal agreement (avg=-0.020): Text and image embeddings point in different directions. This indicates a fundamental mismatch - either descriptions don't match images, or encoders have domain shift.
 
 **Recommendation:** Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches.
+
+### 10.7 CCA Cross-Modal Analysis
+
+Canonical Correlation Analysis measures linear relationship capacity between modalities.
+
+| Metric | Value |
+|--------|-------|
+| Items Analyzed | 438 |
+| CCA Components | 10 |
+| Mean CCA Correlation | 1.0000 |
+| Top-5 Correlations | 1.000, 1.000, 1.000, 1.000, 1.000 |
+
+**Interpretation:** STRONG CCA correlation (1.000). Good linear relationship between modalities.
+
+**Recommendation:** MICRO contrastive loss should converge well.
+
+### 10.8 Anisotropy Check (Signal Crisis Fix)
+
+![Anisotropy Comparison](figures/clothing/anisotropy_comparison_clothing,_shoes_and_jewelry.png)
+
+Detects "Cone Effect" in embeddings and tests if mean centering helps.
+
+| Metric | Before Centering | After Centering |
+|--------|------------------|-----------------|
+| Avg Cosine Similarity | 0.6199 | 0.0007 |
+| Std Cosine Similarity | 0.0882 | 0.1423 |
+| Pairs Sampled | 20,000 | - |
+| Improvement Ratio | 99.9% | - |
+| **Status** | ⚠️ ANISOTROPIC | - |
+
+**Interpretation:** ANISOTROPIC: Avg cosine = 0.620 (>0.4). Centering FIXED the issue: after centering = 0.001. Embeddings were in a narrow cone but centering spread them out.
+
+**Recommendation:** Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance.
+
+### 10.9 User Consistency (Interaction Homophily)
+
+![User Consistency](figures/clothing/user_consistency_clothing,_shoes_and_jewelry.png)
+
+Measures whether users buy visually similar items (validates visual MRS approach).
+
+| Metric | Value |
+|--------|-------|
+| Users Analyzed | 1,500 |
+| Users with ≥5 Items | 2,524,981 |
+| Mean Local Distance | 0.3496 |
+| Mean Global Distance | 0.3796 |
+| **Consistency Ratio** | 0.9211 |
+| Users with Visual Coherence | 54.5% |
+| **Status** | ✅ CONSISTENT |
+
+**Interpretation:** MODERATE CONSISTENCY: Some visual preference signal exists. Local (0.350) < Global (0.380). Ratio = 0.921.
+
+**Recommendation:** Visual features have some predictive power. Consider combining with text features for better performance.
 
 
 ---
@@ -289,7 +341,7 @@ Measures whether text and image embeddings agree for the same items.
 | Metric | Value | Status |
 |--------|-------|--------|
 | Connected Components | 1 | - |
-| Giant Component Size | 9,998 | - |
+| Giant Component Size | 10,000 | - |
 | Giant Component Coverage | 100.0% | ✅ PASS |
 | Threshold | >50.0% | - |
 
@@ -300,20 +352,20 @@ Measures whether text and image embeddings agree for the same items.
 | Metric | Value | Status |
 |--------|-------|--------|
 | Pairs Sampled | 50,000 | - |
-| Avg Cosine Similarity | 0.6235 | ⚠️ WARNING |
-| Std Cosine Similarity | 0.0891 | - |
-| High Similarity Pairs (>0.9) | 0.1% | - |
+| Avg Cosine Similarity | 0.6200 | ⚠️ WARNING |
+| Std Cosine Similarity | 0.0882 | - |
+| High Similarity Pairs (>0.9) | 0.0% | - |
 | Pass Threshold | <0.5 | - |
 
-**Interpretation:** WARNING: Avg cosine similarity = 0.624 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder.
+**Interpretation:** WARNING: Avg cosine similarity = 0.620 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder.
 
 ### Summary
 
 | Check | Value | Status |
 |-------|-------|--------|
-| Alignment (Pearson r) | 0.0164 | ✅ |
+| Alignment (Pearson r) | 0.0035 | ✅ |
 | Connectivity (Giant %) | 100.0% | ✅ |
-| No Collapse (Avg Cosine) | 0.6235 | ❌ |
+| No Collapse (Avg Cosine) | 0.6200 | ❌ |
 
 **Decision:** STOP
 

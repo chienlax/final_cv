@@ -1,762 +1,2091 @@
 {
   "dataset": "beauty",
   "display_name": "Beauty and Personal Care",
-  "sampling_strategy": "dense",
-  "sample_ratio": null,
-  "kcore_k": 5,
-  "temporal_months": 60,
-  "timestamp": "2025-12-17T20:38:09.484629",
+  "data_format": "5-core CSV",
+  "timestamp": "2025-12-18T10:22:34.672870",
   "interactions_load_stats": {
-    "total_records": 23911390,
-    "sampled_records": 3564071,
-    "memory_mb": 2001.27,
-    "sampling_method": "dense",
-    "sampling_params": {
-      "months": 60,
-      "k": 5,
-      "temporal_size": 15619590,
-      "kcore_size": 3564071
-    }
+    "total_records": 6624441,
+    "sampled_records": 6624441,
+    "memory_mb": 1636.28,
+    "n_users": 729576,
+    "n_items": 207649
   },
   "metadata_load_stats": {
     "total_records": 1028914,
-    "sampled_records": 135104,
-    "memory_mb": 298.22
+    "sampled_records": 207649,
+    "memory_mb": 439.73
   },
   "interaction_stats": {
     "counts": {
-      "n_interactions": 3564071,
-      "n_users": 384826,
-      "n_items": 135104
+      "n_interactions": 6624441,
+      "n_users": 729576,
+      "n_items": 207649
     },
     "ratings": {
-      "mean": 4.247,
+      "mean": 4.234,
       "std": 1.264,
       "median": 5.0,
       "distribution": {
-        "1.0": 287523,
-        "2.0": 167720,
-        "3.0": 285383,
-        "4.0": 460135,
-        "5.0": 2363310
+        "1.0": 524838,
+        "2.0": 334932,
+        "3.0": 547736,
+        "4.0": 872391,
+        "5.0": 4344544
       }
     },
     "density": {
-      "sparsity": 0.999931,
-      "avg_per_user": 9.26,
-      "avg_per_item": 26.38
+      "sparsity": 0.999956,
+      "avg_per_user": 9.08,
+      "avg_per_item": 31.9
     },
     "temporal": {
-      "date_min": "2018-10-09",
+      "date_min": "2000-12-20",
       "date_max": "2023-09-12",
-      "date_range_days": 1798
+      "date_range_days": 8301
     },
     "text": {
-      "avg_review_length": 216.3,
-      "avg_title_length": 20.1,
-      "reviews_with_text_pct": 100.0
+      "avg_review_length": 0.0,
+      "avg_title_length": 0.0,
+      "reviews_with_text_pct": 0.0
     },
     "verification": {
-      "verified_purchase_pct": 81.03,
-      "avg_helpful_votes": 1.05
+      "verified_purchase_pct": 100.0,
+      "avg_helpful_votes": 0.0
     }
   },
   "metadata_stats": {
     "counts": {
-      "n_items": 135104
+      "n_items": 207649
     },
     "text_coverage": {
       "with_title_pct": 100.0,
-      "with_description_pct": 39.49,
-      "with_features_pct": 85.69
+      "with_description_pct": 48.3,
+      "with_features_pct": 82.6
     },
     "text_lengths": {
-      "avg_title": 132.2,
-      "avg_description": 248.9
+      "avg_title": 116.9,
+      "avg_description": 286.0
     },
     "images": {
       "with_images_pct": 100.0,
-      "avg_count": 6.2
+      "avg_count": 5.49
     },
     "categories": {
       "n_unique": 1,
       "top_10": {
-        "Beauty & Personal Care": 135104
+        "Beauty & Personal Care": 207649
       }
     },
     "ratings": {
-      "avg_rating": 4.29,
-      "avg_rating_count": 1158.5
+      "avg_rating": 4.21,
+      "avg_rating_count": 833.1
     }
   },
   "rating_distribution": [
     {
       "rating": 1.0,
-      "count": 287523,
-      "percentage": 8.07
+      "count": 524838,
+      "percentage": 7.92
     },
     {
       "rating": 2.0,
-      "count": 167720,
-      "percentage": 4.71
+      "count": 334932,
+      "percentage": 5.06
     },
     {
       "rating": 3.0,
-      "count": 285383,
-      "percentage": 8.01
+      "count": 547736,
+      "percentage": 8.27
     },
     {
       "rating": 4.0,
-      "count": 460135,
-      "percentage": 12.91
+      "count": 872391,
+      "percentage": 13.17
     },
     {
       "rating": 5.0,
-      "count": 2363310,
-      "percentage": 66.31
+      "count": 4344544,
+      "percentage": 65.58
     }
   ],
   "temporal_stats_monthly": [
     {
+      "year_month": "2000-12",
+      "n_interactions": 1,
+      "n_users": 1,
+      "n_items": 1,
+      "avg_rating": 5.0
+    },
+    {
+      "year_month": "2002-06",
+      "n_interactions": 4,
+      "n_users": 2,
+      "n_items": 4,
+      "avg_rating": 5.0
+    },
+    {
+      "year_month": "2002-08",
+      "n_interactions": 1,
+      "n_users": 1,
+      "n_items": 1,
+      "avg_rating": 5.0
+    },
+    {
+      "year_month": "2002-11",
+      "n_interactions": 2,
+      "n_users": 2,
+      "n_items": 2,
+      "avg_rating": 5.0
+    },
+    {
+      "year_month": "2002-12",
+      "n_interactions": 2,
+      "n_users": 2,
+      "n_items": 2,
+      "avg_rating": 5.0
+    },
+    {
+      "year_month": "2003-01",
+      "n_interactions": 2,
+      "n_users": 2,
+      "n_items": 2,
+      "avg_rating": 1.5
+    },
+    {
+      "year_month": "2003-03",
+      "n_interactions": 2,
+      "n_users": 2,
+      "n_items": 2,
+      "avg_rating": 4.0
+    },
+    {
+      "year_month": "2003-04",
+      "n_interactions": 1,
+      "n_users": 1,
+      "n_items": 1,
+      "avg_rating": 2.0
+    },
+    {
+      "year_month": "2003-05",
+      "n_interactions": 3,
+      "n_users": 2,
+      "n_items": 3,
+      "avg_rating": 5.0
+    },
+    {
+      "year_month": "2003-07",
+      "n_interactions": 5,
+      "n_users": 4,
+      "n_items": 4,
+      "avg_rating": 4.4
+    },
+    {
+      "year_month": "2003-08",
+      "n_interactions": 1,
+      "n_users": 1,
+      "n_items": 1,
+      "avg_rating": 5.0
+    },
+    {
+      "year_month": "2003-10",
+      "n_interactions": 2,
+      "n_users": 2,
+      "n_items": 2,
+      "avg_rating": 4.5
+    },
+    {
+      "year_month": "2003-11",
+      "n_interactions": 4,
+      "n_users": 3,
+      "n_items": 3,
+      "avg_rating": 4.5
+    },
+    {
+      "year_month": "2003-12",
+      "n_interactions": 4,
+      "n_users": 3,
+      "n_items": 3,
+      "avg_rating": 4.75
+    },
+    {
+      "year_month": "2004-01",
+      "n_interactions": 14,
+      "n_users": 5,
+      "n_items": 14,
+      "avg_rating": 4.857142857142857
+    },
+    {
+      "year_month": "2004-02",
+      "n_interactions": 10,
+      "n_users": 7,
+      "n_items": 10,
+      "avg_rating": 4.7
+    },
+    {
+      "year_month": "2004-03",
+      "n_interactions": 6,
+      "n_users": 5,
+      "n_items": 5,
+      "avg_rating": 3.5
+    },
+    {
+      "year_month": "2004-04",
+      "n_interactions": 1,
+      "n_users": 1,
+      "n_items": 1,
+      "avg_rating": 5.0
+    },
+    {
+      "year_month": "2004-05",
+      "n_interactions": 7,
+      "n_users": 5,
+      "n_items": 7,
+      "avg_rating": 4.285714285714286
+    },
+    {
+      "year_month": "2004-06",
+      "n_interactions": 10,
+      "n_users": 9,
+      "n_items": 10,
+      "avg_rating": 4.7
+    },
+    {
+      "year_month": "2004-07",
+      "n_interactions": 8,
+      "n_users": 8,
+      "n_items": 6,
+      "avg_rating": 4.375
+    },
+    {
+      "year_month": "2004-08",
+      "n_interactions": 15,
+      "n_users": 9,
+      "n_items": 15,
+      "avg_rating": 4.4
+    },
+    {
+      "year_month": "2004-09",
+      "n_interactions": 11,
+      "n_users": 9,
+      "n_items": 10,
+      "avg_rating": 3.5454545454545454
+    },
+    {
+      "year_month": "2004-10",
+      "n_interactions": 8,
+      "n_users": 7,
+      "n_items": 8,
+      "avg_rating": 4.125
+    },
+    {
+      "year_month": "2004-11",
+      "n_interactions": 13,
+      "n_users": 13,
+      "n_items": 13,
+      "avg_rating": 4.538461538461538
+    },
+    {
+      "year_month": "2004-12",
+      "n_interactions": 10,
+      "n_users": 8,
+      "n_items": 10,
+      "avg_rating": 4.6
+    },
+    {
+      "year_month": "2005-01",
+      "n_interactions": 19,
+      "n_users": 17,
+      "n_items": 16,
+      "avg_rating": 4.105263157894737
+    },
+    {
+      "year_month": "2005-02",
+      "n_interactions": 13,
+      "n_users": 13,
+      "n_items": 13,
+      "avg_rating": 3.8461538461538463
+    },
+    {
+      "year_month": "2005-03",
+      "n_interactions": 10,
+      "n_users": 10,
+      "n_items": 10,
+      "avg_rating": 3.6
+    },
+    {
+      "year_month": "2005-04",
+      "n_interactions": 9,
+      "n_users": 8,
+      "n_items": 9,
+      "avg_rating": 3.888888888888889
+    },
+    {
+      "year_month": "2005-05",
+      "n_interactions": 8,
+      "n_users": 8,
+      "n_items": 8,
+      "avg_rating": 3.875
+    },
+    {
+      "year_month": "2005-06",
+      "n_interactions": 15,
+      "n_users": 11,
+      "n_items": 15,
+      "avg_rating": 3.8666666666666667
+    },
+    {
+      "year_month": "2005-07",
+      "n_interactions": 13,
+      "n_users": 9,
+      "n_items": 13,
+      "avg_rating": 4.153846153846154
+    },
+    {
+      "year_month": "2005-08",
+      "n_interactions": 26,
+      "n_users": 22,
+      "n_items": 25,
+      "avg_rating": 4.269230769230769
+    },
+    {
+      "year_month": "2005-09",
+      "n_interactions": 21,
+      "n_users": 20,
+      "n_items": 16,
+      "avg_rating": 4.761904761904762
+    },
+    {
+      "year_month": "2005-10",
+      "n_interactions": 18,
+      "n_users": 14,
+      "n_items": 18,
+      "avg_rating": 4.5
+    },
+    {
+      "year_month": "2005-11",
+      "n_interactions": 9,
+      "n_users": 9,
+      "n_items": 9,
+      "avg_rating": 3.7777777777777777
+    },
+    {
+      "year_month": "2005-12",
+      "n_interactions": 17,
+      "n_users": 14,
+      "n_items": 17,
+      "avg_rating": 4.470588235294118
+    },
+    {
+      "year_month": "2006-01",
+      "n_interactions": 18,
+      "n_users": 17,
+      "n_items": 17,
+      "avg_rating": 4.555555555555555
+    },
+    {
+      "year_month": "2006-02",
+      "n_interactions": 19,
+      "n_users": 14,
+      "n_items": 18,
+      "avg_rating": 4.421052631578948
+    },
+    {
+      "year_month": "2006-03",
+      "n_interactions": 34,
+      "n_users": 29,
+      "n_items": 33,
+      "avg_rating": 4.323529411764706
+    },
+    {
+      "year_month": "2006-04",
+      "n_interactions": 15,
+      "n_users": 14,
+      "n_items": 14,
+      "avg_rating": 4.266666666666667
+    },
+    {
+      "year_month": "2006-05",
+      "n_interactions": 15,
+      "n_users": 14,
+      "n_items": 15,
+      "avg_rating": 3.8666666666666667
+    },
+    {
+      "year_month": "2006-06",
+      "n_interactions": 19,
+      "n_users": 19,
+      "n_items": 19,
+      "avg_rating": 3.789473684210526
+    },
+    {
+      "year_month": "2006-07",
+      "n_interactions": 25,
+      "n_users": 19,
+      "n_items": 25,
+      "avg_rating": 4.64
+    },
+    {
+      "year_month": "2006-08",
+      "n_interactions": 24,
+      "n_users": 24,
+      "n_items": 22,
+      "avg_rating": 4.291666666666667
+    },
+    {
+      "year_month": "2006-09",
+      "n_interactions": 17,
+      "n_users": 16,
+      "n_items": 17,
+      "avg_rating": 4.529411764705882
+    },
+    {
+      "year_month": "2006-10",
+      "n_interactions": 23,
+      "n_users": 21,
+      "n_items": 23,
+      "avg_rating": 3.782608695652174
+    },
+    {
+      "year_month": "2006-11",
+      "n_interactions": 35,
+      "n_users": 31,
+      "n_items": 32,
+      "avg_rating": 4.142857142857143
+    },
+    {
+      "year_month": "2006-12",
+      "n_interactions": 43,
+      "n_users": 36,
+      "n_items": 42,
+      "avg_rating": 4.4186046511627906
+    },
+    {
+      "year_month": "2007-01",
+      "n_interactions": 100,
+      "n_users": 84,
+      "n_items": 89,
+      "avg_rating": 4.31
+    },
+    {
+      "year_month": "2007-02",
+      "n_interactions": 57,
+      "n_users": 46,
+      "n_items": 56,
+      "avg_rating": 4.315789473684211
+    },
+    {
+      "year_month": "2007-03",
+      "n_interactions": 43,
+      "n_users": 40,
+      "n_items": 43,
+      "avg_rating": 4.232558139534884
+    },
+    {
+      "year_month": "2007-04",
+      "n_interactions": 32,
+      "n_users": 30,
+      "n_items": 28,
+      "avg_rating": 3.8125
+    },
+    {
+      "year_month": "2007-05",
+      "n_interactions": 70,
+      "n_users": 65,
+      "n_items": 66,
+      "avg_rating": 4.3
+    },
+    {
+      "year_month": "2007-06",
+      "n_interactions": 56,
+      "n_users": 53,
+      "n_items": 53,
+      "avg_rating": 4.017857142857143
+    },
+    {
+      "year_month": "2007-07",
+      "n_interactions": 69,
+      "n_users": 60,
+      "n_items": 63,
+      "avg_rating": 4.159420289855072
+    },
+    {
+      "year_month": "2007-08",
+      "n_interactions": 65,
+      "n_users": 52,
+      "n_items": 62,
+      "avg_rating": 4.338461538461538
+    },
+    {
+      "year_month": "2007-09",
+      "n_interactions": 69,
+      "n_users": 62,
+      "n_items": 65,
+      "avg_rating": 4.188405797101449
+    },
+    {
+      "year_month": "2007-10",
+      "n_interactions": 68,
+      "n_users": 63,
+      "n_items": 64,
+      "avg_rating": 3.9411764705882355
+    },
+    {
+      "year_month": "2007-11",
+      "n_interactions": 97,
+      "n_users": 86,
+      "n_items": 84,
+      "avg_rating": 3.8969072164948453
+    },
+    {
+      "year_month": "2007-12",
+      "n_interactions": 102,
+      "n_users": 95,
+      "n_items": 90,
+      "avg_rating": 4.588235294117647
+    },
+    {
+      "year_month": "2008-01",
+      "n_interactions": 141,
+      "n_users": 127,
+      "n_items": 105,
+      "avg_rating": 4.25531914893617
+    },
+    {
+      "year_month": "2008-02",
+      "n_interactions": 89,
+      "n_users": 83,
+      "n_items": 71,
+      "avg_rating": 4.269662921348314
+    },
+    {
+      "year_month": "2008-03",
+      "n_interactions": 124,
+      "n_users": 100,
+      "n_items": 96,
+      "avg_rating": 4.145161290322581
+    },
+    {
+      "year_month": "2008-04",
+      "n_interactions": 108,
+      "n_users": 98,
+      "n_items": 95,
+      "avg_rating": 4.231481481481482
+    },
+    {
+      "year_month": "2008-05",
+      "n_interactions": 126,
+      "n_users": 111,
+      "n_items": 113,
+      "avg_rating": 4.317460317460317
+    },
+    {
+      "year_month": "2008-06",
+      "n_interactions": 101,
+      "n_users": 89,
+      "n_items": 93,
+      "avg_rating": 4.188118811881188
+    },
+    {
+      "year_month": "2008-07",
+      "n_interactions": 191,
+      "n_users": 174,
+      "n_items": 124,
+      "avg_rating": 4.12041884816754
+    },
+    {
+      "year_month": "2008-08",
+      "n_interactions": 139,
+      "n_users": 127,
+      "n_items": 110,
+      "avg_rating": 4.151079136690647
+    },
+    {
+      "year_month": "2008-09",
+      "n_interactions": 132,
+      "n_users": 115,
+      "n_items": 115,
+      "avg_rating": 4.136363636363637
+    },
+    {
+      "year_month": "2008-10",
+      "n_interactions": 161,
+      "n_users": 148,
+      "n_items": 121,
+      "avg_rating": 4.136645962732919
+    },
+    {
+      "year_month": "2008-11",
+      "n_interactions": 172,
+      "n_users": 157,
+      "n_items": 126,
+      "avg_rating": 4.098837209302325
+    },
+    {
+      "year_month": "2008-12",
+      "n_interactions": 193,
+      "n_users": 180,
+      "n_items": 155,
+      "avg_rating": 4.321243523316062
+    },
+    {
+      "year_month": "2009-01",
+      "n_interactions": 277,
+      "n_users": 244,
+      "n_items": 211,
+      "avg_rating": 4.245487364620939
+    },
+    {
+      "year_month": "2009-02",
+      "n_interactions": 187,
+      "n_users": 163,
+      "n_items": 166,
+      "avg_rating": 4.160427807486631
+    },
+    {
+      "year_month": "2009-03",
+      "n_interactions": 259,
+      "n_users": 219,
+      "n_items": 211,
+      "avg_rating": 4.324324324324325
+    },
+    {
+      "year_month": "2009-04",
+      "n_interactions": 269,
+      "n_users": 240,
+      "n_items": 219,
+      "avg_rating": 4.148698884758364
+    },
+    {
+      "year_month": "2009-05",
+      "n_interactions": 278,
+      "n_users": 228,
+      "n_items": 216,
+      "avg_rating": 4.136690647482014
+    },
+    {
+      "year_month": "2009-06",
+      "n_interactions": 278,
+      "n_users": 236,
+      "n_items": 244,
+      "avg_rating": 4.233812949640288
+    },
+    {
+      "year_month": "2009-07",
+      "n_interactions": 221,
+      "n_users": 198,
+      "n_items": 197,
+      "avg_rating": 4.081447963800905
+    },
+    {
+      "year_month": "2009-08",
+      "n_interactions": 218,
+      "n_users": 199,
+      "n_items": 188,
+      "avg_rating": 4.0504587155963305
+    },
+    {
+      "year_month": "2009-09",
+      "n_interactions": 261,
+      "n_users": 226,
+      "n_items": 236,
+      "avg_rating": 4.172413793103448
+    },
+    {
+      "year_month": "2009-10",
+      "n_interactions": 216,
+      "n_users": 193,
+      "n_items": 199,
+      "avg_rating": 4.162037037037037
+    },
+    {
+      "year_month": "2009-11",
+      "n_interactions": 285,
+      "n_users": 260,
+      "n_items": 227,
+      "avg_rating": 4.101754385964912
+    },
+    {
+      "year_month": "2009-12",
+      "n_interactions": 307,
+      "n_users": 261,
+      "n_items": 276,
+      "avg_rating": 4.185667752442996
+    },
+    {
+      "year_month": "2010-01",
+      "n_interactions": 389,
+      "n_users": 321,
+      "n_items": 352,
+      "avg_rating": 4.149100257069409
+    },
+    {
+      "year_month": "2010-02",
+      "n_interactions": 343,
+      "n_users": 285,
+      "n_items": 297,
+      "avg_rating": 4.317784256559767
+    },
+    {
+      "year_month": "2010-03",
+      "n_interactions": 450,
+      "n_users": 402,
+      "n_items": 388,
+      "avg_rating": 4.182222222222222
+    },
+    {
+      "year_month": "2010-04",
+      "n_interactions": 441,
+      "n_users": 375,
+      "n_items": 392,
+      "avg_rating": 4.263038548752834
+    },
+    {
+      "year_month": "2010-05",
+      "n_interactions": 475,
+      "n_users": 414,
+      "n_items": 422,
+      "avg_rating": 4.08
+    },
+    {
+      "year_month": "2010-06",
+      "n_interactions": 522,
+      "n_users": 462,
+      "n_items": 406,
+      "avg_rating": 4.074712643678161
+    },
+    {
+      "year_month": "2010-07",
+      "n_interactions": 626,
+      "n_users": 508,
+      "n_items": 547,
+      "avg_rating": 4.135782747603834
+    },
+    {
+      "year_month": "2010-08",
+      "n_interactions": 660,
+      "n_users": 555,
+      "n_items": 563,
+      "avg_rating": 4.115151515151515
+    },
+    {
+      "year_month": "2010-09",
+      "n_interactions": 776,
+      "n_users": 640,
+      "n_items": 656,
+      "avg_rating": 4.042525773195877
+    },
+    {
+      "year_month": "2010-10",
+      "n_interactions": 718,
+      "n_users": 598,
+      "n_items": 616,
+      "avg_rating": 4.157381615598886
+    },
+    {
+      "year_month": "2010-11",
+      "n_interactions": 782,
+      "n_users": 643,
+      "n_items": 681,
+      "avg_rating": 4.0115089514066495
+    },
+    {
+      "year_month": "2010-12",
+      "n_interactions": 879,
+      "n_users": 715,
+      "n_items": 750,
+      "avg_rating": 4.152445961319682
+    },
+    {
+      "year_month": "2011-01",
+      "n_interactions": 1127,
+      "n_users": 954,
+      "n_items": 957,
+      "avg_rating": 4.224489795918367
+    },
+    {
+      "year_month": "2011-02",
+      "n_interactions": 1090,
+      "n_users": 901,
+      "n_items": 936,
+      "avg_rating": 4.141284403669725
+    },
+    {
+      "year_month": "2011-03",
+      "n_interactions": 1355,
+      "n_users": 1064,
+      "n_items": 1132,
+      "avg_rating": 4.146863468634686
+    },
+    {
+      "year_month": "2011-04",
+      "n_interactions": 1358,
+      "n_users": 1096,
+      "n_items": 1148,
+      "avg_rating": 4.173048600883653
+    },
+    {
+      "year_month": "2011-05",
+      "n_interactions": 1471,
+      "n_users": 1144,
+      "n_items": 1202,
+      "avg_rating": 4.082936777702243
+    },
+    {
+      "year_month": "2011-06",
+      "n_interactions": 1436,
+      "n_users": 1119,
+      "n_items": 1209,
+      "avg_rating": 4.102367688022284
+    },
+    {
+      "year_month": "2011-07",
+      "n_interactions": 1655,
+      "n_users": 1314,
+      "n_items": 1352,
+      "avg_rating": 4.114803625377643
+    },
+    {
+      "year_month": "2011-08",
+      "n_interactions": 1822,
+      "n_users": 1337,
+      "n_items": 1495,
+      "avg_rating": 4.136663007683864
+    },
+    {
+      "year_month": "2011-09",
+      "n_interactions": 1799,
+      "n_users": 1375,
+      "n_items": 1467,
+      "avg_rating": 4.192884936075598
+    },
+    {
+      "year_month": "2011-10",
+      "n_interactions": 1795,
+      "n_users": 1385,
+      "n_items": 1492,
+      "avg_rating": 4.084122562674095
+    },
+    {
+      "year_month": "2011-11",
+      "n_interactions": 1876,
+      "n_users": 1419,
+      "n_items": 1556,
+      "avg_rating": 4.1034115138592755
+    },
+    {
+      "year_month": "2011-12",
+      "n_interactions": 2370,
+      "n_users": 1737,
+      "n_items": 1890,
+      "avg_rating": 4.148945147679325
+    },
+    {
+      "year_month": "2012-01",
+      "n_interactions": 2926,
+      "n_users": 2119,
+      "n_items": 2293,
+      "avg_rating": 4.130895420369105
+    },
+    {
+      "year_month": "2012-02",
+      "n_interactions": 2661,
+      "n_users": 1918,
+      "n_items": 2069,
+      "avg_rating": 4.154077414505825
+    },
+    {
+      "year_month": "2012-03",
+      "n_interactions": 2617,
+      "n_users": 1946,
+      "n_items": 2100,
+      "avg_rating": 4.084829957967138
+    },
+    {
+      "year_month": "2012-04",
+      "n_interactions": 2760,
+      "n_users": 1998,
+      "n_items": 2190,
+      "avg_rating": 4.133695652173913
+    },
+    {
+      "year_month": "2012-05",
+      "n_interactions": 2770,
+      "n_users": 2017,
+      "n_items": 2194,
+      "avg_rating": 4.140794223826715
+    },
+    {
+      "year_month": "2012-06",
+      "n_interactions": 3080,
+      "n_users": 2234,
+      "n_items": 2407,
+      "avg_rating": 4.127272727272727
+    },
+    {
+      "year_month": "2012-07",
+      "n_interactions": 3452,
+      "n_users": 2537,
+      "n_items": 2659,
+      "avg_rating": 4.133545770567787
+    },
+    {
+      "year_month": "2012-08",
+      "n_interactions": 3606,
+      "n_users": 2529,
+      "n_items": 2699,
+      "avg_rating": 4.171103716028841
+    },
+    {
+      "year_month": "2012-09",
+      "n_interactions": 3448,
+      "n_users": 2521,
+      "n_items": 2691,
+      "avg_rating": 4.121809744779583
+    },
+    {
+      "year_month": "2012-10",
+      "n_interactions": 4022,
+      "n_users": 2915,
+      "n_items": 3084,
+      "avg_rating": 4.178269517652909
+    },
+    {
+      "year_month": "2012-11",
+      "n_interactions": 5533,
+      "n_users": 3729,
+      "n_items": 3983,
+      "avg_rating": 4.176396168443882
+    },
+    {
+      "year_month": "2012-12",
+      "n_interactions": 9547,
+      "n_users": 6080,
+      "n_items": 6095,
+      "avg_rating": 4.292971614119619
+    },
+    {
+      "year_month": "2013-01",
+      "n_interactions": 11084,
+      "n_users": 7106,
+      "n_items": 6755,
+      "avg_rating": 4.282479249368459
+    },
+    {
+      "year_month": "2013-02",
+      "n_interactions": 9705,
+      "n_users": 6146,
+      "n_items": 6227,
+      "avg_rating": 4.259041731066461
+    },
+    {
+      "year_month": "2013-03",
+      "n_interactions": 11386,
+      "n_users": 6992,
+      "n_items": 6995,
+      "avg_rating": 4.247145617424907
+    },
+    {
+      "year_month": "2013-04",
+      "n_interactions": 11390,
+      "n_users": 7171,
+      "n_items": 6960,
+      "avg_rating": 4.232835820895523
+    },
+    {
+      "year_month": "2013-05",
+      "n_interactions": 11376,
+      "n_users": 7221,
+      "n_items": 6962,
+      "avg_rating": 4.240857946554149
+    },
+    {
+      "year_month": "2013-06",
+      "n_interactions": 11074,
+      "n_users": 7036,
+      "n_items": 6861,
+      "avg_rating": 4.225031605562579
+    },
+    {
+      "year_month": "2013-07",
+      "n_interactions": 11487,
+      "n_users": 7291,
+      "n_items": 7079,
+      "avg_rating": 4.224079394097676
+    },
+    {
+      "year_month": "2013-08",
+      "n_interactions": 11933,
+      "n_users": 7579,
+      "n_items": 7281,
+      "avg_rating": 4.231961786642085
+    },
+    {
+      "year_month": "2013-09",
+      "n_interactions": 10477,
+      "n_users": 6775,
+      "n_items": 6759,
+      "avg_rating": 4.221055645700105
+    },
+    {
+      "year_month": "2013-10",
+      "n_interactions": 11482,
+      "n_users": 7353,
+      "n_items": 7276,
+      "avg_rating": 4.2395924055042675
+    },
+    {
+      "year_month": "2013-11",
+      "n_interactions": 11968,
+      "n_users": 7403,
+      "n_items": 7300,
+      "avg_rating": 4.1911764705882355
+    },
+    {
+      "year_month": "2013-12",
+      "n_interactions": 15254,
+      "n_users": 9348,
+      "n_items": 8805,
+      "avg_rating": 4.235544775140947
+    },
+    {
+      "year_month": "2014-01",
+      "n_interactions": 17087,
+      "n_users": 10571,
+      "n_items": 9513,
+      "avg_rating": 4.2357347691227245
+    },
+    {
+      "year_month": "2014-02",
+      "n_interactions": 15688,
+      "n_users": 9722,
+      "n_items": 9020,
+      "avg_rating": 4.214112697603263
+    },
+    {
+      "year_month": "2014-03",
+      "n_interactions": 17478,
+      "n_users": 10779,
+      "n_items": 9750,
+      "avg_rating": 4.2235381622611285
+    },
+    {
+      "year_month": "2014-04",
+      "n_interactions": 16140,
+      "n_users": 9907,
+      "n_items": 9192,
+      "avg_rating": 4.22812887236679
+    },
+    {
+      "year_month": "2014-05",
+      "n_interactions": 15896,
+      "n_users": 9958,
+      "n_items": 9363,
+      "avg_rating": 4.202503774534474
+    },
+    {
+      "year_month": "2014-06",
+      "n_interactions": 16338,
+      "n_users": 10290,
+      "n_items": 9553,
+      "avg_rating": 4.2229771085812216
+    },
+    {
+      "year_month": "2014-07",
+      "n_interactions": 25541,
+      "n_users": 14155,
+      "n_items": 13218,
+      "avg_rating": 4.289691084922282
+    },
+    {
+      "year_month": "2014-08",
+      "n_interactions": 25709,
+      "n_users": 14440,
+      "n_items": 13289,
+      "avg_rating": 4.286747831498697
+    },
+    {
+      "year_month": "2014-09",
+      "n_interactions": 24719,
+      "n_users": 13917,
+      "n_items": 13007,
+      "avg_rating": 4.281807516485295
+    },
+    {
+      "year_month": "2014-10",
+      "n_interactions": 26188,
+      "n_users": 14879,
+      "n_items": 13314,
+      "avg_rating": 4.321406751183749
+    },
+    {
+      "year_month": "2014-11",
+      "n_interactions": 26997,
+      "n_users": 15133,
+      "n_items": 13605,
+      "avg_rating": 4.305478386487388
+    },
+    {
+      "year_month": "2014-12",
+      "n_interactions": 32302,
+      "n_users": 18234,
+      "n_items": 15322,
+      "avg_rating": 4.3116834870905825
+    },
+    {
+      "year_month": "2015-01",
+      "n_interactions": 35712,
+      "n_users": 19839,
+      "n_items": 16271,
+      "avg_rating": 4.329133064516129
+    },
+    {
+      "year_month": "2015-02",
+      "n_interactions": 36082,
+      "n_users": 19975,
+      "n_items": 16255,
+      "avg_rating": 4.324760268277812
+    },
+    {
+      "year_month": "2015-03",
+      "n_interactions": 40732,
+      "n_users": 22111,
+      "n_items": 17583,
+      "avg_rating": 4.328758715506236
+    },
+    {
+      "year_month": "2015-04",
+      "n_interactions": 35967,
+      "n_users": 20366,
+      "n_items": 16506,
+      "avg_rating": 4.304056496232658
+    },
+    {
+      "year_month": "2015-05",
+      "n_interactions": 35588,
+      "n_users": 20187,
+      "n_items": 16564,
+      "avg_rating": 4.301253231426323
+    },
+    {
+      "year_month": "2015-06",
+      "n_interactions": 35555,
+      "n_users": 20437,
+      "n_items": 16719,
+      "avg_rating": 4.307861060329068
+    },
+    {
+      "year_month": "2015-07",
+      "n_interactions": 38639,
+      "n_users": 21709,
+      "n_items": 17685,
+      "avg_rating": 4.308729521985558
+    },
+    {
+      "year_month": "2015-08",
+      "n_interactions": 38444,
+      "n_users": 21589,
+      "n_items": 17869,
+      "avg_rating": 4.299318489231089
+    },
+    {
+      "year_month": "2015-09",
+      "n_interactions": 35478,
+      "n_users": 20137,
+      "n_items": 16777,
+      "avg_rating": 4.277580472405434
+    },
+    {
+      "year_month": "2015-10",
+      "n_interactions": 37692,
+      "n_users": 21303,
+      "n_items": 17546,
+      "avg_rating": 4.29804733099862
+    },
+    {
+      "year_month": "2015-11",
+      "n_interactions": 37343,
+      "n_users": 20912,
+      "n_items": 17431,
+      "avg_rating": 4.297913932999491
+    },
+    {
+      "year_month": "2015-12",
+      "n_interactions": 37441,
+      "n_users": 20827,
+      "n_items": 17212,
+      "avg_rating": 4.2811089447397235
+    },
+    {
+      "year_month": "2016-01",
+      "n_interactions": 45858,
+      "n_users": 25278,
+      "n_items": 19734,
+      "avg_rating": 4.306816695015047
+    },
+    {
+      "year_month": "2016-02",
+      "n_interactions": 44051,
+      "n_users": 24538,
+      "n_items": 19357,
+      "avg_rating": 4.276770107375542
+    },
+    {
+      "year_month": "2016-03",
+      "n_interactions": 47238,
+      "n_users": 26867,
+      "n_items": 20313,
+      "avg_rating": 4.297684067911427
+    },
+    {
+      "year_month": "2016-04",
+      "n_interactions": 41956,
+      "n_users": 23771,
+      "n_items": 19073,
+      "avg_rating": 4.297668986557346
+    },
+    {
+      "year_month": "2016-05",
+      "n_interactions": 44509,
+      "n_users": 25511,
+      "n_items": 20218,
+      "avg_rating": 4.297085982610259
+    },
+    {
+      "year_month": "2016-06",
+      "n_interactions": 44365,
+      "n_users": 25980,
+      "n_items": 20404,
+      "avg_rating": 4.30222021864082
+    },
+    {
+      "year_month": "2016-07",
+      "n_interactions": 46348,
+      "n_users": 26835,
+      "n_items": 20719,
+      "avg_rating": 4.299473547941659
+    },
+    {
+      "year_month": "2016-08",
+      "n_interactions": 46262,
+      "n_users": 26998,
+      "n_items": 21013,
+      "avg_rating": 4.288335999308288
+    },
+    {
+      "year_month": "2016-09",
+      "n_interactions": 43782,
+      "n_users": 25589,
+      "n_items": 20266,
+      "avg_rating": 4.296012059750582
+    },
+    {
+      "year_month": "2016-10",
+      "n_interactions": 40806,
+      "n_users": 24306,
+      "n_items": 19440,
+      "avg_rating": 4.277973827378327
+    },
+    {
+      "year_month": "2016-11",
+      "n_interactions": 38797,
+      "n_users": 23116,
+      "n_items": 18644,
+      "avg_rating": 4.291749362064077
+    },
+    {
+      "year_month": "2016-12",
+      "n_interactions": 49578,
+      "n_users": 29808,
+      "n_items": 21677,
+      "avg_rating": 4.300879422324418
+    },
+    {
+      "year_month": "2017-01",
+      "n_interactions": 52431,
+      "n_users": 31255,
+      "n_items": 22112,
+      "avg_rating": 4.304133051057581
+    },
+    {
+      "year_month": "2017-02",
+      "n_interactions": 42477,
+      "n_users": 25732,
+      "n_items": 19218,
+      "avg_rating": 4.271605810203169
+    },
+    {
+      "year_month": "2017-03",
+      "n_interactions": 50787,
+      "n_users": 30323,
+      "n_items": 21697,
+      "avg_rating": 4.257447772067655
+    },
+    {
+      "year_month": "2017-04",
+      "n_interactions": 43813,
+      "n_users": 26520,
+      "n_items": 19959,
+      "avg_rating": 4.241206947709584
+    },
+    {
+      "year_month": "2017-05",
+      "n_interactions": 42453,
+      "n_users": 26474,
+      "n_items": 19770,
+      "avg_rating": 4.233081289897062
+    },
+    {
+      "year_month": "2017-06",
+      "n_interactions": 41428,
+      "n_users": 25481,
+      "n_items": 19297,
+      "avg_rating": 4.2277203823501015
+    },
+    {
+      "year_month": "2017-07",
+      "n_interactions": 43961,
+      "n_users": 27035,
+      "n_items": 20107,
+      "avg_rating": 4.23063624576329
+    },
+    {
+      "year_month": "2017-08",
+      "n_interactions": 46445,
+      "n_users": 28121,
+      "n_items": 20896,
+      "avg_rating": 4.229281946388201
+    },
+    {
+      "year_month": "2017-09",
+      "n_interactions": 42368,
+      "n_users": 25883,
+      "n_items": 19811,
+      "avg_rating": 4.204871601208459
+    },
+    {
+      "year_month": "2017-10",
+      "n_interactions": 41308,
+      "n_users": 25267,
+      "n_items": 19860,
+      "avg_rating": 4.20715115716084
+    },
+    {
+      "year_month": "2017-11",
+      "n_interactions": 40491,
+      "n_users": 24551,
+      "n_items": 19192,
+      "avg_rating": 4.190956014916895
+    },
+    {
+      "year_month": "2017-12",
+      "n_interactions": 42395,
+      "n_users": 26009,
+      "n_items": 19825,
+      "avg_rating": 4.18627196603373
+    },
+    {
+      "year_month": "2018-01",
+      "n_interactions": 52391,
+      "n_users": 31648,
+      "n_items": 22763,
+      "avg_rating": 4.219007081368938
+    },
+    {
+      "year_month": "2018-02",
+      "n_interactions": 46479,
+      "n_users": 27935,
+      "n_items": 21311,
+      "avg_rating": 4.197056735299813
+    },
+    {
+      "year_month": "2018-03",
+      "n_interactions": 54737,
+      "n_users": 32425,
+      "n_items": 23780,
+      "avg_rating": 4.197818660138481
+    },
+    {
+      "year_month": "2018-04",
+      "n_interactions": 51836,
+      "n_users": 31037,
+      "n_items": 23095,
+      "avg_rating": 4.19247241299483
+    },
+    {
+      "year_month": "2018-05",
+      "n_interactions": 47543,
+      "n_users": 28751,
+      "n_items": 22195,
+      "avg_rating": 4.180951980312559
+    },
+    {
+      "year_month": "2018-06",
+      "n_interactions": 48242,
+      "n_users": 29160,
+      "n_items": 22839,
+      "avg_rating": 4.218585464947556
+    },
+    {
+      "year_month": "2018-07",
+      "n_interactions": 50571,
+      "n_users": 30448,
+      "n_items": 23525,
+      "avg_rating": 4.224417156077594
+    },
+    {
+      "year_month": "2018-08",
+      "n_interactions": 45216,
+      "n_users": 28618,
+      "n_items": 21979,
+      "avg_rating": 4.2104785916489735
+    },
+    {
+      "year_month": "2018-09",
+      "n_interactions": 36206,
+      "n_users": 23066,
+      "n_items": 18416,
+      "avg_rating": 4.205325084240181
+    },
+    {
       "year_month": "2018-10",
-      "n_interactions": 18699,
-      "n_users": 10598,
-      "n_items": 10334,
-      "avg_rating": 4.268142681426815
+      "n_interactions": 40751,
+      "n_users": 25345,
+      "n_items": 20061,
+      "avg_rating": 4.218816716154205
     },
     {
       "year_month": "2018-11",
-      "n_interactions": 25237,
-      "n_users": 13959,
-      "n_items": 12555,
-      "avg_rating": 4.271070253992154
+      "n_interactions": 38767,
+      "n_users": 24167,
+      "n_items": 19246,
+      "avg_rating": 4.242422679082725
     },
     {
       "year_month": "2018-12",
-      "n_interactions": 32977,
-      "n_users": 17723,
-      "n_items": 14729,
-      "avg_rating": 4.316644934348182
+      "n_interactions": 49444,
+      "n_users": 29895,
+      "n_items": 22412,
+      "avg_rating": 4.287759889976539
     },
     {
       "year_month": "2019-01",
-      "n_interactions": 40020,
-      "n_users": 21040,
-      "n_items": 16854,
-      "avg_rating": 4.333258370814593
+      "n_interactions": 58492,
+      "n_users": 34448,
+      "n_items": 24812,
+      "avg_rating": 4.310435615126855
     },
     {
       "year_month": "2019-02",
-      "n_interactions": 32245,
-      "n_users": 17871,
-      "n_items": 15038,
-      "avg_rating": 4.281376957667855
+      "n_interactions": 45990,
+      "n_users": 28473,
+      "n_items": 21437,
+      "avg_rating": 4.247706023048488
     },
     {
       "year_month": "2019-03",
-      "n_interactions": 41533,
-      "n_users": 21786,
-      "n_items": 17577,
-      "avg_rating": 4.2945850287723015
+      "n_interactions": 57745,
+      "n_users": 33886,
+      "n_items": 24652,
+      "avg_rating": 4.269703004589142
     },
     {
       "year_month": "2019-04",
-      "n_interactions": 38594,
-      "n_users": 21025,
-      "n_items": 17276,
-      "avg_rating": 4.310514587759755
+      "n_interactions": 53295,
+      "n_users": 32240,
+      "n_items": 23862,
+      "avg_rating": 4.2843418707195795
     },
     {
       "year_month": "2019-05",
-      "n_interactions": 43310,
-      "n_users": 22890,
-      "n_items": 18664,
-      "avg_rating": 4.326067882706073
+      "n_interactions": 58184,
+      "n_users": 34447,
+      "n_items": 25369,
+      "avg_rating": 4.303777670837343
     },
     {
       "year_month": "2019-06",
-      "n_interactions": 48965,
-      "n_users": 25600,
-      "n_items": 20192,
-      "avg_rating": 4.335504952517104
+      "n_interactions": 65220,
+      "n_users": 38058,
+      "n_items": 27208,
+      "avg_rating": 4.312174179699479
     },
     {
       "year_month": "2019-07",
-      "n_interactions": 59001,
-      "n_users": 30116,
-      "n_items": 22592,
-      "avg_rating": 4.360332875713971
+      "n_interactions": 77393,
+      "n_users": 44264,
+      "n_items": 29903,
+      "avg_rating": 4.335934774462807
     },
     {
       "year_month": "2019-08",
-      "n_interactions": 50990,
-      "n_users": 26732,
-      "n_items": 21141,
-      "avg_rating": 4.32647577956462
+      "n_interactions": 66485,
+      "n_users": 38706,
+      "n_items": 27792,
+      "avg_rating": 4.309182522373468
     },
     {
       "year_month": "2019-09",
-      "n_interactions": 45538,
-      "n_users": 24254,
-      "n_items": 19884,
-      "avg_rating": 4.338815933945276
+      "n_interactions": 58553,
+      "n_users": 34701,
+      "n_items": 25791,
+      "avg_rating": 4.311188154321726
     },
     {
       "year_month": "2019-10",
-      "n_interactions": 47430,
-      "n_users": 25292,
-      "n_items": 20496,
-      "avg_rating": 4.310837022981236
+      "n_interactions": 60452,
+      "n_users": 35697,
+      "n_items": 26269,
+      "avg_rating": 4.279792231853372
     },
     {
       "year_month": "2019-11",
-      "n_interactions": 49646,
-      "n_users": 25988,
-      "n_items": 20836,
-      "avg_rating": 4.3037908391411195
+      "n_interactions": 62085,
+      "n_users": 36009,
+      "n_items": 26541,
+      "avg_rating": 4.283772247724893
     },
     {
       "year_month": "2019-12",
-      "n_interactions": 65900,
-      "n_users": 35601,
-      "n_items": 25013,
-      "avg_rating": 4.314916540212443
+      "n_interactions": 82527,
+      "n_users": 49319,
+      "n_items": 31591,
+      "avg_rating": 4.291456129509131
     },
     {
       "year_month": "2020-01",
-      "n_interactions": 73606,
-      "n_users": 39744,
-      "n_items": 26687,
-      "avg_rating": 4.321943863272016
+      "n_interactions": 92162,
+      "n_users": 55083,
+      "n_items": 33640,
+      "avg_rating": 4.300915778737441
     },
     {
       "year_month": "2020-02",
-      "n_interactions": 65482,
-      "n_users": 35797,
-      "n_items": 24860,
-      "avg_rating": 4.284322409211692
+      "n_interactions": 81573,
+      "n_users": 49499,
+      "n_items": 31180,
+      "avg_rating": 4.261250658919005
     },
     {
       "year_month": "2020-03",
-      "n_interactions": 53986,
-      "n_users": 30046,
-      "n_items": 22472,
-      "avg_rating": 4.286018597414144
+      "n_interactions": 66258,
+      "n_users": 40666,
+      "n_items": 27675,
+      "avg_rating": 4.254112710917927
     },
     {
       "year_month": "2020-04",
-      "n_interactions": 53223,
-      "n_users": 27876,
-      "n_items": 21854,
-      "avg_rating": 4.257332356312121
+      "n_interactions": 63888,
+      "n_users": 36771,
+      "n_items": 26427,
+      "avg_rating": 4.227726646631606
     },
     {
       "year_month": "2020-05",
-      "n_interactions": 72784,
-      "n_users": 37356,
-      "n_items": 26199,
-      "avg_rating": 4.270155528687623
+      "n_interactions": 86441,
+      "n_users": 48767,
+      "n_items": 31409,
+      "avg_rating": 4.2431600745016835
     },
     {
       "year_month": "2020-06",
-      "n_interactions": 68328,
-      "n_users": 35563,
-      "n_items": 25653,
-      "avg_rating": 4.2669476642079385
+      "n_interactions": 81130,
+      "n_users": 46441,
+      "n_items": 30799,
+      "avg_rating": 4.23729816344139
     },
     {
       "year_month": "2020-07",
-      "n_interactions": 71901,
-      "n_users": 37940,
-      "n_items": 27110,
-      "avg_rating": 4.263125686708112
+      "n_interactions": 85449,
+      "n_users": 49651,
+      "n_items": 32554,
+      "avg_rating": 4.236889840723706
     },
     {
       "year_month": "2020-08",
-      "n_interactions": 70089,
-      "n_users": 36996,
-      "n_items": 26512,
-      "avg_rating": 4.273994492716404
+      "n_interactions": 82998,
+      "n_users": 48312,
+      "n_items": 31801,
+      "avg_rating": 4.244933612858141
     },
     {
       "year_month": "2020-09",
-      "n_interactions": 61446,
-      "n_users": 33711,
-      "n_items": 25027,
-      "avg_rating": 4.246232464277577
+      "n_interactions": 72506,
+      "n_users": 43680,
+      "n_items": 29778,
+      "avg_rating": 4.21671309960555
     },
     {
       "year_month": "2020-10",
-      "n_interactions": 66335,
-      "n_users": 35250,
-      "n_items": 26478,
-      "avg_rating": 4.254631793171026
+      "n_interactions": 77484,
+      "n_users": 45251,
+      "n_items": 31285,
+      "avg_rating": 4.226769397553043
     },
     {
       "year_month": "2020-11",
-      "n_interactions": 54067,
-      "n_users": 30304,
-      "n_items": 23716,
-      "avg_rating": 4.233710026448666
+      "n_interactions": 63805,
+      "n_users": 39191,
+      "n_items": 28207,
+      "avg_rating": 4.209372306245592
     },
     {
       "year_month": "2020-12",
-      "n_interactions": 60812,
-      "n_users": 34071,
-      "n_items": 25873,
-      "avg_rating": 4.2385713346050125
+      "n_interactions": 71396,
+      "n_users": 43927,
+      "n_items": 30546,
+      "avg_rating": 4.212322819205558
     },
     {
       "year_month": "2021-01",
-      "n_interactions": 71641,
-      "n_users": 39344,
-      "n_items": 28680,
-      "avg_rating": 4.239653271171536
+      "n_interactions": 83818,
+      "n_users": 50410,
+      "n_items": 33690,
+      "avg_rating": 4.218497220167506
     },
     {
       "year_month": "2021-02",
-      "n_interactions": 65783,
-      "n_users": 37486,
-      "n_items": 27412,
-      "avg_rating": 4.213337792438776
+      "n_interactions": 77278,
+      "n_users": 47922,
+      "n_items": 32147,
+      "avg_rating": 4.193340924972178
     },
     {
       "year_month": "2021-03",
-      "n_interactions": 82310,
-      "n_users": 45106,
-      "n_items": 31270,
-      "avg_rating": 4.208212853845219
+      "n_interactions": 95664,
+      "n_users": 57277,
+      "n_items": 36655,
+      "avg_rating": 4.189088894463957
     },
     {
       "year_month": "2021-04",
-      "n_interactions": 79318,
-      "n_users": 43658,
-      "n_items": 31144,
-      "avg_rating": 4.215234877329232
+      "n_interactions": 91866,
+      "n_users": 55038,
+      "n_items": 36310,
+      "avg_rating": 4.1943374044804385
     },
     {
       "year_month": "2021-05",
-      "n_interactions": 72432,
-      "n_users": 39949,
-      "n_items": 29715,
-      "avg_rating": 4.190026507620941
+      "n_interactions": 83523,
+      "n_users": 50200,
+      "n_items": 34441,
+      "avg_rating": 4.166983944542222
     },
     {
       "year_month": "2021-06",
-      "n_interactions": 68862,
-      "n_users": 38809,
-      "n_items": 29166,
-      "avg_rating": 4.183250559089193
+      "n_interactions": 79974,
+      "n_users": 49178,
+      "n_items": 33842,
+      "avg_rating": 4.150761497486683
     },
     {
       "year_month": "2021-07",
-      "n_interactions": 69742,
-      "n_users": 39395,
-      "n_items": 29535,
-      "avg_rating": 4.1728657050271
+      "n_interactions": 80926,
+      "n_users": 49874,
+      "n_items": 34398,
+      "avg_rating": 4.148283617131701
     },
     {
       "year_month": "2021-08",
-      "n_interactions": 62678,
-      "n_users": 36257,
-      "n_items": 28015,
-      "avg_rating": 4.148999648999649
+      "n_interactions": 72963,
+      "n_users": 45841,
+      "n_items": 32548,
+      "avg_rating": 4.12654359058701
     },
     {
       "year_month": "2021-09",
-      "n_interactions": 52447,
-      "n_users": 30775,
-      "n_items": 25320,
-      "avg_rating": 4.126737468301333
+      "n_interactions": 60878,
+      "n_users": 38727,
+      "n_items": 29389,
+      "avg_rating": 4.099494070107428
     },
     {
       "year_month": "2021-10",
-      "n_interactions": 52350,
-      "n_users": 31138,
-      "n_items": 25186,
-      "avg_rating": 4.113849092645654
+      "n_interactions": 60673,
+      "n_users": 39206,
+      "n_items": 29180,
+      "avg_rating": 4.086644800817497
     },
     {
       "year_month": "2021-11",
-      "n_interactions": 47085,
-      "n_users": 27654,
-      "n_items": 23403,
-      "avg_rating": 4.125815015397685
+      "n_interactions": 54512,
+      "n_users": 34797,
+      "n_items": 27108,
+      "avg_rating": 4.09572204285295
     },
     {
       "year_month": "2021-12",
-      "n_interactions": 53959,
-      "n_users": 31799,
-      "n_items": 25844,
-      "avg_rating": 4.10817472525436
+      "n_interactions": 63047,
+      "n_users": 40212,
+      "n_items": 30138,
+      "avg_rating": 4.090472187415737
     },
     {
       "year_month": "2022-01",
-      "n_interactions": 61471,
-      "n_users": 35701,
-      "n_items": 27947,
-      "avg_rating": 4.129557026890729
+      "n_interactions": 71639,
+      "n_users": 45315,
+      "n_items": 32394,
+      "avg_rating": 4.117966470777091
     },
     {
       "year_month": "2022-02",
-      "n_interactions": 56102,
-      "n_users": 31287,
-      "n_items": 25133,
-      "avg_rating": 4.112152864425511
+      "n_interactions": 64435,
+      "n_users": 39419,
+      "n_items": 29096,
+      "avg_rating": 4.083339799798246
     },
     {
       "year_month": "2022-03",
-      "n_interactions": 68347,
-      "n_users": 36340,
-      "n_items": 28699,
-      "avg_rating": 4.134621856116581
+      "n_interactions": 77748,
+      "n_users": 45396,
+      "n_items": 32847,
+      "avg_rating": 4.108658743633277
     },
     {
       "year_month": "2022-04",
-      "n_interactions": 67939,
-      "n_users": 35090,
-      "n_items": 28178,
-      "avg_rating": 4.157052650171478
+      "n_interactions": 76897,
+      "n_users": 43701,
+      "n_items": 32121,
+      "avg_rating": 4.128379520657503
     },
     {
       "year_month": "2022-05",
-      "n_interactions": 69321,
-      "n_users": 35208,
-      "n_items": 28245,
-      "avg_rating": 4.159691868265028
+      "n_interactions": 78092,
+      "n_users": 43777,
+      "n_items": 32202,
+      "avg_rating": 4.12809250627465
     },
     {
       "year_month": "2022-06",
-      "n_interactions": 68656,
-      "n_users": 33546,
-      "n_items": 28485,
-      "avg_rating": 4.162476695408996
+      "n_interactions": 77015,
+      "n_users": 41870,
+      "n_items": 32382,
+      "avg_rating": 4.128987859507888
     },
     {
       "year_month": "2022-07",
-      "n_interactions": 80531,
-      "n_users": 38635,
-      "n_items": 31805,
-      "avg_rating": 4.180290819684346
+      "n_interactions": 90247,
+      "n_users": 48009,
+      "n_items": 35904,
+      "avg_rating": 4.144902323622946
     },
     {
       "year_month": "2022-08",
-      "n_interactions": 94930,
-      "n_users": 40466,
-      "n_items": 33482,
-      "avg_rating": 4.2243758558938165
+      "n_interactions": 104665,
+      "n_users": 50132,
+      "n_items": 37674,
+      "avg_rating": 4.191429799837577
     },
     {
       "year_month": "2022-09",
-      "n_interactions": 84044,
-      "n_users": 36293,
-      "n_items": 31764,
-      "avg_rating": 4.222371614868402
+      "n_interactions": 92239,
+      "n_users": 44611,
+      "n_items": 35627,
+      "avg_rating": 4.193356389379764
     },
     {
       "year_month": "2022-10",
-      "n_interactions": 107523,
-      "n_users": 39243,
-      "n_items": 34985,
-      "avg_rating": 4.281084047134102
+      "n_interactions": 115511,
+      "n_users": 47743,
+      "n_items": 38881,
+      "avg_rating": 4.247560838361714
     },
     {
       "year_month": "2022-11",
-      "n_interactions": 105353,
-      "n_users": 37675,
-      "n_items": 33365,
-      "avg_rating": 4.30394008713563
+      "n_interactions": 112275,
+      "n_users": 45357,
+      "n_items": 36975,
+      "avg_rating": 4.27128924515698
     },
     {
       "year_month": "2022-12",
-      "n_interactions": 103293,
-      "n_users": 39886,
-      "n_items": 34689,
-      "avg_rating": 4.323119669290271
+      "n_interactions": 111416,
+      "n_users": 48210,
+      "n_items": 38534,
+      "avg_rating": 4.290209664680118
     },
     {
       "year_month": "2023-01",
-      "n_interactions": 108516,
-      "n_users": 43515,
-      "n_items": 35728,
-      "avg_rating": 4.303264034796712
+      "n_interactions": 117392,
+      "n_users": 52432,
+      "n_items": 39684,
+      "avg_rating": 4.273076529916859
     },
     {
       "year_month": "2023-02",
-      "n_interactions": 93640,
-      "n_users": 37871,
-      "n_items": 31416,
-      "avg_rating": 4.27341947885519
+      "n_interactions": 101027,
+      "n_users": 45591,
+      "n_items": 34795,
+      "avg_rating": 4.238461005473784
     },
     {
       "year_month": "2023-03",
-      "n_interactions": 114096,
-      "n_users": 40978,
-      "n_items": 35433,
-      "avg_rating": 4.3036916281026505
+      "n_interactions": 122201,
+      "n_users": 49391,
+      "n_items": 39041,
+      "avg_rating": 4.271544422713398
     },
     {
       "year_month": "2023-04",
-      "n_interactions": 49816,
-      "n_users": 15459,
-      "n_items": 20453,
-      "avg_rating": 4.352376746426851
+      "n_interactions": 50980,
+      "n_users": 17804,
+      "n_items": 22003,
+      "avg_rating": 4.3297959984307575
     },
     {
       "year_month": "2023-05",
-      "n_interactions": 15160,
-      "n_users": 5176,
-      "n_items": 8862,
-      "avg_rating": 4.3447229551451185
+      "n_interactions": 14435,
+      "n_users": 5520,
+      "n_items": 9215,
+      "avg_rating": 4.342085209560097
     },
     {
       "year_month": "2023-06",
-      "n_interactions": 9302,
-      "n_users": 2845,
-      "n_items": 5511,
-      "avg_rating": 4.40980434315201
+      "n_interactions": 8334,
+      "n_users": 2780,
+      "n_items": 5522,
+      "avg_rating": 4.439404847612191
     },
     {
       "year_month": "2023-07",
-      "n_interactions": 8151,
-      "n_users": 2141,
-      "n_items": 4853,
-      "avg_rating": 4.416022573917311
+      "n_interactions": 6987,
+      "n_users": 2017,
+      "n_items": 4772,
+      "avg_rating": 4.462000858737656
     },
     {
       "year_month": "2023-08",
-      "n_interactions": 6697,
-      "n_users": 1613,
-      "n_items": 4020,
-      "avg_rating": 4.383903240256831
+      "n_interactions": 5646,
+      "n_users": 1474,
+      "n_items": 3917,
+      "avg_rating": 4.424371236273468
     },
     {
       "year_month": "2023-09",
-      "n_interactions": 432,
-      "n_users": 117,
-      "n_items": 350,
-      "avg_rating": 4.300925925925926
+      "n_interactions": 355,
+      "n_users": 102,
+      "n_items": 338,
+      "avg_rating": 4.267605633802817
     }
   ],
   "user_item_patterns": {
     "users": {
-      "n_users": 384826,
+      "n_users": 729576,
       "interaction_stats": {
-        "mean": 9.261512995483674,
-        "median": 6.0,
-        "std": 19.356941778134146,
+        "mean": 9.079850488502911,
+        "median": 7.0,
+        "std": 14.987225306455024,
         "min": 5,
-        "max": 2086,
+        "max": 2351,
         "p25": 5.0,
         "p75": 9.0,
-        "p95": 18.0
+        "p95": 19.0
       },
-      "power_law_alpha": 3.001,
+      "power_law_alpha": 2.936,
       "cold_start_pct": 0.0
     },
     "items": {
-      "n_items": 135104,
+      "n_items": 207649,
       "interaction_stats": {
-        "mean": 26.3802033988631,
+        "mean": 31.90210884714109,
         "median": 12.0,
-        "std": 74.32716161801542,
+        "std": 101.98798945983705,
         "min": 5,
-        "max": 7583,
+        "max": 9177,
         "p25": 7.0,
-        "p75": 21.0,
-        "p95": 85.0
+        "p75": 24.0,
+        "p95": 107.0
       },
-      "power_law_alpha": 1.884,
+      "power_law_alpha": 1.835,
       "cold_start_pct": 0.0
     },
     "engagement": {
-      "avg_rating_per_user": 4.214,
-      "rating_variance_per_user": 1.366
+      "avg_rating_per_user": 4.221,
+      "rating_variance_per_user": 1.363
     }
   },
   "user_segments": [
     {
       "segment": "(4.999, 6.0]",
-      "n_users": 200695,
+      "n_users": 361387,
       "min_interactions": 5,
       "max_interactions": 6,
-      "mean_interactions": 5.387897057724408,
-      "pct_of_users": 52.15214148732154
+      "mean_interactions": 5.383879331575292,
+      "pct_of_users": 49.53383883241773
     },
     {
       "segment": "(6.0, 7.0]",
-      "n_users": 46155,
+      "n_users": 90877,
       "min_interactions": 7,
       "max_interactions": 7,
       "mean_interactions": 7.0,
-      "pct_of_users": 11.99373223222963
+      "pct_of_users": 12.456138908078117
     },
     {
       "segment": "(7.0, 10.0]",
-      "n_users": 71810,
+      "n_users": 139566,
       "min_interactions": 8,
       "max_interactions": 10,
-      "mean_interactions": 8.774655340481827,
-      "pct_of_users": 18.660381575049502
+      "mean_interactions": 8.790020492096929,
+      "pct_of_users": 19.12974110990493
     },
     {
-      "segment": "(10.0, 2086.0]",
-      "n_users": 66166,
+      "segment": "(10.0, 2351.0]",
+      "n_users": 137746,
       "min_interactions": 11,
-      "max_interactions": 2086,
-      "mean_interactions": 23.11691805458997,
-      "pct_of_users": 17.19374470539932
+      "max_interactions": 2351,
+      "mean_interactions": 20.442335893601268,
+      "pct_of_users": 18.88028114959922
     }
   ],
   "item_segments": [
     {
       "segment": "(4.999, 6.0]",
-      "n_items": 29354,
+      "n_items": 44184,
       "min_interactions": 5,
       "max_interactions": 6,
-      "mean_interactions": 5.43282005859508,
-      "pct_of_items": 21.72696589294173
+      "mean_interactions": 5.436968133260909,
+      "pct_of_items": 21.27821467957948
     },
     {
-      "segment": "(6.0, 9.0]",
-      "n_items": 25657,
+      "segment": "(6.0, 10.0]",
+      "n_items": 47755,
       "min_interactions": 7,
-      "max_interactions": 9,
-      "mean_interactions": 7.8887243247456835,
-      "pct_of_items": 18.99055542396968
+      "max_interactions": 10,
+      "mean_interactions": 8.298921578892262,
+      "pct_of_items": 22.997943645286036
     },
     {
-      "segment": "(9.0, 15.0]",
-      "n_items": 29476,
-      "min_interactions": 10,
+      "segment": "(10.0, 15.0]",
+      "n_items": 33745,
+      "min_interactions": 11,
       "max_interactions": 15,
-      "mean_interactions": 12.215904464649206,
-      "pct_of_items": 21.817266698247277
+      "mean_interactions": 12.806904726626167,
+      "pct_of_items": 16.25098122312171
     },
     {
-      "segment": "(15.0, 26.0]",
-      "n_items": 24538,
+      "segment": "(15.0, 30.0]",
+      "n_items": 41550,
       "min_interactions": 16,
-      "max_interactions": 26,
-      "mean_interactions": 19.829040671611377,
-      "pct_of_items": 18.162304594978686
+      "max_interactions": 30,
+      "mean_interactions": 21.192876052948254,
+      "pct_of_items": 20.009727954384562
     },
     {
-      "segment": "(26.0, 7583.0]",
-      "n_items": 26079,
-      "min_interactions": 27,
-      "max_interactions": 7583,
-      "mean_interactions": 90.32378542122014,
-      "pct_of_items": 19.302907389862625
+      "segment": "(30.0, 9177.0]",
+      "n_items": 40415,
+      "min_interactions": 31,
+      "max_interactions": 9177,
+      "mean_interactions": 115.67898057651863,
+      "pct_of_items": 19.46313249762821
     }
   ],
   "tier_analysis": {
     "users": [
       {
         "tier_pct": "Top 1%",
-        "n_users": 3848,
-        "interactions": 500536,
-        "pct_of_total_interactions": 14.04
+        "n_users": 7295,
+        "interactions": 704424,
+        "pct_of_total_interactions": 10.63
       },
       {
         "tier_pct": "Top 5%",
-        "n_users": 19241,
-        "interactions": 904213,
-        "pct_of_total_interactions": 25.37
+        "n_users": 36478,
+        "interactions": 1448808,
+        "pct_of_total_interactions": 21.87
       },
       {
         "tier_pct": "Top 10%",
-        "n_users": 38482,
-        "interactions": 1202665,
-        "pct_of_total_interactions": 33.74
+        "n_users": 72957,
+        "interactions": 2036061,
+        "pct_of_total_interactions": 30.74
       },
       {
         "tier_pct": "Top 20%",
-        "n_users": 76965,
-        "interactions": 1637544,
-        "pct_of_total_interactions": 45.95
+        "n_users": 145915,
+        "interactions": 2897540,
+        "pct_of_total_interactions": 43.74
       },
       {
         "tier_pct": "Top 50%",
-        "n_users": 192413,
-        "interactions": 2532439,
-        "pct_of_total_interactions": 71.05
+        "n_users": 364788,
+        "interactions": 4654970,
+        "pct_of_total_interactions": 70.27
       },
       {
         "tier_pct": "Top 100%",
-        "n_users": 384826,
-        "interactions": 3564071,
+        "n_users": 729576,
+        "interactions": 6624441,
         "pct_of_total_interactions": 100.0
       }
     ],
     "items": [
       {
         "tier_pct": "Top 1%",
-        "n_items": 1351,
-        "interactions": 731115,
-        "pct_of_total_interactions": 20.51
+        "n_items": 2076,
+        "interactions": 1559410,
+        "pct_of_total_interactions": 23.54
       },
       {
         "tier_pct": "Top 5%",
-        "n_items": 6755,
-        "interactions": 1489063,
-        "pct_of_total_interactions": 41.78
+        "n_items": 10382,
+        "interactions": 3057411,
+        "pct_of_total_interactions": 46.15
       },
       {
         "tier_pct": "Top 10%",
-        "n_items": 13510,
-        "interactions": 1913934,
-        "pct_of_total_interactions": 53.7
+        "n_items": 20764,
+        "interactions": 3860882,
+        "pct_of_total_interactions": 58.28
       },
       {
         "tier_pct": "Top 20%",
-        "n_items": 27020,
-        "interactions": 2380020,
-        "pct_of_total_interactions": 66.78
+        "n_items": 41529,
+        "interactions": 4708586,
+        "pct_of_total_interactions": 71.08
       },
       {
         "tier_pct": "Top 50%",
-        "n_items": 67552,
-        "interactions": 3069736,
-        "pct_of_total_interactions": 86.13
+        "n_items": 103824,
+        "interactions": 5853473,
+        "pct_of_total_interactions": 88.36
       },
       {
         "tier_pct": "Top 100%",
-        "n_items": 135104,
-        "interactions": 3564071,
+        "n_items": 207649,
+        "interactions": 6624441,
         "pct_of_total_interactions": 100.0
       }
     ]
   },
   "multimodal_coverage": {
-    "n_items": 135104,
+    "n_items": 207649,
     "text": {
       "coverage": {
         "title": 100.0,
-        "description": 39.49,
-        "features": 85.69
+        "description": 48.3,
+        "features": 82.6
       },
       "avg_lengths": {
-        "title": 132.2,
-        "description": 248.9,
-        "features": 778.1
+        "title": 116.9,
+        "description": 286.0,
+        "features": 626.9
       }
     },
     "visual": {
-      "items_with_images": 135102,
+      "items_with_images": 207648,
       "items_with_images_pct": 100.0,
-      "avg_images_per_item": 6.2,
+      "avg_images_per_item": 5.49,
       "image_count_distribution": {
-        "0": 2,
-        "1": 8898,
-        "2": 5592,
-        "3": 6449,
-        "4": 7343,
-        "5": 10626,
-        "6": 23791,
-        "7": 36465,
-        "8": 16808,
-        "9": 15130
+        "0": 1,
+        "1": 26390,
+        "2": 15311,
+        "3": 14709,
+        "4": 14032,
+        "5": 16476,
+        "6": 30060,
+        "7": 44106,
+        "8": 21276,
+        "9": 20134
       }
     },
     "url_validation": {
@@ -765,26 +2094,26 @@
       "valid_pct": 0.0
     },
     "completeness": {
-      "items_with_all_modalities": 135100,
+      "items_with_all_modalities": 207645,
       "items_with_all_modalities_pct": 100.0
     }
   },
   "feature_completeness": [
     {
       "feature": "title",
-      "coverage_pct": 99.99703931785884
+      "coverage_pct": 99.99614734479819
     },
     {
       "feature": "description",
-      "coverage_pct": 39.489578398863095
+      "coverage_pct": 48.29833035555192
     },
     {
       "feature": "features",
-      "coverage_pct": 85.69250355281856
+      "coverage_pct": 82.5965932896378
     },
     {
       "feature": "image_count",
-      "coverage_pct": 99.99851965892942
+      "coverage_pct": 99.99951841809977
     },
     {
       "feature": "main_category",
@@ -792,81 +2121,81 @@
     },
     {
       "feature": "price",
-      "coverage_pct": 69.18003908100427
+      "coverage_pct": 58.22662281060828
     },
     {
       "feature": "all_features",
-      "coverage_pct": 26.18575319753671
+      "coverage_pct": 25.19106761891461
     }
   ],
   "sparsity": {
-    "n_users": 384826,
-    "n_items": 135104,
-    "n_interactions": 3564071,
-    "possible_interactions": 51991531904,
-    "density": "0.00685510%",
-    "sparsity": "99.99314490%"
+    "n_users": 729576,
+    "n_items": 207649,
+    "n_interactions": 6624441,
+    "possible_interactions": 151495726824,
+    "density": "0.00437269%",
+    "sparsity": "99.99562731%"
   },
   "kcore_analysis": {
     "2": {
       "k": 2,
-      "n_users": 384826,
-      "n_items": 135104,
-      "n_interactions": 3564071,
+      "n_users": 729576,
+      "n_items": 207649,
+      "n_interactions": 6624441,
       "user_retention_pct": 100.0,
       "item_retention_pct": 100.0,
       "interaction_retention_pct": 100.0,
-      "density_after": "0.006855%",
-      "avg_interactions_per_user": 9.26,
-      "avg_interactions_per_item": 26.38
+      "density_after": "0.004373%",
+      "avg_interactions_per_user": 9.08,
+      "avg_interactions_per_item": 31.9
     },
     "3": {
       "k": 3,
-      "n_users": 384826,
-      "n_items": 135104,
-      "n_interactions": 3564071,
+      "n_users": 729576,
+      "n_items": 207649,
+      "n_interactions": 6624441,
       "user_retention_pct": 100.0,
       "item_retention_pct": 100.0,
       "interaction_retention_pct": 100.0,
-      "density_after": "0.006855%",
-      "avg_interactions_per_user": 9.26,
-      "avg_interactions_per_item": 26.38
+      "density_after": "0.004373%",
+      "avg_interactions_per_user": 9.08,
+      "avg_interactions_per_item": 31.9
     },
     "5": {
       "k": 5,
-      "n_users": 384826,
-      "n_items": 135104,
-      "n_interactions": 3564071,
+      "n_users": 729576,
+      "n_items": 207649,
+      "n_interactions": 6624441,
       "user_retention_pct": 100.0,
       "item_retention_pct": 100.0,
       "interaction_retention_pct": 100.0,
-      "density_after": "0.006855%",
-      "avg_interactions_per_user": 9.26,
-      "avg_interactions_per_item": 26.38
+      "density_after": "0.004373%",
+      "avg_interactions_per_user": 9.08,
+      "avg_interactions_per_item": 31.9
     },
     "10": {
       "k": 10,
-      "n_users": 38719,
-      "n_items": 37491,
-      "n_interactions": 906173,
-      "user_retention_pct": 10.06,
-      "item_retention_pct": 27.75,
-      "interaction_retention_pct": 25.43,
-      "density_after": "0.062425%",
-      "avg_interactions_per_user": 23.4,
-      "avg_interactions_per_item": 24.17
+      "n_users": 101396,
+      "n_items": 61737,
+      "n_interactions": 1907818,
+      "user_retention_pct": 13.9,
+      "item_retention_pct": 29.73,
+      "interaction_retention_pct": 28.8,
+      "density_after": "0.030477%",
+      "avg_interactions_per_user": 18.82,
+      "avg_interactions_per_item": 30.9
     },
     "20": {
       "k": 20,
-      "n_users": 955,
-      "n_items": 1137,
-      "n_interactions": 39344,
-      "user_retention_pct": 0.25,
-      "item_retention_pct": 0.84,
-      "interaction_retention_pct": 1.1,
-      "density_after": "3.623387%",
-      "avg_interactions_per_user": 41.2,
-      "avg_interactions_per_item": 34.6
+      "n_users": 0,
+      "n_items": 0,
+      "n_interactions": 0,
+      "user_retention_pct": 0.0,
+      "item_retention_pct": 0.0,
+      "interaction_retention_pct": 0.0,
+      "density_after": "0.000000%",
+      "avg_interactions_per_user": 0,
+      "avg_interactions_per_item": 0
     }
   },
   "embedding_extraction": {
@@ -876,28 +2205,28 @@
     "success_rate": 100.0,
     "embedding_dim": 768,
     "device_used": "cuda",
-    "processing_time_sec": 710.14,
-    "items_per_second": 14.08
+    "processing_time_sec": 735.63,
+    "items_per_second": 13.59
   },
   "modality_alignment": {
     "n_pairs_sampled": 20000,
     "pearson": {
-      "correlation": 0.0161,
-      "pvalue": 0.02255042724466672
+      "correlation": -0.0063,
+      "pvalue": 0.369618291857868
     },
     "spearman": {
-      "correlation": 0.0179,
-      "pvalue": 0.011541346590950212
+      "correlation": -0.0191,
+      "pvalue": 0.006895640561066518
     },
     "visual_similarity": {
       "mean": 0.4952,
-      "std": 0.0894
+      "std": 0.0885
     },
     "interaction_similarity": {
-      "mean": 0.0002,
-      "std": 0.003
+      "mean": 0.0001,
+      "std": 0.002
     },
-    "interpretation": "Very weak correlation - visual signal exists but is minimal"
+    "interpretation": "No significant correlation - visual features may not align with user preferences"
   },
   "visual_manifold": {
     "n_items": 10000,
@@ -909,12 +2238,12 @@
     "interpretation": "No meaningful visual clustering - visual features may not align with categories",
     "projection_summary": {
       "x_range": [
-        -6.731948375701904,
-        15.155013084411621
+        -7.620412349700928,
+        14.521227836608887
       ],
       "y_range": [
-        -3.7804925441741943,
-        8.643815040588379
+        -0.22678643465042114,
+        12.718873023986816
       ]
     }
   },
@@ -922,14 +2251,14 @@
     "n_users_analyzed": 2000,
     "n_pairs_analyzed": 40000,
     "visual_distance": {
-      "mean": 0.5052,
-      "median": 0.5058,
-      "std": 0.0885
+      "mean": 0.4997,
+      "median": 0.5006,
+      "std": 0.0857
     },
     "hardness_distribution": {
-      "easy_pct": 0.07,
-      "medium_pct": 98.67,
-      "hard_pct": 1.26
+      "easy_pct": 0.06,
+      "medium_pct": 98.7,
+      "hard_pct": 1.25
     },
     "n_hard_negative_examples": 20,
     "interpretation": "Moderate negative difficulty - room for improvement",
@@ -938,34 +2267,35 @@
   "graph_connectivity": {
     "n_items": 10000,
     "k_neighbors": 5,
-    "n_components": 1,
-    "giant_component_size": 10000,
-    "giant_component_coverage_pct": 100.0,
-    "avg_component_size": 10000.0,
-    "median_component_size": 10000.0,
+    "n_components": 2,
+    "giant_component_size": 9994,
+    "giant_component_coverage_pct": 99.94,
+    "avg_component_size": 5000.0,
+    "median_component_size": 5000.0,
     "top_10_component_sizes": [
-      10000
+      9994,
+      6
     ],
     "pass_threshold": 50.0,
     "is_pass": true,
-    "interpretation": "PASS: Giant component covers 100.0% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE."
+    "interpretation": "PASS: Giant component covers 99.9% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE."
   },
   "feature_collapse": {
     "n_items": 10000,
     "n_pairs_sampled": 50000,
     "statistics": {
-      "mean": 0.4953,
-      "std": 0.0899,
-      "min": 0.0863,
-      "max": 0.938,
-      "median": 0.4943
+      "mean": 0.4959,
+      "std": 0.0883,
+      "min": 0.1124,
+      "max": 0.9601,
+      "median": 0.4955
     },
     "distribution": {
       "very_low_pct": 0.0,
-      "low_pct": 1.36,
-      "medium_pct": 51.11,
-      "high_pct": 47.51,
-      "very_high_pct": 0.02
+      "low_pct": 1.35,
+      "medium_pct": 50.73,
+      "high_pct": 47.91,
+      "very_high_pct": 0.0
     },
     "thresholds": {
       "pass": 0.5,
@@ -973,7 +2303,7 @@
     },
     "is_pass": true,
     "is_collapsed": false,
-    "interpretation": "PASS: Avg cosine similarity = 0.495 (threshold: 0.5). Features show good variance. Visual encoder is producing discriminative embeddings."
+    "interpretation": "PASS: Avg cosine similarity = 0.496 (threshold: 0.5). Features show good variance. Visual encoder is producing discriminative embeddings."
   },
   "text_embedding_extraction": {
     "n_items_attempted": 25000,
@@ -983,9 +2313,9 @@
     "embedding_dim": 768,
     "model_name": "sentence-transformers/all-mpnet-base-v2",
     "device_used": "cuda",
-    "processing_time_sec": 164.29,
-    "items_per_second": 152.17,
-    "avg_text_length": 439.3,
+    "processing_time_sec": 141.9,
+    "items_per_second": 176.18,
+    "avg_text_length": 415.5,
     "text_columns_used": [
       "title",
       "description",
@@ -995,32 +2325,32 @@
   "semantic_alignment": {
     "n_pairs_sampled": 7500,
     "pearson": {
-      "correlation": 0.0395,
-      "pvalue": 0.0006
+      "correlation": 0.025,
+      "pvalue": 0.0303
     },
     "spearman": {
-      "correlation": 0.0256,
-      "pvalue": 0.0267
+      "correlation": 0.0228,
+      "pvalue": 0.0482
     },
     "statistics": {
-      "mean_text_similarity": 0.2918,
-      "std_text_similarity": 0.1165,
-      "mean_interaction_similarity": 0.0002,
-      "std_interaction_similarity": 0.0033
+      "mean_text_similarity": 0.2883,
+      "std_text_similarity": 0.114,
+      "mean_interaction_similarity": 0.0001,
+      "std_interaction_similarity": 0.0017
     },
     "signal_strength": "noise",
-    "interpretation": "Very weak correlation (r=0.0395): Text descriptions do NOT predict user behavior. Users likely buy based on visual appeal, brand, or price rather than descriptions.",
+    "interpretation": "Very weak correlation (r=0.0250): Text descriptions do NOT predict user behavior. Users likely buy based on visual appeal, brand, or price rather than descriptions.",
     "recommendation": "Deprioritize text encoder in final model, or use text only as filter/fallback."
   },
   "cross_modal_consistency": {
-    "n_items_analyzed": 31464,
-    "n_items_with_both": 3536,
+    "n_items_analyzed": 30116,
+    "n_items_with_both": 4884,
     "statistics": {
       "mean": 0.0088,
-      "std": 0.0325,
-      "median": 0.0077,
-      "min": -0.0945,
-      "max": 0.1179
+      "std": 0.0321,
+      "median": 0.0084,
+      "min": -0.0875,
+      "max": 0.1396
     },
     "distribution": {
       "low_agreement_pct": 100.0,
@@ -1037,19 +2367,68 @@
     "interpretation": "LOW cross-modal agreement (avg=0.009): Text and image embeddings point in different directions. This indicates a fundamental mismatch - either descriptions don't match images, or encoders have domain shift.",
     "recommendation": "Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches."
   },
+  "cca_alignment": {
+    "n_items": 4884,
+    "n_components": 10,
+    "canonical_correlations": [
+      0.9629198535189977,
+      0.9389461322245948,
+      0.9316125200513636,
+      0.9106527731222691,
+      0.900436794210405,
+      0.8979782586577992,
+      0.8824068591454503,
+      0.8709457994331743,
+      0.8674315256358064,
+      0.8622492776898992
+    ],
+    "mean_correlation": 0.902557979368976,
+    "interpretation": "STRONG CCA correlation (0.903). Good linear relationship between modalities.",
+    "recommendation": "MICRO contrastive loss should converge well."
+  },
+  "anisotropy": {
+    "before_centering": {
+      "avg_cosine": 0.49567461013793945,
+      "std_cosine": 0.08752181380987167
+    },
+    "after_centering": {
+      "avg_cosine": 0.00012936645362060517,
+      "std_cosine": 0.12044865638017654
+    },
+    "n_pairs_sampled": 20000,
+    "is_anisotropic": true,
+    "improvement_ratio": 0.999739009319875,
+    "interpretation": "ANISOTROPIC: Avg cosine = 0.496 (>0.4). Centering FIXED the issue: after centering = 0.000. Embeddings were in a narrow cone but centering spread them out.",
+    "recommendation": "Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance."
+  },
+  "user_consistency": {
+    "n_users_analyzed": 1500,
+    "n_users_with_enough_items": 729576,
+    "distances": {
+      "mean_local": 0.4747539033206355,
+      "std_local": 0.08947787273687988,
+      "mean_global": 0.5051165223121643,
+      "std_global": 0.08750894665718079
+    },
+    "consistency_ratio": 0.9398898716427958,
+    "is_consistent": true,
+    "users_with_visual_coherence_pct": 62.8099173553719,
+    "interpretation": "MODERATE CONSISTENCY: Some visual preference signal exists. Local (0.475) < Global (0.505). Ratio = 0.940.",
+    "recommendation": "Visual features have some predictive power. Consider combining with text features for better performance."
+  },
   "lattice_feasibility": {
     "checks": {
       "alignment": {
         "pass": true,
-        "value": 0.0161
+        "value": -0.0063
       },
       "connectivity": {
         "pass": true,
-        "value": 100.0
+        "value": 99.94
       },
       "collapse": {
         "pass": true,
-        "value": 0.4953
+        "value": 0.4959
       }
     },
     "decision": "PROCEED"

@@ -3,15 +3,17 @@ Data loader for Amazon Review 2023 dataset.
 
 Provides memory-efficient streaming and sampling utilities for large JSONL.gz files.
 Implements hash-based sampling for reproducibility.
+Now supports pre-filtered CSV files from 5-core processing.
 """
 
 import gzip
 import hashlib
 import json
 import logging
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Generator, Optional, Any
+from typing import Generator, Optional, Any, Literal
 
 import pandas as pd
 import numpy as np
@@ -28,14 +30,76 @@ class DataStats:
     sample_ratio: float = 1.0
     columns: list[str] = field(default_factory=list)
     memory_mb: float = 0.0
-    sampling_method: str = "random"  # random, kcore, temporal, dense
+    sampling_method: str = "random"  # random, kcore, temporal, dense, csv
     sampling_params: dict = field(default_factory=dict)
+    source_format: str = "jsonl"  # jsonl, csv
     
     def __repr__(self) -> str:
         return (
             f"DataStats(total={self.total_records:,}, sampled={self.sampled_records:,}, "
-            f"ratio={self.sample_ratio:.2%}, method={self.sampling_method}, memory={self.memory_mb:.1f}MB)"
+            f"ratio={self.sample_ratio:.2%}, method={self.sampling_method}, "
+            f"format={self.source_format}, memory={self.memory_mb:.1f}MB)"
         )
+
+
+def detect_file_format(file_path: Path) -> Literal["csv", "jsonl"]:
+    """
+    Detect file format from extension.
+    
+    Args:
+        file_path: Path to the data file.
+        
+    Returns:
+        "csv" or "jsonl" based on file extension.
+    """
+    file_path = Path(file_path)
+    name = file_path.name.lower()
+    
+    if name.endswith(".csv") or name.endswith(".csv.gz"):
+        return "csv"
+    else:
+        return "jsonl"
+
+
+def unzip_gzip_file(gz_path: Path, remove_original: bool = False) -> Path:
+    """
+    Decompress a .gz file for faster subsequent reads.
+    
+    Args:
+        gz_path: Path to the .gz file.
+        remove_original: If True, delete the .gz file after decompression.
+        
+    Returns:
+        Path to the uncompressed file.
+    """
+    gz_path = Path(gz_path)
+    if not gz_path.exists():
+        raise FileNotFoundError(f"File not found: {gz_path}")
+    
+    if not gz_path.suffix == ".gz":
+        logger.info(f"  File is not gzipped: {gz_path.name}")
+        return gz_path
+    
+    output_path = gz_path.with_suffix("")  # Remove .gz
+    
+    if output_path.exists():
+        logger.info(f"  Uncompressed file already exists: {output_path.name}")
+        return output_path
+    
+    logger.info(f"  Decompressing {gz_path.name} -> {output_path.name}...")
+    
+    with gzip.open(gz_path, "rb") as f_in:
+        with open(output_path, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    
+    file_size_mb = output_path.stat().st_size / 1024 / 1024
+    logger.info(f"  Decompressed: {file_size_mb:.1f} MB")
+    
+    if remove_original:
+        gz_path.unlink()
+        logger.info(f"  Removed original .gz file")
+    
+    return output_path
 
 
 def stream_jsonl(file_path: Path) -> Generator[dict[str, Any], None, None]:
@@ -630,3 +694,194 @@ def load_interactions_dense_subgraph(
     else:
         raise ValueError(f"Unknown sampling strategy: {strategy}. Use 'kcore', 'temporal', or 'dense'.")
 
+
+# =============================================================================
+# CSV Loading Functions (for 5-core filtered data)
+# =============================================================================
+
+def load_interactions_from_csv(
+    file_path: Path,
+    chunk_size: int = 500_000,
+) -> tuple[pd.DataFrame, DataStats]:
+    """
+    Load interactions from a 5-core pre-filtered CSV file.
+    
+    CSV files are expected to have columns: user_id, parent_asin, rating, timestamp
+    This format comes from external 5-core filtering scripts.
+    
+    Args:
+        file_path: Path to the CSV file.
+        chunk_size: Number of rows to read at a time (for progress logging).
+        
+    Returns:
+        Tuple of (DataFrame, DataStats).
+    """
+    file_path = Path(file_path)
+    
+    if not file_path.exists():
+        raise FileNotFoundError(f"CSV file not found: {file_path}")
+    
+    logger.info(f"Loading interactions from CSV: {file_path.name}...")
+    
+    # Read CSV in chunks for large files with progress
+    chunks = []
+    total_rows = 0
+    
+    for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+        chunks.append(chunk)
+        total_rows += len(chunk)
+        if total_rows % 1_000_000 == 0:
+            logger.info(f"  Loaded {total_rows:,} rows...")
+    
+    df = pd.concat(chunks, ignore_index=True)
+    
+    # Rename columns to match internal convention
+    column_mapping = {
+        "parent_asin": "item_id",
+        "asin": "item_id",  # Alternative column name
+    }
+    df = df.rename(columns={k: v for k, v in column_mapping.items() if k in df.columns})
+    
+    # Ensure required columns exist
+    required_cols = ["user_id", "item_id", "rating", "timestamp"]
+    for col in required_cols:
+        if col not in df.columns:
+            raise ValueError(f"Missing required column: {col}")
+    
+    # Convert timestamp to datetime
+    if "timestamp" in df.columns:
+        # CSV timestamps are in milliseconds
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms", errors="coerce")
+    
+    # Add empty columns for compatibility with EDA (no review text in CSV)
+    if "review_text" not in df.columns:
+        df["review_text"] = ""
+    if "review_title" not in df.columns:
+        df["review_title"] = ""
+    if "verified_purchase" not in df.columns:
+        df["verified_purchase"] = True  # Assume verified for 5-core
+    if "helpful_vote" not in df.columns:
+        df["helpful_vote"] = 0
+    
+    stats = DataStats(
+        total_records=len(df),
+        sampled_records=len(df),
+        sample_ratio=1.0,  # No sampling for pre-filtered CSV
+        columns=list(df.columns),
+        memory_mb=df.memory_usage(deep=True).sum() / 1024 / 1024,
+        sampling_method="csv",
+        sampling_params={
+            "source_file": file_path.name,
+            "n_users": df["user_id"].nunique(),
+            "n_items": df["item_id"].nunique(),
+        },
+        source_format="csv",
+    )
+    
+    logger.info(f"Loaded {stats}")
+    logger.info(f"  Users: {stats.sampling_params['n_users']:,}, Items: {stats.sampling_params['n_items']:,}")
+    
+    return df, stats
+
+
+def load_metadata_for_items(
+    metadata_path: Path,
+    item_ids: set[str],
+    unzip_first: bool = True,
+) -> tuple[pd.DataFrame, DataStats]:
+    """
+    Load metadata for a specific set of items (from CSV interactions).
+    
+    Optimized for fetching metadata only for items in the interaction CSV.
+    Will automatically decompress .gz files if unzip_first=True.
+    
+    Args:
+        metadata_path: Path to the metadata JSONL.gz file.
+        item_ids: Set of item IDs to load metadata for.
+        unzip_first: If True, decompress .gz file first for faster reading.
+        
+    Returns:
+        Tuple of (DataFrame, DataStats).
+    """
+    metadata_path = Path(metadata_path)
+    
+    # Unzip if needed for faster reading
+    if unzip_first and metadata_path.suffix == ".gz":
+        metadata_path = unzip_gzip_file(metadata_path)
+    
+    logger.info(f"Loading metadata for {len(item_ids):,} items from {metadata_path.name}...")
+    
+    records: list[dict[str, Any]] = []
+    total_count = 0
+    matched_count = 0
+    
+    for record in stream_jsonl(metadata_path):
+        total_count += 1
+        
+        item_id = record.get("parent_asin", record.get("asin", ""))
+        
+        if item_id in item_ids:
+            matched_count += 1
+            
+            # Extract images - handle nested structure
+            images = record.get("images", [])
+            image_urls = []
+            if isinstance(images, list):
+                for img in images:
+                    if isinstance(img, dict):
+                        for key in ["large", "hi_res", "thumb"]:
+                            if key in img and img[key]:
+                                image_urls.append(img[key])
+                                break
+                    elif isinstance(img, str):
+                        image_urls.append(img)
+            
+            # Extract features as text
+            features = record.get("features", [])
+            features_text = " | ".join(features) if isinstance(features, list) else str(features)
+            
+            # Extract categories - store full list for sub-category analysis
+            categories = record.get("categories", [])
+            if isinstance(categories, list) and len(categories) > 0:
+                main_category = categories[0] if isinstance(categories[0], str) else str(categories[0])
+                sub_category = categories[1] if len(categories) > 1 else main_category
+            else:
+                main_category = record.get("main_category", "")
+                sub_category = main_category
+            
+            processed = {
+                "item_id": item_id,
+                "title": record.get("title", ""),
+                "description": " ".join(record.get("description", [])) if isinstance(record.get("description"), list) else str(record.get("description", "")),
+                "features": features_text,
+                "main_category": main_category,
+                "sub_category": sub_category,  # NEW: for sub-category UMAP
+                "categories": categories,  # NEW: full list for flexible analysis
+                "price": record.get("price", ""),
+                "average_rating": record.get("average_rating", np.nan),
+                "rating_number": record.get("rating_number", 0),
+                "image_count": len(image_urls),
+                "image_urls": image_urls[:5],
+                "store": record.get("store", ""),
+            }
+            records.append(processed)
+        
+        if total_count % 500_000 == 0:
+            logger.info(f"  Scanned {total_count:,}, matched {matched_count:,}")
+    
+    df = pd.DataFrame(records)
+    
+    stats = DataStats(
+        total_records=total_count,
+        sampled_records=len(df),
+        sample_ratio=len(df) / len(item_ids) if len(item_ids) > 0 else 0.0,
+        columns=list(df.columns),
+        memory_mb=df.memory_usage(deep=True).sum() / 1024 / 1024,
+        source_format="jsonl",
+    )
+    
+    coverage_pct = len(df) / len(item_ids) * 100 if len(item_ids) > 0 else 0
+    logger.info(f"Loaded {stats}")
+    logger.info(f"  Metadata coverage: {len(df):,}/{len(item_ids):,} items ({coverage_pct:.1f}%)")
+    
+    return df, stats

@@ -1,8 +1,7 @@
 # EDA Report: Electronics
 
-**Generated:** 2025-12-17T21:41:26.690508  
-**Sampling Strategy:** Dense (K-Core k=5 + 60 months)
-**Sampling Ratio**: 0.01
+**Generated:** 2025-12-18T11:10:06.004718  
+**Sampling Strategy:** random
 
 ---
 
@@ -12,20 +11,20 @@
 
 | Metric | Interactions | Metadata |
 |--------|-------------|----------|
-| Total Records | 43,886,944 | 1,610,012 |
-| Sampled Records | 5,071,539 | 167,692 |
-| Memory (MB) | 3052.9 | 420.01 |
+| Total Records | 15,473,536 | 1,610,012 |
+| Sampled Records | 15,473,536 | 368,228 |
+| Memory (MB) | 3822.0 | 893.19 |
 
 ### Interaction Statistics
 
 | Metric | Value |
 |--------|-------|
-| Users | 604,284 |
-| Items | 167,692 |
-| Interactions | 5,071,539 |
-| Avg Rating | 4.30 |
-| Rating Std | 1.25 |
-| Sparsity | 99.99499520% |
+| Users | 1,641,026 |
+| Items | 368,228 |
+| Interactions | 15,473,536 |
+| Avg Rating | 4.25 |
+| Rating Std | 1.26 |
+| Sparsity | 99.99743931% |
 
 ---
 
@@ -35,11 +34,11 @@
 
 | Rating | Count | Percentage |
 |--------|-------|------------|
-| 1.0 | 412,102 | 8.1% |
-| 2.0 | 206,042 | 4.1% |
-| 3.0 | 321,119 | 6.3% |
-| 4.0 | 615,763 | 12.1% |
-| 5.0 | 3,516,513 | 69.3% |
+| 1.0 | 1,287,788 | 8.3% |
+| 2.0 | 713,558 | 4.6% |
+| 3.0 | 1,074,820 | 7.0% |
+| 4.0 | 2,190,347 | 14.2% |
+| 5.0 | 10,207,023 | 66.0% |
 
 ---
 
@@ -50,16 +49,16 @@
 ![Interaction Frequency](figures/electronics/interaction_frequency_electronics.png)
 
 **User Patterns:**
-- Mean interactions/user: 8.39
-- Median interactions/user: 6.0
+- Mean interactions/user: 9.43
+- Median interactions/user: 7.0
 - Cold-start users (<5 interactions): 0.0%
-- Power-law exponent α: 3.05
+- Power-law exponent α: 2.75
 
 **Item Patterns:**
-- Mean interactions/item: 30.24
-- Median interactions/item: 11.0
+- Mean interactions/item: 42.02
+- Median interactions/item: 12.0
 - Cold-start items (<5 interactions): 0.0%
-- Power-law exponent α: 1.88
+- Power-law exponent α: 1.79
 
 ### Pareto Analysis (Interaction Concentration)
 
@@ -67,11 +66,11 @@ Top users account for a disproportionate share of interactions:
 
 | User Tier | % of Total Interactions |
 |-----------|------------------------|
-| Top 1% | 6.9% |
-| Top 5% | 18.0% |
-| Top 10% | 27.0% |
-| Top 20% | 40.4% |
-| Top 50% | 68.1% |
+| Top 1% | 7.1% |
+| Top 5% | 19.3% |
+| Top 10% | 29.2% |
+| Top 20% | 43.3% |
+| Top 50% | 70.6% |
 | Top 100% | 100.0% |
 
 ---
@@ -80,8 +79,8 @@ Top users account for a disproportionate share of interactions:
 
 ![Temporal Patterns](figures/electronics/temporal_patterns_electronics.png)
 
-**Date Range:** 2018-10-09 to 2023-09-12  
-**Duration:** 1,798 days
+**Date Range:** 1999-06-13 to 2023-09-12  
+**Duration:** 8,856 days
 
 ---
 
@@ -91,9 +90,9 @@ Top users account for a disproportionate share of interactions:
 
 | Metric | Value |
 |--------|-------|
-| Avg Review Length | 282 chars |
-| Avg Title Length | 24 chars |
-| Reviews with Text | 100.0% |
+| Avg Review Length | 0 chars |
+| Avg Title Length | 0 chars |
+| Reviews with Text | 0.0% |
 
 ---
 
@@ -107,8 +106,8 @@ Top users account for a disproportionate share of interactions:
 | Feature | Coverage |
 |---------|----------|
 | Title | 100.0% |
-| Description | 41.7% |
-| Features | 90.2% |
+| Description | 56.0% |
+| Features | 84.1% |
 | Images | 100.0% |
 | **Complete (Text + Image)** | 100.0% |
 
@@ -116,8 +115,8 @@ Top users account for a disproportionate share of interactions:
 
 | Metric | Value |
 |--------|-------|
-| Items with Images | 167,681 |
-| Avg Images/Item | 6.47 |
+| Items with Images | 368,188 |
+| Avg Images/Item | 5.53 |
 
 ---
 
@@ -125,8 +124,8 @@ Top users account for a disproportionate share of interactions:
 
 ![Sparsity](figures/electronics/sparsity_electronics.png)
 
-**Matrix Sparsity:** 99.99499520%  
-**Density:** 0.00500480%
+**Matrix Sparsity:** 99.99743931%  
+**Density:** 0.00256069%
 
 ### K-Core Filtering Impact
 
@@ -135,7 +134,7 @@ Top users account for a disproportionate share of interactions:
 | 2 | 100.0% | 100.0% | 100.0% |
 | 3 | 100.0% | 100.0% | 100.0% |
 | 5 | 100.0% | 100.0% | 100.0% |
-| 10 | 10.5% | 20.6% | 20.2% |
+| 10 | 21.1% | 33.2% | 38.4% |
 | 20 | 0.0% | 0.0% | 0.0% |
 
 ---
@@ -148,16 +147,16 @@ Top categories in the dataset:
 
 | Category | Count |
 |----------|-------|
-| Electronics | 159,913 |
-| All Electronics | 3,373 |
-| Computers | 1,609 |
-| Amazon Devices | 977 |
-| Apple Products | 477 |
-| Home Audio & Theater | 469 |
-| Camera & Photo | 338 |
-| Car & Vehicle Electronics | 290 |
-| Amazon Devices & Accessories | 98 |
-| Car Electronics | 92 |
+| Electronics | 349,134 |
+| All Electronics | 8,196 |
+| Computers | 5,026 |
+| Home Audio & Theater | 1,551 |
+| Amazon Devices | 1,381 |
+| Camera & Photo | 1,039 |
+| Apple Products | 628 |
+| Car & Vehicle Electronics | 472 |
+| Car Electronics | 407 |
+| Amazon Devices & Accessories | 173 |
 
 ---
 
@@ -188,9 +187,9 @@ Tests the **Homophily Hypothesis**: Do visually similar items share similar inte
 | Metric | Value |
 |--------|-------|
 | Pairs Analyzed | 20,000 |
-| Pearson r | 0.0106 |
-| p-value | 0.1350 |
-| Spearman ρ | 0.0042 |
+| Pearson r | -0.0032 |
+| p-value | 0.6527 |
+| Spearman ρ | 0.0038 |
 
 **Interpretation:** No significant correlation - visual features may not align with user preferences
 
@@ -205,8 +204,8 @@ Analyzes whether CLIP embeddings form meaningful clusters by category.
 |--------|-------|
 | Items Projected | 10,000 |
 | Projection Method | UMAP |
-| Silhouette Score | -0.5550 |
-| Unique Categories | 13 |
+| Silhouette Score | -0.4743 |
+| Unique Categories | 12 |
 
 **Interpretation:** No meaningful visual clustering - visual features may not align with categories
 
@@ -221,10 +220,10 @@ Evaluates whether random negative sampling produces informative training signal.
 |--------|-------|
 | Users Analyzed | 2,000 |
 | Pairs Analyzed | 40,000 |
-| Mean Visual Distance | 0.4377 |
+| Mean Visual Distance | 0.4364 |
 | Easy Negatives (>0.8) | 0.0% |
-| Medium Negatives | 95.6% |
-| Hard Negatives (<0.3) | 4.4% |
+| Medium Negatives | 95.4% |
+| Hard Negatives (<0.3) | 4.6% |
 
 **Interpretation:** Moderate negative difficulty - room for improvement
 
@@ -238,9 +237,9 @@ Evaluates whether random negative sampling produces informative training signal.
 | Items Processed | 25,000 |
 | Success Rate | 100.0% |
 | Embedding Dimension | 768 |
-| Processing Time | 280.5s |
-| Throughput | 89.1 items/sec |
-| Avg Text Length | 467 chars |
+| Processing Time | 271.8s |
+| Throughput | 92.0 items/sec |
+| Avg Text Length | 438 chars |
 
 ### 10.5 Semantic-Interaction Alignment (Text)
 
@@ -251,13 +250,13 @@ Tests whether items with similar text descriptions have similar buyers.
 | Metric | Value |
 |--------|-------|
 | Pairs Analyzed | 7,500 |
-| Pearson r | 0.0234 |
-| p-value | 0.0429 |
-| Mean Text Similarity | 0.2036 |
+| Pearson r | 0.0176 |
+| p-value | 0.1267 |
+| Mean Text Similarity | 0.1961 |
 | Mean Interaction Similarity | 0.0000 |
 | **Signal Strength** | 🔴 NOISE |
 
-**Interpretation:** Very weak correlation (r=0.0234): Text descriptions do NOT predict user behavior. Users likely buy based on visual appeal, brand, or price rather than descriptions.
+**Interpretation:** Very weak correlation (r=0.0176): Text descriptions do NOT predict user behavior. Users likely buy based on visual appeal, brand, or price rather than descriptions.
 
 **Recommendation:** Deprioritize text encoder in final model, or use text only as filter/fallback.
 
@@ -269,20 +268,73 @@ Measures whether text and image embeddings agree for the same items.
 
 | Metric | Value |
 |--------|-------|
-| Items with Both Modalities | 2,930 |
+| Items with Both Modalities | 926 |
 | Projection Method | linear |
 | Text Dim → Projected | 768 → 768 |
 | Image Dim → Projected | 768 → 768 |
-| **Mean Similarity** | -0.0063 |
-| Std Similarity | 0.0324 |
+| **Mean Similarity** | -0.0053 |
+| Std Similarity | 0.0306 |
 | Low Agreement (<0.3) | 100.0% |
 | Moderate (0.3-0.6) | 0.0% |
 | High Agreement (>0.6) | 0.0% |
 | **Status** | 🔴 DISAGREE |
 
-**Interpretation:** LOW cross-modal agreement (avg=-0.006): Text and image embeddings point in different directions. This indicates a fundamental mismatch - either descriptions don't match images, or encoders have domain shift.
+**Interpretation:** LOW cross-modal agreement (avg=-0.005): Text and image embeddings point in different directions. This indicates a fundamental mismatch - either descriptions don't match images, or encoders have domain shift.
 
 **Recommendation:** Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches.
+
+### 10.7 CCA Cross-Modal Analysis
+
+Canonical Correlation Analysis measures linear relationship capacity between modalities.
+
+| Metric | Value |
+|--------|-------|
+| Items Analyzed | 926 |
+| CCA Components | 10 |
+| Mean CCA Correlation | 1.0000 |
+| Top-5 Correlations | 1.000, 1.000, 1.000, 1.000, 1.000 |
+
+**Interpretation:** STRONG CCA correlation (1.000). Good linear relationship between modalities.
+
+**Recommendation:** MICRO contrastive loss should converge well.
+
+### 10.8 Anisotropy Check (Signal Crisis Fix)
+
+![Anisotropy Comparison](figures/electronics/anisotropy_comparison_electronics.png)
+
+Detects "Cone Effect" in embeddings and tests if mean centering helps.
+
+| Metric | Before Centering | After Centering |
+|--------|------------------|-----------------|
+| Avg Cosine Similarity | 0.5617 | -0.0021 |
+| Std Cosine Similarity | 0.0851 | 0.1266 |
+| Pairs Sampled | 20,000 | - |
+| Improvement Ratio | 100.4% | - |
+| **Status** | ⚠️ ANISOTROPIC | - |
+
+**Interpretation:** ANISOTROPIC: Avg cosine = 0.562 (>0.4). Centering FIXED the issue: after centering = -0.002. Embeddings were in a narrow cone but centering spread them out.
+
+**Recommendation:** Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance.
+
+### 10.9 User Consistency (Interaction Homophily)
+
+![User Consistency](figures/electronics/user_consistency_electronics.png)
+
+Measures whether users buy visually similar items (validates visual MRS approach).
+
+| Metric | Value |
+|--------|-------|
+| Users Analyzed | 1,500 |
+| Users with ≥5 Items | 1,641,026 |
+| Mean Local Distance | 0.4133 |
+| Mean Global Distance | 0.4382 |
+| **Consistency Ratio** | 0.9431 |
+| Users with Visual Coherence | 69.7% |
+| **Status** | ✅ CONSISTENT |
+
+**Interpretation:** MODERATE CONSISTENCY: Some visual preference signal exists. Local (0.413) < Global (0.438). Ratio = 0.943.
+
+**Recommendation:** Visual features have some predictive power. Consider combining with text features for better performance.
 
 
 ---
@@ -297,31 +349,31 @@ Measures whether text and image embeddings agree for the same items.
 | Metric | Value | Status |
 |--------|-------|--------|
 | Connected Components | 4 | - |
-| Giant Component Size | 9,946 | - |
-| Giant Component Coverage | 99.5% | ✅ PASS |
+| Giant Component Size | 9,958 | - |
+| Giant Component Coverage | 99.6% | ✅ PASS |
 | Threshold | >50.0% | - |
 
-**Interpretation:** PASS: Giant component covers 99.5% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE.
+**Interpretation:** PASS: Giant component covers 99.6% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE.
 
 ### 11.2 Feature Collapse Detection (White Wall Test)
 
 | Metric | Value | Status |
 |--------|-------|--------|
 | Pairs Sampled | 50,000 | - |
-| Avg Cosine Similarity | 0.5645 | ⚠️ WARNING |
-| Std Cosine Similarity | 0.0841 | - |
+| Avg Cosine Similarity | 0.5624 | ⚠️ WARNING |
+| Std Cosine Similarity | 0.0845 | - |
 | High Similarity Pairs (>0.9) | 0.0% | - |
 | Pass Threshold | <0.5 | - |
 
-**Interpretation:** WARNING: Avg cosine similarity = 0.564 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder.
+**Interpretation:** WARNING: Avg cosine similarity = 0.562 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder.
 
 ### Summary
 
 | Check | Value | Status |
 |-------|-------|--------|
-| Alignment (Pearson r) | 0.0106 | ✅ |
-| Connectivity (Giant %) | 99.5% | ✅ |
-| No Collapse (Avg Cosine) | 0.5645 | ❌ |
+| Alignment (Pearson r) | -0.0032 | ✅ |
+| Connectivity (Giant %) | 99.6% | ✅ |
+| No Collapse (Avg Cosine) | 0.5624 | ❌ |
 
 **Decision:** STOP
 

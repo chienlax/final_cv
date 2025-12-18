@@ -16,6 +16,7 @@ Usage:
     python src/run_eda.py --dataset both --sample-ratio 0.01 --output docs/ --download-images
     python src/run_eda.py --dataset beauty --sample-ratio 0.01 --output docs/ --download-images --academic-analysis
     python src/run_eda.py --dataset clothing electronics --sample-ratio 0.01 --sampling-strategy dense --kcore-k 5 --temporal-months 60 --academic-analysis
+    python src/run_eda.py --dataset all --academic-analysis
 """
 
 import argparse
@@ -35,7 +36,13 @@ from eda.data_loader import (
     load_interactions_sample,
     load_metadata_sample,
     load_interactions_dense_subgraph,
+    load_interactions_from_csv,
+    load_metadata_for_items,
+    detect_file_format,
+    unzip_gzip_file,
+    DataStats,
 )
+import pandas as pd
 from eda.basic_stats import (
     compute_basic_statistics,
     compute_rating_distribution,
@@ -81,7 +88,9 @@ from eda.embedding_extractor import extract_clip_embeddings, create_dummy_embedd
 # Text Embedding Modules
 from eda.text_embedding_extractor import extract_text_embeddings, create_dummy_text_embeddings
 from eda.semantic_alignment import analyze_semantic_alignment
-from eda.cross_modal_consistency import analyze_cross_modal_consistency
+from eda.cross_modal_consistency import analyze_cross_modal_consistency, compute_cca_alignment
+from eda.anisotropy_analysis import analyze_anisotropy, center_embeddings, compute_pairwise_cosine_sample
+from eda.user_consistency import calculate_user_consistency
 
 from eda.visualizations import (
     plot_modality_alignment,
@@ -89,6 +98,8 @@ from eda.visualizations import (
     plot_bpr_hardness_distribution,
     plot_semantic_alignment,
     plot_cross_modal_consistency,
+    plot_anisotropy_comparison,
+    plot_user_consistency,
 )
 
 # Configure logging
@@ -101,19 +112,21 @@ logger = logging.getLogger(__name__)
 
 
 # Dataset configurations
+# CSV files are required for interactions (5-core filtered)
+# JSONL.gz files are used for metadata only
 DATASETS = {
     "beauty": {
-        "interactions": "Beauty_and_Personal_Care.jsonl.gz",
+        "interactions": "Beauty_and_Personal_Care.csv",
         "metadata": "meta_Beauty_and_Personal_Care.jsonl.gz",
         "display_name": "Beauty and Personal Care",
     },
     "clothing": {
-        "interactions": "Clothing_Shoes_and_Jewelry.jsonl.gz",
+        "interactions": "Clothing_Shoes_and_Jewelry.csv",
         "metadata": "meta_Clothing_Shoes_and_Jewelry.jsonl.gz",
         "display_name": "Clothing, Shoes and Jewelry",
     },
     "electronics": {
-        "interactions": "Electronics.jsonl.gz",
+        "interactions": "Electronics.csv",
         "metadata": "meta_Electronics.jsonl.gz",
         "display_name": "Electronics",
     },
@@ -124,10 +137,6 @@ def run_eda_for_dataset(
     dataset_name: str,
     data_dir: Path,
     output_dir: Path,
-    sample_ratio: float = 0.1,
-    sampling_strategy: str = "random",
-    kcore_k: int = 5,
-    temporal_months: int = 6,
     download_images: bool = False,
     image_sample_size: int = 500,
     academic_analysis: bool = False,
@@ -140,13 +149,9 @@ def run_eda_for_dataset(
         dataset_name: "beauty", "clothing", or "electronics".
         data_dir: Path to data directory.
         output_dir: Path to output directory.
-        sample_ratio: Fraction of data to sample (for random strategy).
-        sampling_strategy: "random", "kcore", "temporal", or "dense".
-        kcore_k: K-Core threshold (for kcore/dense strategies).
-        temporal_months: Time window in months (for temporal/dense strategies).
         download_images: Whether to download sample images.
         image_sample_size: Number of images to download.
-        academic_analysis: Run LATTICE feasibility checks.
+        academic_analysis: Run academic analysis (alignment, anisotropy, etc.).
         seed: Random seed.
         
     Returns:
@@ -157,13 +162,7 @@ def run_eda_for_dataset(
     
     logger.info(f"\n{'='*60}")
     logger.info(f"Starting EDA for: {display_name}")
-    logger.info(f"Sampling strategy: {sampling_strategy}")
-    if sampling_strategy == "random":
-        logger.info(f"Sample ratio: {sample_ratio:.5%}")
-    elif sampling_strategy in ["kcore", "dense"]:
-        logger.info(f"K-Core k: {kcore_k}")
-    if sampling_strategy in ["temporal", "dense"]:
-        logger.info(f"Temporal months: {temporal_months}")
+    logger.info(f"Data format: 5-core filtered CSV")
     logger.info(f"{'='*60}\n")
     
     # Create output directories
@@ -173,10 +172,7 @@ def run_eda_for_dataset(
     results = {
         "dataset": dataset_name,
         "display_name": display_name,
-        "sampling_strategy": sampling_strategy,
-        "sample_ratio": sample_ratio if sampling_strategy == "random" else None,
-        "kcore_k": kcore_k if sampling_strategy in ["kcore", "dense"] else None,
-        "temporal_months": temporal_months if sampling_strategy in ["temporal", "dense"] else None,
+        "data_format": "5-core CSV",
         "timestamp": datetime.now().isoformat(),
     }
     
@@ -185,37 +181,38 @@ def run_eda_for_dataset(
     # =========================================================================
     logger.info("Phase 1: Loading data...")
     
+    # CSV for interactions, JSONL.gz for metadata
     interactions_path = data_dir / config["interactions"]
     metadata_path = data_dir / config["metadata"]
     
-    # Load interactions based on sampling strategy
-    if sampling_strategy == "random":
-        interactions_df, int_load_stats = load_interactions_sample(
-            interactions_path, sample_ratio=sample_ratio, seed=seed
+    if not interactions_path.exists():
+        raise FileNotFoundError(f"Interaction CSV not found: {interactions_path}")
+    
+    # Load interactions from CSV
+    logger.info(f"Loading interactions from: {interactions_path.name}")
+    interactions_df, int_load_stats = load_interactions_from_csv(interactions_path)
+    
+    # Get unique item IDs for metadata filtering
+    item_ids = set(interactions_df["item_id"].unique())
+    
+    # Load metadata for items in interactions (with auto-unzip)
+    unzipped_meta = metadata_path.with_suffix("").with_suffix(".jsonl") if metadata_path.suffix == ".gz" else metadata_path
+    if metadata_path.exists() or unzipped_meta.exists():
+        metadata_df, meta_load_stats = load_metadata_for_items(
+            metadata_path, item_ids=item_ids, unzip_first=True
         )
     else:
-        interactions_df, int_load_stats = load_interactions_dense_subgraph(
-            interactions_path,
-            strategy=sampling_strategy,
-            k=kcore_k,
-            months=temporal_months,
-        )
+        logger.warning(f"Metadata file not found: {metadata_path}")
+        metadata_df = pd.DataFrame()
+        meta_load_stats = DataStats()
     
     results["interactions_load_stats"] = {
         "total_records": int_load_stats.total_records,
         "sampled_records": int_load_stats.sampled_records,
         "memory_mb": round(int_load_stats.memory_mb, 2),
-        "sampling_method": int_load_stats.sampling_method,
-        "sampling_params": int_load_stats.sampling_params,
+        "n_users": int_load_stats.sampling_params.get("n_users", 0),
+        "n_items": int_load_stats.sampling_params.get("n_items", 0),
     }
-    
-    # Get unique item IDs for metadata filtering
-    item_ids = set(interactions_df["item_id"].unique())
-    
-    # Load metadata (filtered to items in interactions)
-    metadata_df, meta_load_stats = load_metadata_sample(
-        metadata_path, item_ids=item_ids, seed=seed
-    )
     results["metadata_load_stats"] = {
         "total_records": meta_load_stats.total_records,
         "sampled_records": meta_load_stats.sampled_records,
@@ -534,6 +531,82 @@ def run_eda_for_dataset(
                     logger.info(f"    Cross-Modal Status: {crossmodal_result.alignment_status.upper()} (mean={crossmodal_result.mean_similarity:.4f})")
                 except Exception as e:
                     logger.warning(f"  Cross-modal consistency failed: {e}")
+                
+                # 7.9 CCA Cross-Modal Analysis
+                logger.info("  7.9 CCA Cross-Modal Analysis...")
+                try:
+                    cca_result = compute_cca_alignment(
+                        text_embeddings, embeddings,
+                        text_item_indices, item_indices,
+                        n_components=10,
+                        max_items=5000,
+                        seed=seed,
+                    )
+                    results["cca_alignment"] = cca_result
+                    
+                    if "mean_correlation" in cca_result:
+                        logger.info(f"    CCA Mean Correlation: {cca_result['mean_correlation']:.4f}")
+                except Exception as e:
+                    logger.warning(f"  CCA analysis failed: {e}")
+            
+            # 7.10 Anisotropy Check (Signal Crisis Fix)
+            logger.info("  7.10 Anisotropy Check (Signal Crisis Fix)...")
+            try:
+                anisotropy_result = analyze_anisotropy(
+                    embeddings,
+                    n_pairs=min(20000, len(item_indices) * (len(item_indices) - 1) // 2),
+                    anisotropy_threshold=0.4,
+                    seed=seed,
+                )
+                results["anisotropy"] = anisotropy_result.to_dict()
+                
+                # Generate visualization
+                cos_before = compute_pairwise_cosine_sample(embeddings, n_pairs=5000, seed=seed).tolist()
+                centered_emb = center_embeddings(embeddings)
+                cos_after = compute_pairwise_cosine_sample(centered_emb, n_pairs=5000, seed=seed).tolist()
+                
+                plot_anisotropy_comparison(
+                    anisotropy_result.avg_cosine_before,
+                    anisotropy_result.std_cosine_before,
+                    anisotropy_result.avg_cosine_after,
+                    anisotropy_result.std_cosine_after,
+                    cos_before,
+                    cos_after,
+                    figures_dir, display_name,
+                )
+                
+                status = "ANISOTROPIC" if anisotropy_result.is_anisotropic else "ISOTROPIC"
+                logger.info(f"    Status: {status} (before={anisotropy_result.avg_cosine_before:.3f}, after={anisotropy_result.avg_cosine_after:.3f})")
+            except Exception as e:
+                logger.warning(f"  Anisotropy check failed: {e}")
+            
+            # 7.11 User Consistency Score (Interaction Homophily)
+            logger.info("  7.11 User Consistency Score (Interaction Homophily)...")
+            try:
+                consistency_result = calculate_user_consistency(
+                    interactions_df, embeddings, item_indices,
+                    n_users=min(1500, interactions_df["user_id"].nunique()),
+                    min_items_per_user=5,
+                    global_sample_size=10000,
+                    seed=seed,
+                )
+                results["user_consistency"] = consistency_result.to_dict()
+                
+                # Generate visualization
+                plot_user_consistency(
+                    consistency_result.mean_local_distance,
+                    consistency_result.std_local_distance,
+                    consistency_result.mean_global_distance,
+                    consistency_result.std_global_distance,
+                    consistency_result.consistency_ratio,
+                    consistency_result.users_with_visual_coherence_pct,
+                    figures_dir, display_name,
+                )
+                
+                status = "CONSISTENT" if consistency_result.is_consistent else "INCONSISTENT"
+                logger.info(f"    Status: {status} (ratio={consistency_result.consistency_ratio:.3f})")
+            except Exception as e:
+                logger.warning(f"  User consistency check failed: {e}")
             
             # Generate LATTICE Go/No-Go Summary
             logger.info("\n  === LATTICE FEASIBILITY SUMMARY ===")
@@ -961,6 +1034,86 @@ Measures whether text and image embeddings agree for the same items.
 
 """
     
+    # Section 10.7: CCA Analysis (if available)
+    if results.get('cca_alignment'):
+        cca = results['cca_alignment']
+        correlations = cca.get('canonical_correlations', [])
+        top_corrs = correlations[:5] if correlations else []
+        
+        md_content += f"""### 10.7 CCA Cross-Modal Analysis
+
+Canonical Correlation Analysis measures linear relationship capacity between modalities.
+
+| Metric | Value |
+|--------|-------|
+| Items Analyzed | {cca.get('n_items', 0):,} |
+| CCA Components | {cca.get('n_components', 0)} |
+| Mean CCA Correlation | {cca.get('mean_correlation', 0):.4f} |
+| Top-5 Correlations | {', '.join(f'{c:.3f}' for c in top_corrs)} |
+
+**Interpretation:** {cca.get('interpretation', 'N/A')}
+
+**Recommendation:** {cca.get('recommendation', 'N/A')}
+
+"""
+    
+    # Section 10.8: Anisotropy Check (if available)
+    if results.get('anisotropy'):
+        aniso = results['anisotropy']
+        before = aniso.get('before_centering', {})
+        after = aniso.get('after_centering', {})
+        is_aniso = aniso.get('is_anisotropic', False)
+        status = "⚠️ ANISOTROPIC" if is_aniso else "✅ ISOTROPIC"
+        
+        md_content += f"""### 10.8 Anisotropy Check (Signal Crisis Fix)
+
+![Anisotropy Comparison](figures/{dataset_name}/anisotropy_comparison_{figure_suffix}.png)
+
+Detects "Cone Effect" in embeddings and tests if mean centering helps.
+
+| Metric | Before Centering | After Centering |
+|--------|------------------|-----------------|
+| Avg Cosine Similarity | {before.get('avg_cosine', 0):.4f} | {after.get('avg_cosine', 0):.4f} |
+| Std Cosine Similarity | {before.get('std_cosine', 0):.4f} | {after.get('std_cosine', 0):.4f} |
+| Pairs Sampled | {aniso.get('n_pairs_sampled', 0):,} | - |
+| Improvement Ratio | {aniso.get('improvement_ratio', 0):.1%} | - |
+| **Status** | {status} | - |
+
+**Interpretation:** {aniso.get('interpretation', 'N/A')}
+
+**Recommendation:** {aniso.get('recommendation', 'N/A')}
+
+"""
+    
+    # Section 10.9: User Consistency (if available)
+    if results.get('user_consistency'):
+        uc = results['user_consistency']
+        dists = uc.get('distances', {})
+        is_cons = uc.get('is_consistent', False)
+        status = "✅ CONSISTENT" if is_cons else "❌ INCONSISTENT"
+        
+        md_content += f"""### 10.9 User Consistency (Interaction Homophily)
+
+![User Consistency](figures/{dataset_name}/user_consistency_{figure_suffix}.png)
+
+Measures whether users buy visually similar items (validates visual MRS approach).
+
+| Metric | Value |
+|--------|-------|
+| Users Analyzed | {uc.get('n_users_analyzed', 0):,} |
+| Users with ≥{uc.get('min_items_threshold', 5)} Items | {uc.get('n_users_with_enough_items', 0):,} |
+| Mean Local Distance | {dists.get('mean_local', 0):.4f} |
+| Mean Global Distance | {dists.get('mean_global', 0):.4f} |
+| **Consistency Ratio** | {uc.get('consistency_ratio', 0):.4f} |
+| Users with Visual Coherence | {uc.get('users_with_visual_coherence_pct', 0):.1f}% |
+| **Status** | {status} |
+
+**Interpretation:** {uc.get('interpretation', 'N/A')}
+
+**Recommendation:** {uc.get('recommendation', 'N/A')}
+
+"""
+    
     # Section 11: LATTICE Feasibility (if available)
     if results.get('graph_connectivity') or results.get('feature_collapse') or results.get('lattice_feasibility'):
         md_content += """
@@ -1080,31 +1233,6 @@ def main():
         help="Dataset(s) to analyze (default: beauty). Can specify multiple: --dataset beauty clothing",
     )
     parser.add_argument(
-        "--sampling-strategy",
-        type=str,
-        choices=["random", "kcore", "temporal", "dense"],
-        default="dense",
-        help="Sampling strategy: random (legacy 1%%), kcore (k-core filter), temporal (time-window), dense (both)",
-    )
-    parser.add_argument(
-        "--kcore-k",
-        type=int,
-        default=5,
-        help="Minimum interactions for K-Core filtering (default: 5)",
-    )
-    parser.add_argument(
-        "--temporal-months",
-        type=int,
-        default=6,
-        help="Number of months for time-window sampling (default: 6)",
-    )
-    parser.add_argument(
-        "--sample-ratio",
-        type=float,
-        default=0.01,
-        help="Fraction of data to sample (default: 0.01 = 1%%)",
-    )
-    parser.add_argument(
         "--data-dir",
         type=str,
         default="data",
@@ -1136,7 +1264,7 @@ def main():
     parser.add_argument(
         "--academic-analysis",
         action="store_true",
-        help="Run academic analysis (modality alignment, visual manifold, BPR hardness)",
+        help="Run academic analysis (alignment, anisotropy, user consistency, CCA)",
     )
     
     args = parser.parse_args()
@@ -1160,20 +1288,19 @@ def main():
         meta_path = data_dir / config["metadata"]
         
         if not int_path.exists():
-            logger.error(f"Interaction file not found: {int_path}")
+            logger.error(f"CSV file not found: {int_path}")
             continue
         if not meta_path.exists():
-            logger.warning(f"Metadata file not found: {meta_path}")
+            # Check for unzipped version
+            unzipped_meta = meta_path.with_suffix("").with_suffix(".jsonl") if meta_path.suffix == ".gz" else meta_path.with_suffix("")
+            if not unzipped_meta.exists():
+                logger.warning(f"Metadata file not found: {meta_path}")
         
         # Run EDA
         results = run_eda_for_dataset(
             dataset_name=dataset,
             data_dir=data_dir,
             output_dir=output_dir,
-            sample_ratio=args.sample_ratio,
-            sampling_strategy=args.sampling_strategy,
-            kcore_k=args.kcore_k,
-            temporal_months=args.temporal_months,
             download_images=args.download_images,
             image_sample_size=args.image_sample,
             academic_analysis=args.academic_analysis,
