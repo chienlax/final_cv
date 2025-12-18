@@ -190,6 +190,97 @@ foreach ($dataset in $Datasets) {
 # ============================================================
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
+Write-Host " PHASE 2 COMPLETE - TRAINING" -ForegroundColor Green
+Write-Host "============================================" -ForegroundColor Green
+Write-Host ""
+
+if ($failedRuns.Count -gt 0) {
+    Write-Host "Failed runs:" -ForegroundColor Red
+    foreach ($run in $failedRuns) {
+        Write-Host "  - $run" -ForegroundColor Red
+    }
+    Write-Host ""
+}
+
+# ============================================================
+# PHASE 3: Ablation Analysis
+# ============================================================
+# Tests the contribution of visual vs text modalities
+# Uses MICRO model (best cold-start performer) with base config
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Magenta
+Write-Host " PHASE 3: ABLATION ANALYSIS" -ForegroundColor Magenta
+Write-Host "============================================" -ForegroundColor Magenta
+
+$ablationModes = @("no_visual", "no_text")
+
+foreach ($dataset in $Datasets) {
+    foreach ($ablation in $ablationModes) {
+        Write-Host ""
+        Write-Host ">>> Ablation: $ablation on $dataset (MICRO model)" -ForegroundColor Cyan
+        Write-Host "    Using base config, only modifying ablation mode"
+        Write-Host "-------------------------------------------"
+        
+        Show-GpuMemory
+        $startTime = Get-Date
+        
+        try {
+            # Use base config params, only modify ablation mode
+            # Output auto-routes to checkpoints_ablation/
+            python src/main.py --model micro --dataset $dataset --ablation $ablation --seed $SEED
+            
+            $duration = (Get-Date) - $startTime
+            Write-Host "[SUCCESS] $ablation on $dataset completed in $($duration.TotalMinutes.ToString('F1')) minutes" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "[ERROR] Ablation failed: $_" -ForegroundColor Red
+            $failedRuns += "ablation_${ablation}/${dataset}"
+        }
+        
+        Clear-CudaVram
+    }
+}
+
+Write-Host ""
+Write-Host "[DONE] Ablation analysis complete!" -ForegroundColor Green
+Write-Host "Results saved to: checkpoints_ablation/{dataset}/micro_{ablation}/"
+
+# ============================================================
+# PHASE 4: Visualization (Inductive Gap Analysis)
+# ============================================================
+# Generates t-SNE visualizations of warm vs cold item embeddings
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Blue
+Write-Host " PHASE 4: INDUCTIVE GAP VISUALIZATION" -ForegroundColor Blue
+Write-Host "============================================" -ForegroundColor Blue
+
+foreach ($dataset in $Datasets) {
+    foreach ($model in $Models) {
+        Write-Host ""
+        Write-Host ">>> Generating visualization: $model on $dataset" -ForegroundColor Cyan
+        
+        try {
+            python src/eda/vis_inductive.py $dataset $model
+            Write-Host "[SUCCESS] Visualization saved to docs/images/inductive_gap_${dataset}_${model}.png" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "[ERROR] Visualization failed: $_" -ForegroundColor Red
+        }
+        
+        Clear-CudaVram
+    }
+}
+
+Write-Host ""
+Write-Host "[DONE] Visualization phase complete!" -ForegroundColor Green
+
+# ============================================================
+# FINAL SUMMARY
+# ============================================================
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Green
 Write-Host " PIPELINE COMPLETE" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
@@ -204,6 +295,12 @@ if ($failedRuns.Count -gt 0) {
 
 Write-Host "Results saved to:"
 Write-Host "  - Preprocessed data: data/processed/{dataset}/"
-Write-Host "  - Checkpoints: checkpoints/{dataset}/{model}/"
+Write-Host "  - Main checkpoints: checkpoints/{dataset}/{model}/"
+Write-Host "  - Ablation checkpoints: checkpoints_ablation/{dataset}/{model}_{ablation}/"
+Write-Host "  - Sensitivity checkpoints: checkpoints_sensitivity/{dataset}/{model}_{param}/"
 Write-Host "  - Logs: logs/training/{dataset}_{model}_{timestamp}/"
+Write-Host "  - Training report: docs/03_training-results.md"
+Write-Host "  - Visualizations: docs/images/inductive_gap_*.png"
 Write-Host ""
+
+

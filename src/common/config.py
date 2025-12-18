@@ -346,7 +346,7 @@ class Config:
     # =========================================================================
     NUM_WORKERS = 6          # P-cores for parallel data loading
     PIN_MEMORY = True        # Faster CPU→GPU transfer
-    PREFETCH_FACTOR = 4      # Batches to prefetch per worker
+    PREFETCH_FACTOR = 8      # Batches to prefetch per worker
     PERSISTENT_WORKERS = True  # Avoid worker restart overhead
     
     # =========================================================================
@@ -359,8 +359,8 @@ class Config:
     # =========================================================================
     # Regularization-aware: smaller batches = gradient noise = implicit regularization
     BATCH_SIZE = 1024        # Reduced from 2048 for regularization effect
-    EPOCHS = 100
-    PATIENCE = 20           # Early stopping (generous for generative models)
+    EPOCHS = 300
+    PATIENCE = 150           # Early stopping (generous for generative models)
     LR = 5e-4                # Lower LR for deeper model (was 1e-3)
     L2_REG = 1e-3            # Strong weight decay for high param-to-data ratio
     LR_SCHEDULER = "cosine"  # Cosine annealing

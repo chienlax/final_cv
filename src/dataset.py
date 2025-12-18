@@ -23,6 +23,8 @@ class RecDataset:
     
     Loads preprocessed interaction files and features, builds sparse
     adjacency matrix for graph-based models.
+    
+    Now with ablation support for hypothesis testing! 🧪
     """
     
     def __init__(
@@ -30,6 +32,7 @@ class RecDataset:
         data_dir: str,
         device: str = "cuda",
         load_features: bool = True,
+        ablation_mode: str = "none",
     ):
         """
         Initialize dataset from preprocessed directory.
@@ -38,9 +41,11 @@ class RecDataset:
             data_dir: Path to processed data directory.
             device: torch device for tensors.
             load_features: Whether to load feature files.
+            ablation_mode: "none", "no_visual", or "no_text" for ablation studies.
         """
         self.data_dir = Path(data_dir)
         self.device = device
+        self.ablation_mode = ablation_mode
         
         # Load mappings
         with open(self.data_dir / "maps.json") as f:
@@ -71,6 +76,26 @@ class RecDataset:
         if load_features:
             self.feat_visual = self._load_features("feat_visual.npy")
             self.feat_text = self._load_features("feat_text.npy")
+            
+            # === ABLATION LOGIC ===
+            if ablation_mode == "no_visual":
+                logger.info("🙈 ABLATION MODE: Zeroing out VISUAL features (Blindfold Mode)")
+                logger.info("   The model is now 'blind' - testing text-only hypothesis")
+                self.feat_visual = torch.zeros_like(self.feat_visual)
+                
+            elif ablation_mode == "no_text":
+                logger.info("🙊 ABLATION MODE: Zeroing out TEXT features (Silence Mode)")
+                logger.info("   The model is now 'deaf' - testing visual-only hypothesis")
+                self.feat_text = torch.zeros_like(self.feat_text)
+            
+            # Sanity check: log feature norms
+            v_norm = self.feat_visual.norm(p=2).item()
+            t_norm = self.feat_text.norm(p=2).item()
+            logger.info(f"Feature Norms - Visual: {v_norm:.2f}, Text: {t_norm:.2f}")
+            
+            if ablation_mode != "none":
+                logger.info(f"   ⚠️  One modality is zeroed: expect performance drop!")
+            
             logger.info(f"Features: visual={self.feat_visual.shape}, text={self.feat_text.shape}")
         else:
             self.feat_visual = None

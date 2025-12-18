@@ -191,6 +191,35 @@ def main():
         help="Output directory for checkpoints",
     )
     
+    # === ABLATION ARGUMENTS ===
+    parser.add_argument(
+        "--ablation",
+        type=str,
+        default="none",
+        choices=["none", "no_visual", "no_text"],
+        help="Ablation mode: 'no_visual' zeros visual features, 'no_text' zeros text features",
+    )
+    
+    # === SENSITIVITY ANALYSIS OVERRIDES ===
+    parser.add_argument(
+        "--lattice-k",
+        type=int,
+        default=None,
+        help="Override LATTICE_K for sensitivity analysis",
+    )
+    parser.add_argument(
+        "--micro-alpha",
+        type=float,
+        default=None,
+        help="Override MICRO_ALPHA for sensitivity analysis",
+    )
+    parser.add_argument(
+        "--diffmm-steps",
+        type=int,
+        default=None,
+        help="Override DIFFMM_STEPS for sensitivity analysis",
+    )
+    
     args = parser.parse_args()
     
     # Create timestamped logger
@@ -215,6 +244,14 @@ def main():
     if args.seed is not None:
         config.SEED = args.seed
     
+    # Apply sensitivity analysis overrides
+    if args.lattice_k is not None:
+        config.LATTICE_K = args.lattice_k
+    if args.micro_alpha is not None:
+        config.MICRO_ALPHA = args.micro_alpha
+    if args.diffmm_steps is not None:
+        config.DIFFMM_STEPS = args.diffmm_steps
+    
     # Log full config
     logger.info("")
     logger.info("=" * 50)
@@ -229,6 +266,8 @@ def main():
     logger.info(f"  Patience: {config.PATIENCE}")
     logger.info(f"  Negative samples: {config.N_NEGATIVES}")
     logger.info(f"  Seed: {config.SEED}")
+    if args.ablation != "none":
+        logger.info(f"  ⚠️  ABLATION MODE: {args.ablation}")
     
     # Set seed FIRST (critical for reproducibility)
     set_seed(config.SEED)
@@ -247,7 +286,11 @@ def main():
     data_path = Path(args.data_dir) / args.dataset
     logger.info(f"Data path: {data_path}")
     
-    dataset = RecDataset(str(data_path), device=config.DEVICE)
+    dataset = RecDataset(
+        str(data_path), 
+        device=config.DEVICE,
+        ablation_mode=args.ablation,
+    )
     
     logger.info(f"  Users: {dataset.n_users:,}")
     logger.info(f"  Items (total): {dataset.n_items:,}")
@@ -261,8 +304,40 @@ def main():
     # Create model
     model = create_model(args.model, dataset, config, logger)
     
-    # Output directory
-    output_dir = Path(args.output_dir) / args.dataset / args.model
+    # Output directory - SMART ROUTING to prevent overwrites
+    # Ablation runs go to checkpoints_ablation/
+    # Sensitivity runs go to checkpoints_sensitivity/
+    base_output_dir = args.output_dir
+    
+    is_ablation = args.ablation != "none"
+    is_sensitivity = any([
+        args.lattice_k is not None,
+        args.micro_alpha is not None,
+        args.diffmm_steps is not None,
+    ])
+    
+    if is_ablation:
+        # Route to ablation directory with modality suffix
+        base_output_dir = f"{args.output_dir}_ablation"
+        output_dir = Path(base_output_dir) / args.dataset / f"{args.model}_{args.ablation}"
+        logger.info(f"  🔀 Ablation run detected - routing to: {output_dir}")
+    elif is_sensitivity:
+        # Route to sensitivity directory with param suffix
+        base_output_dir = f"{args.output_dir}_sensitivity"
+        param_suffix = []
+        if args.lattice_k is not None:
+            param_suffix.append(f"k{args.lattice_k}")
+        if args.micro_alpha is not None:
+            param_suffix.append(f"alpha{args.micro_alpha}")
+        if args.diffmm_steps is not None:
+            param_suffix.append(f"steps{args.diffmm_steps}")
+        suffix = "_".join(param_suffix)
+        output_dir = Path(base_output_dir) / args.dataset / f"{args.model}_{suffix}"
+        logger.info(f"  🔀 Sensitivity run detected - routing to: {output_dir}")
+    else:
+        # Normal run - use default path
+        output_dir = Path(base_output_dir) / args.dataset / args.model
+    
     output_dir.mkdir(parents=True, exist_ok=True)
     logger.info(f"Checkpoint directory: {output_dir}")
     

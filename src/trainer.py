@@ -149,8 +149,18 @@ class Trainer:
                         l2_reg=self.config.L2_REG,
                     )
                 
+                # NaN/Inf safety check - critical for long training runs
+                if torch.isnan(losses["loss"]) or torch.isinf(losses["loss"]):
+                    logger.warning(f"⚠️ NaN/Inf detected in loss! Skipping this batch.")
+                    continue
+                
                 # Backward with gradient scaling
                 self.scaler.scale(losses["loss"]).backward()
+                
+                # Gradient clipping for stability (before unscaling)
+                self.scaler.unscale_(self.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
             else:
@@ -159,7 +169,16 @@ class Trainer:
                     l2_reg=self.config.L2_REG,
                 )
                 
+                # NaN/Inf safety check
+                if torch.isnan(losses["loss"]) or torch.isinf(losses["loss"]):
+                    logger.warning(f"⚠️ NaN/Inf detected in loss! Skipping this batch.")
+                    continue
+                
                 losses["loss"].backward()
+                
+                # Gradient clipping for stability
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                
                 self.optimizer.step()
             
             # Update meters

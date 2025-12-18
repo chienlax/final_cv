@@ -9,4 +9,6 @@ env/
 .github/
 docs/images/
 checkpoints/
+checkpoints_ablation/
+checkpoints_sensitivity/
 logs/
