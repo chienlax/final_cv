@@ -31,6 +31,8 @@ class BaseMultimodalModel(ABC, nn.Module):
         n_layers: int,
         feat_visual: torch.Tensor,
         feat_text: torch.Tensor,
+        projection_hidden_dim: int = 1024,
+        projection_dropout: float = 0.5,
         device: str = "cuda",
     ):
         """
@@ -42,6 +44,8 @@ class BaseMultimodalModel(ABC, nn.Module):
             n_layers: Number of GCN layers.
             feat_visual: (n_items, D_v) visual features.
             feat_text: (n_items, D_t) text features.
+            projection_hidden_dim: Hidden dimension for modality MLP (default 1024).
+            projection_dropout: Dropout rate for modality MLP (default 0.5).
             device: torch device.
         """
         super().__init__()
@@ -54,33 +58,54 @@ class BaseMultimodalModel(ABC, nn.Module):
         self.n_layers = n_layers
         self.device = device
         
-        # ID Embeddings
+        # ID Embeddings (the "bad" weight - capped to prevent overfitting)
         self.user_embedding = nn.Embedding(n_users, embed_dim)
         self.item_embedding = nn.Embedding(n_items, embed_dim)
         
-        # Feature projections
+        # Feature projections (the "good" weight - shared across items)
+        # Using 2-layer MLP instead of simple Linear for non-linear mapping
+        # "Visual Space" → "Preference Space" is NOT a linear relationship!
         self.visual_dim = feat_visual.shape[1] if feat_visual is not None else 0
         self.text_dim = feat_text.shape[1] if feat_text is not None else 0
         
         if self.visual_dim > 0:
-            self.visual_proj = nn.Linear(self.visual_dim, embed_dim)
+            self.visual_proj = nn.Sequential(
+                nn.Linear(self.visual_dim, projection_hidden_dim),
+                nn.LeakyReLU(0.1),
+                nn.Dropout(projection_dropout),
+                nn.Linear(projection_hidden_dim, embed_dim),
+            )
             self.register_buffer("feat_visual", feat_visual)
         
         if self.text_dim > 0:
-            self.text_proj = nn.Linear(self.text_dim, embed_dim)
+            self.text_proj = nn.Sequential(
+                nn.Linear(self.text_dim, projection_hidden_dim),
+                nn.LeakyReLU(0.1),
+                nn.Dropout(projection_dropout),
+                nn.Linear(projection_hidden_dim, embed_dim),
+            )
             self.register_buffer("feat_text", feat_text)
         
         self._init_weights()
     
     def _init_weights(self):
-        """Initialize embedding weights."""
+        """Initialize embedding weights.
+        
+        Fun fact: Xavier initialization is named after Xavier Glorot.
+        We're basically asking Xavier for good luck with our gradients.
+        """
         nn.init.xavier_uniform_(self.user_embedding.weight)
         nn.init.xavier_uniform_(self.item_embedding.weight)
         
-        if self.visual_dim > 0:
-            nn.init.xavier_uniform_(self.visual_proj.weight)
-        if self.text_dim > 0:
-            nn.init.xavier_uniform_(self.text_proj.weight)
+        # Initialize projection MLPs (iterate through Sequential layers)
+        for proj_name in ['visual_proj', 'text_proj']:
+            if hasattr(self, proj_name):
+                proj = getattr(self, proj_name)
+                for layer in proj:
+                    if isinstance(layer, nn.Linear):
+                        nn.init.xavier_uniform_(layer.weight)
+                        if layer.bias is not None:
+                            nn.init.zeros_(layer.bias)
     
     def get_user_embeddings(self) -> torch.Tensor:
         """Get all user embeddings."""

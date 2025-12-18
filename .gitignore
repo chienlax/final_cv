@@ -8,3 +8,5 @@ env/
 .agent/
 .github/
 docs/images/
+checkpoints/
+logs/

@@ -22,6 +22,9 @@ from .base import BaseMultimodalModel
 class LATTICEModel(BaseMultimodalModel):
     """
     LATTICE: Learning All-modality Structured Item Graph for Recommendation.
+    
+    The model that said: "What if items that look similar... are similar?"
+    Revolutionary, I know. But it works! 🎉
     """
     
     def __init__(
@@ -35,6 +38,8 @@ class LATTICEModel(BaseMultimodalModel):
         feat_text: torch.Tensor,
         k: int = 10,
         graph_lambda: float = 0.5,
+        projection_hidden_dim: int = 1024,
+        projection_dropout: float = 0.5,
         device: str = "cuda",
     ):
         """
@@ -48,20 +53,25 @@ class LATTICEModel(BaseMultimodalModel):
             feat_text: Text features.
             k: Number of k-NN neighbors for graph learning.
             graph_lambda: Weight to balance original vs learned graph.
+            projection_hidden_dim: Hidden dim for modality MLP.
+            projection_dropout: Dropout for modality MLP.
             device: torch device.
         """
         super().__init__(
             n_users, n_items, n_warm, embed_dim, n_layers,
-            feat_visual, feat_text, device
+            feat_visual, feat_text,
+            projection_hidden_dim=projection_hidden_dim,
+            projection_dropout=projection_dropout,
+            device=device,
         )
         
         self.k = k
         self.graph_lambda = graph_lambda
         
-        # Modality-specific attention weights
+        # Modality-specific attention weights (learning to balance eyes vs words)
         self.modal_attention = nn.Parameter(torch.ones(2) / 2)
         
-        # Build learned item-item graph
+        # Build learned item-item graph (the secret sauce)
         self.item_graph = None  # Will be built lazily
         
         self.to(device)

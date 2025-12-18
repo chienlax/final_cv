@@ -42,6 +42,8 @@ def create_model(
     """
     Create model instance.
     
+    This is where the magic happens. Or at least where we hope it does.
+    
     Args:
         model_name: One of "lattice", "micro", "diffmm".
         dataset: RecDataset instance.
@@ -49,8 +51,10 @@ def create_model(
         logger: Logger instance.
         
     Returns:
-        Model instance.
+        Model instance ready to disappoint or delight.
     """
+    from src.common.config import QuirkyLogger
+    
     common_args = dict(
         n_users=dataset.n_users,
         n_items=dataset.n_items,
@@ -59,6 +63,8 @@ def create_model(
         n_layers=config.N_LAYERS,
         feat_visual=dataset.feat_visual,
         feat_text=dataset.feat_text,
+        projection_hidden_dim=config.PROJECTION_HIDDEN_DIM,
+        projection_dropout=config.PROJECTION_DROPOUT,
         device=config.DEVICE,
     )
     
@@ -66,6 +72,7 @@ def create_model(
     logger.info("=" * 50)
     logger.info("MODEL CREATION")
     logger.info("=" * 50)
+    logger.info(QuirkyLogger.model_init(model_name.upper()))
     
     if model_name == "lattice":
         logger.info("Model: LATTICE (k-NN Graph Learning)")
@@ -90,11 +97,13 @@ def create_model(
         logger.info(f"  n_steps: {config.DIFFMM_STEPS}")
         logger.info(f"  noise_scale: {config.DIFFMM_NOISE_SCALE}")
         logger.info(f"  lambda_msi: {config.DIFFMM_LAMBDA_MSI}")
+        logger.info(f"  mlp_width: {config.DIFFMM_MLP_WIDTH}")
         model = DiffMM(
             **common_args,
             n_steps=config.DIFFMM_STEPS,
             noise_scale=config.DIFFMM_NOISE_SCALE,
             lambda_msi=config.DIFFMM_LAMBDA_MSI,
+            mlp_width=config.DIFFMM_MLP_WIDTH,
         )
     else:
         raise ValueError(f"Unknown model: {model_name}")
@@ -109,6 +118,8 @@ def create_model(
     logger.info(f"  Trainable parameters: {n_trainable:,}")
     logger.info(f"  Embed dimension: {config.EMBED_DIM}")
     logger.info(f"  GCN layers: {config.N_LAYERS}")
+    logger.info(f"  Projection MLP: {768} → {config.PROJECTION_HIDDEN_DIM} → {config.EMBED_DIM}")
+    logger.info(f"  Projection dropout: {config.PROJECTION_DROPOUT}")
     logger.info("")
     
     return model

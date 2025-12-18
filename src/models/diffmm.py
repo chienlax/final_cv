@@ -23,6 +23,10 @@ from .base import BaseMultimodalModel
 class DiffMM(BaseMultimodalModel):
     """
     DiffMM: Diffusion-based Multimodal Recommendation.
+    
+    A model that's basically saying: "What if we added noise to everything
+    and then tried to un-noise it? Surely that will help with recommendations."
+    Spoiler: It actually does. Machine learning is weird.
     """
     
     def __init__(
@@ -37,6 +41,9 @@ class DiffMM(BaseMultimodalModel):
         n_steps: int = 5,
         noise_scale: float = 0.1,
         lambda_msi: float = 1e-2,
+        mlp_width: int = 512,
+        projection_hidden_dim: int = 1024,
+        projection_dropout: float = 0.5,
         device: str = "cuda",
     ):
         """
@@ -51,18 +58,24 @@ class DiffMM(BaseMultimodalModel):
             n_steps: Number of diffusion steps.
             noise_scale: Base noise scale.
             lambda_msi: Weight for MSI loss.
+            mlp_width: Width of internal denoising MLP (this is where we dump compute).
+            projection_hidden_dim: Hidden dim for modality MLP.
+            projection_dropout: Dropout for modality MLP.
             device: torch device.
         """
         super().__init__(
             n_users, n_items, n_warm, embed_dim, n_layers,
-            feat_visual, feat_text, device
+            feat_visual, feat_text,
+            projection_hidden_dim=projection_hidden_dim,
+            projection_dropout=projection_dropout,
+            device=device,
         )
         
         self.n_steps = n_steps
         self.noise_scale = noise_scale
         self.lambda_msi = lambda_msi
         
-        # Noise schedule (linear)
+        # Noise schedule (linear) - the heartbeat of diffusion
         self.register_buffer(
             "betas",
             torch.linspace(1e-4, 0.02, n_steps)
@@ -76,21 +89,24 @@ class DiffMM(BaseMultimodalModel):
             torch.cumprod(self.alphas, dim=0)
         )
         
-        # Denoising network
+        # Denoising network (the "compute sink" - safe to make this THICC)
+        # This is where your GPU actually earns its electricity bill
         self.denoise_net = nn.Sequential(
-            nn.Linear(embed_dim * 2, embed_dim * 2),
+            nn.Linear(embed_dim * 2, mlp_width),
             nn.GELU(),
-            nn.Linear(embed_dim * 2, embed_dim),
+            nn.Dropout(0.3),  # Even denoisers need regularization
+            nn.Linear(mlp_width, embed_dim),
         )
         
         # Modality Signal Injection (MSI) network
+        # Teaching the model to listen to what the item looks like
         self.msi_net = nn.Sequential(
             nn.Linear(embed_dim, embed_dim),
             nn.GELU(),
             nn.Linear(embed_dim, embed_dim),
         )
         
-        # Time embedding
+        # Time embedding - because even neural nets need to know what time it is
         self.time_embed = nn.Embedding(n_steps, embed_dim)
         
         self.to(device)

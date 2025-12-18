@@ -21,6 +21,10 @@ from .base import BaseMultimodalModel
 class MICROModel(BaseMultimodalModel):
     """
     MICRO: Multimodal Item-wise Contrastive Recommendation.
+    
+    Uses the power of contrastive learning to teach embeddings that
+    "things that go together, stay together" in vector space.
+    It's like matchmaking, but for tensors. 💕
     """
     
     def __init__(
@@ -34,6 +38,8 @@ class MICROModel(BaseMultimodalModel):
         feat_text: torch.Tensor,
         tau: float = 0.2,
         alpha: float = 0.1,
+        projection_hidden_dim: int = 1024,
+        projection_dropout: float = 0.5,
         device: str = "cuda",
     ):
         """
@@ -47,17 +53,22 @@ class MICROModel(BaseMultimodalModel):
             feat_text: Text features.
             tau: InfoNCE temperature (lower = sharper).
             alpha: Weight for contrastive auxiliary loss.
+            projection_hidden_dim: Hidden dim for modality MLP.
+            projection_dropout: Dropout for modality MLP.
             device: torch device.
         """
         super().__init__(
             n_users, n_items, n_warm, embed_dim, n_layers,
-            feat_visual, feat_text, device
+            feat_visual, feat_text,
+            projection_hidden_dim=projection_hidden_dim,
+            projection_dropout=projection_dropout,
+            device=device,
         )
         
         self.tau = tau
         self.alpha = alpha
         
-        # Contrastive projection heads
+        # Contrastive projection heads (the beauty of symmetry)
         self.visual_head = nn.Sequential(
             nn.Linear(embed_dim, embed_dim),
             nn.ReLU(),

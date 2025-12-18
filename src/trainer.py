@@ -7,6 +7,7 @@ Supports:
 - Mixed precision training (AMP)
 - LR scheduling (cosine annealing)
 - Multi-loss logging
+- Existential commentary on the nature of gradient descent 🎭
 """
 
 import logging
@@ -20,6 +21,7 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from .common.config import QuirkyLogger
 from .common.utils import AverageMeter, EarlyStopping
 from .evaluator import evaluate, format_metrics
 
@@ -35,6 +37,9 @@ class Trainer:
     - Cosine annealing LR scheduler for better convergence
     - Early stopping with configurable patience
     - Checkpoint saving with best model tracking
+    - Questionable life advice via log messages
+    
+    "The training loop is a metaphor for life: iterate, mess up, adjust, repeat."
     """
     
     def __init__(
@@ -207,6 +212,7 @@ class Trainer:
             "learning_rate": [],
         }
         
+        logger.info(QuirkyLogger.train_start())
         logger.info(f"Starting training for {n_epochs} epochs...")
         logger.info(f"  Batch size: {self.config.BATCH_SIZE}")
         logger.info(f"  Learning rate: {self.config.LR}")
@@ -214,6 +220,8 @@ class Trainer:
         logger.info(f"  N negatives: {self.config.N_NEGATIVES}")
         logger.info(f"  AMP enabled: {self.use_amp}")
         logger.info(f"  DataLoader workers: {num_workers}")
+        
+        prev_loss = None  # Track loss for quirky message selection
         
         start_time = time.time()
         
@@ -234,12 +242,15 @@ class Trainer:
             
             epoch_time = time.time() - epoch_start
             
+            # Epoch summary with quirky flair
+            loss_msg = QuirkyLogger.format_loss(train_losses['loss'], prev_loss)
+            logger.info(QuirkyLogger.epoch_start(epoch))
             logger.info(
-                f"Epoch {epoch}/{n_epochs} | "
-                f"Loss: {train_losses['loss']:.4f} | "
+                f"  {loss_msg} | "
                 f"LR: {current_lr:.2e} | "
                 f"Time: {epoch_time:.1f}s"
             )
+            prev_loss = train_losses['loss']
             
             # Evaluate
             if epoch % eval_every == 0:
@@ -271,10 +282,12 @@ class Trainer:
                 
                 # Early stopping
                 if self.early_stopping(recall):
+                    logger.info(QuirkyLogger.early_stop())
                     logger.info(f"Early stopping at epoch {epoch}")
                     break
         
         total_time = time.time() - start_time
+        logger.info(QuirkyLogger.training_done())
         logger.info(f"Training complete in {total_time/60:.1f} minutes")
         logger.info(f"Best epoch: {self.best_epoch} (Recall@{self.config.TOP_K[1]}: {self.best_metric:.4f})")
         
@@ -367,6 +380,7 @@ def run_three_track_evaluation(
     
     # Track 3: Cold-Start
     logger.info("\n--- Track 3: Cold-Start (Inductive Mode) ---")
+    logger.info(QuirkyLogger.cold_start())
     track3 = evaluate(
         model, dataset, split="test_cold",
         k_list=k_list, inductive=True

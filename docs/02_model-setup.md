@@ -86,39 +86,57 @@ data/processed/{dataset}/
 
 ### 2.1 Common Configuration
 
-All models share these **hardware-optimized** hyperparameters:
+All models share these **hardware-optimized** hyperparameters (the "Ferrari" upgrade 🏎️):
 
 | Parameter | Value | Rationale |
 |-----------|-------|-----------|
-| `BATCH_SIZE` | 1024 | Safe for RTX 3060 |
+| `BATCH_SIZE` | 1024 | Smaller batches = gradient noise = implicit regularization |
 | `EPOCHS` | 100 | With early stopping |
-| `PATIENCE` | 20 | Generative models have noisy loss |
-| `LR` | 1e-3 | Industry standard |
-| `L2_REG` | 1e-4 | Balance cold-start vs overfitting |
-| `EMBED_DIM` | 64 | Both papers agree |
-| `N_LAYERS` | 2 | Sweet spot (3 → OOM with kNN) |
+| `PATIENCE` | 100 | Generous for generative models |
+| `LR` | 5e-4 | Lower LR for deeper model |
+| `L2_REG` | 1e-3 | Strong weight decay for high param-to-data ratio |
+| `EMBED_DIM` | 384 | Divisible by attention heads (6, 12) |
+| `N_LAYERS` | 3 | Sweet spot (4 → oversmoothing) |
+| `N_NEGATIVES` | 64 | Statistically sufficient, VRAM-friendly |
 
-### 2.2 LATTICE Parameters
+### 2.2 Modality Projection (MLP Bridge)
+
+> **Why MLP instead of Linear?** The mapping from "Visual Space" to "Preference Space" is NOT linear! A red dress (visual) correlates with "party wear" (preference) through complex patterns.
+
+**Architecture:**
+```
+768 (CLIP/SBERT) → 1024 (hidden) → LeakyReLU → Dropout(0.5) → 384 (embed_dim)
+```
+
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| `PROJECTION_HIDDEN_DIM` | 1024 | Wide hidden layer for non-linear mapping |
+| `PROJECTION_DROPOUT` | 0.5 | Aggressive regularization to prevent feature memorization |
+
+These parameters are **shared across all items** = better generalization to cold items.
+
+### 2.3 LATTICE Parameters
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `LATTICE_K` | 10 | k-NN neighbors for graph learning |
+| `LATTICE_K` | 40 | k-NN neighbors (broader semantic neighborhoods) |
 | `LATTICE_LAMBDA` | 0.5 | Balance: original vs learned graph |
 
-### 2.3 MICRO Parameters
+### 2.4 MICRO Parameters
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
 | `MICRO_TAU` | 0.2 | InfoNCE temperature (lower = sharper) |
 | `MICRO_ALPHA` | 0.1 | Contrastive aux loss weight |
 
-### 2.4 DiffMM Parameters
+### 2.5 DiffMM Parameters
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| `DIFFMM_STEPS` | 5 | Diffusion steps (fast) |
+| `DIFFMM_STEPS` | 100 | Diffusion steps (high precision) |
 | `DIFFMM_NOISE_SCALE` | 0.1 | Base noise level |
 | `DIFFMM_LAMBDA_MSI` | 1e-2 | MSI loss weight |
+| `DIFFMM_MLP_WIDTH` | 512 | Denoising network width (compute sink) |
 
 ---
 
