@@ -2,7 +2,7 @@
   "dataset": "clothing",
   "display_name": "Clothing, Shoes and Jewelry",
   "data_format": "5-core CSV",
-  "timestamp": "2025-12-18T10:41:51.911706",
+  "timestamp": "2025-12-18T13:52:55.870148",
   "interactions_load_stats": {
     "total_records": 23102537,
     "sampled_records": 23102537,
@@ -14,6 +14,17 @@
     "total_records": 7218481,
     "sampled_records": 714957,
     "memory_mb": 1378.84
+  },
+  "five_core_stats": {
+    "min_interactions_per_user": 5,
+    "min_interactions_per_item": 5,
+    "max_interactions_per_user": 2680,
+    "max_interactions_per_item": 117595,
+    "avg_interactions_per_user": 9.15,
+    "avg_interactions_per_item": 32.31,
+    "median_interactions_per_user": 7,
+    "median_interactions_per_item": 10,
+    "is_5_core_valid": true
   },
   "interaction_stats": {
     "counts": {
@@ -2019,30 +2030,6 @@
     "sparsity": "99.99872026%"
   },
   "kcore_analysis": {
-    "2": {
-      "k": 2,
-      "n_users": 2524981,
-      "n_items": 714957,
-      "n_interactions": 23102537,
-      "user_retention_pct": 100.0,
-      "item_retention_pct": 100.0,
-      "interaction_retention_pct": 100.0,
-      "density_after": "0.001280%",
-      "avg_interactions_per_user": 9.15,
-      "avg_interactions_per_item": 32.31
-    },
-    "3": {
-      "k": 3,
-      "n_users": 2524981,
-      "n_items": 714957,
-      "n_interactions": 23102537,
-      "user_retention_pct": 100.0,
-      "item_retention_pct": 100.0,
-      "interaction_retention_pct": 100.0,
-      "density_after": "0.001280%",
-      "avg_interactions_per_user": 9.15,
-      "avg_interactions_per_item": 32.31
-    },
     "5": {
       "k": 5,
       "n_users": 2524981,
@@ -2067,6 +2054,18 @@
       "avg_interactions_per_user": 16.25,
       "avg_interactions_per_item": 40.04
     },
+    "15": {
+      "k": 15,
+      "n_users": 36043,
+      "n_items": 19547,
+      "n_interactions": 768330,
+      "user_retention_pct": 1.43,
+      "item_retention_pct": 2.73,
+      "interaction_retention_pct": 3.33,
+      "density_after": "0.109055%",
+      "avg_interactions_per_user": 21.32,
+      "avg_interactions_per_item": 39.31
+    },
     "20": {
       "k": 20,
       "n_users": 0,
@@ -2087,45 +2086,45 @@
     "success_rate": 100.0,
     "embedding_dim": 768,
     "device_used": "cuda",
-    "processing_time_sec": 703.82,
-    "items_per_second": 14.21
+    "processing_time_sec": 709.4,
+    "items_per_second": 14.1
   },
   "modality_alignment": {
     "n_pairs_sampled": 20000,
     "pearson": {
-      "correlation": 0.0035,
-      "pvalue": 0.6194527401974326
+      "correlation": 0.019,
+      "pvalue": 0.007187555926982086
     },
     "spearman": {
-      "correlation": 0.0118,
-      "pvalue": 0.09601770825327921
+      "correlation": 0.0205,
+      "pvalue": 0.0037401797997411303
     },
     "visual_similarity": {
-      "mean": 0.6198,
-      "std": 0.0882
+      "mean": 0.6194,
+      "std": 0.088
     },
     "interaction_similarity": {
       "mean": 0.0,
-      "std": 0.0004
+      "std": 0.0006
     },
-    "interpretation": "No significant correlation - visual features may not align with user preferences"
+    "interpretation": "Very weak correlation - visual signal exists but is minimal"
   },
   "visual_manifold": {
     "n_items": 10000,
     "method": "umap",
     "quality": {
-      "silhouette_score_category": -0.1931,
+      "silhouette_score_category": -0.1409,
       "n_unique_categories": 2
     },
     "interpretation": "No meaningful visual clustering - visual features may not align with categories",
     "projection_summary": {
       "x_range": [
-        -8.03531551361084,
-        15.971476554870605
+        -4.50640869140625,
+        18.376100540161133
       ],
       "y_range": [
-        -4.953738689422607,
-        19.78095245361328
+        -6.414462566375732,
+        21.60834312438965
       ]
     }
   },
@@ -2133,14 +2132,14 @@
     "n_users_analyzed": 2000,
     "n_pairs_analyzed": 40000,
     "visual_distance": {
-      "mean": 0.3719,
-      "median": 0.3716,
-      "std": 0.0875
+      "mean": 0.3722,
+      "median": 0.3718,
+      "std": 0.0871
     },
     "hardness_distribution": {
       "easy_pct": 0.0,
-      "medium_pct": 79.58,
-      "hard_pct": 20.42
+      "medium_pct": 79.97,
+      "hard_pct": 20.02
     },
     "n_hard_negative_examples": 20,
     "interpretation": "Moderate negative difficulty - room for improvement",
@@ -2165,18 +2164,18 @@
     "n_items": 10000,
     "n_pairs_sampled": 50000,
     "statistics": {
-      "mean": 0.62,
-      "std": 0.0882,
-      "min": 0.2389,
-      "max": 1.0,
-      "median": 0.6205
+      "mean": 0.6199,
+      "std": 0.0881,
+      "min": 0.1995,
+      "max": 0.9315,
+      "median": 0.6204
     },
     "distribution": {
       "very_low_pct": 0.0,
-      "low_pct": 0.03,
+      "low_pct": 0.04,
       "medium_pct": 8.71,
       "high_pct": 91.22,
-      "very_high_pct": 0.04
+      "very_high_pct": 0.03
     },
     "thresholds": {
       "pass": 0.5,
@@ -2194,8 +2193,8 @@
     "embedding_dim": 768,
     "model_name": "sentence-transformers/all-mpnet-base-v2",
     "device_used": "cuda",
-    "processing_time_sec": 184.08,
-    "items_per_second": 135.81,
+    "processing_time_sec": 184.6,
+    "items_per_second": 135.43,
     "avg_text_length": 429.3,
     "text_columns_used": [
       "title",
@@ -2252,33 +2251,33 @@
     "n_items": 438,
     "n_components": 10,
     "canonical_correlations": [
-      0.999999999999995,
-      0.9999999999999895,
-      0.9999999999999957,
-      0.9999999999999891,
-      0.9999999999999934,
-      0.9999999999999868,
-      0.999999999999995,
-      0.999999999999991,
-      0.9999999999999931,
-      0.9999999999999898
+      0.9999999999999951,
+      0.9999999999999889,
+      0.9999999999999953,
+      0.9999999999999906,
+      0.9999999999999929,
+      0.9999999999999909,
+      0.9999999999999944,
+      0.9999999999999915,
+      0.9999999999999889,
+      0.999999999999969
     ],
-    "mean_correlation": 0.9999999999999918,
+    "mean_correlation": 0.9999999999999899,
     "interpretation": "STRONG CCA correlation (1.000). Good linear relationship between modalities.",
     "recommendation": "MICRO contrastive loss should converge well."
   },
   "anisotropy": {
     "before_centering": {
-      "avg_cosine": 0.6198902130126953,
-      "std_cosine": 0.08824420720338821
+      "avg_cosine": 0.6195347905158997,
+      "std_cosine": 0.08813808858394623
     },
     "after_centering": {
-      "avg_cosine": 0.0006572319543920457,
-      "std_cosine": 0.1423339545726776
+      "avg_cosine": 0.0006912832614034414,
+      "std_cosine": 0.1421869695186615
     },
     "n_pairs_sampled": 20000,
     "is_anisotropic": true,
-    "improvement_ratio": 0.9989397607179538,
+    "improvement_ratio": 0.9988841897630514,
     "interpretation": "ANISOTROPIC: Avg cosine = 0.620 (>0.4). Centering FIXED the issue: after centering = 0.001. Embeddings were in a narrow cone but centering spread them out.",
     "recommendation": "Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance."
   },
@@ -2288,20 +2287,20 @@
     "distances": {
       "mean_local": 0.3496317715068889,
       "std_local": 0.12484153900419627,
-      "mean_global": 0.3795694410800934,
-      "std_global": 0.08895209431648254
+      "mean_global": 0.3800908625125885,
+      "std_global": 0.08783848583698273
     },
-    "consistency_ratio": 0.9211272923130625,
+    "consistency_ratio": 0.9198636589042158,
     "is_consistent": true,
     "users_with_visual_coherence_pct": 54.54545454545454,
-    "interpretation": "MODERATE CONSISTENCY: Some visual preference signal exists. Local (0.350) < Global (0.380). Ratio = 0.921.",
+    "interpretation": "MODERATE CONSISTENCY: Some visual preference signal exists. Local (0.350) < Global (0.380). Ratio = 0.920.",
     "recommendation": "Visual features have some predictive power. Consider combining with text features for better performance."
   },
   "lattice_feasibility": {
     "checks": {
       "alignment": {
         "pass": true,
-        "value": 0.0035
+        "value": 0.019
       },
       "connectivity": {
         "pass": true,
@@ -2309,7 +2308,7 @@
       },
       "collapse": {
         "pass": false,
-        "value": 0.62
+        "value": 0.6199
       }
     },
     "decision": "STOP"

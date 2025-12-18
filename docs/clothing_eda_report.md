@@ -1,6 +1,6 @@
 # EDA Report: Clothing, Shoes and Jewelry
 
-**Generated:** 2025-12-18T10:41:51.911706  
+**Generated:** 2025-12-18T13:52:55.870148  
 **Sampling Strategy:** random
 
 ---
@@ -26,6 +26,31 @@
 | Rating Std | 1.19 |
 | Sparsity | 99.99872026% |
 
+### 5-Core Validation
+
+This dataset uses **5-core filtering**, ensuring every user and item has at least 5 interactions.
+This removes cold-start users/items and creates a denser, more connected graph for recommendation algorithms.
+
+
+| Property | Value | Status |
+|----------|-------|--------|
+| Min interactions/user | 5 | ✅ VALID |
+| Min interactions/item | 5 | ✅ VALID |
+| Avg interactions/user | 9.15 | - |
+| Avg interactions/item | 32.31 | - |
+| Median interactions/user | 7 | - |
+| Median interactions/item | 10 | - |
+
+
+> [!NOTE]
+> **Density Analysis:** At 0.00127974% density, this dataset is extremely sparse - typical for raw e-commerce data before filtering.
+> 
+> **Benchmark Reference:**
+> - Raw Amazon data: ~0.001-0.01% density (99.99%+ sparsity)
+> - 5-core filtered: ~0.01-0.1% density (typical range)
+> - MovieLens 20M: ~0.5% density (research benchmark)
+> - Netflix Prize: ~1.2% density (denser due to explicit ratings)
+
 ---
 
 ## 2. Rating Distribution
@@ -39,6 +64,17 @@
 | 3.0 | 2,001,386 | 8.7% |
 | 4.0 | 3,359,236 | 14.5% |
 | 5.0 | 15,187,161 | 65.7% |
+
+### Rating Skewness Analysis
+
+| Metric | Value | Interpretation |
+|--------|-------|----------------|
+| Mean Rating | 4.29 | strongly left-skewed (positive bias) |
+| % Positive (4-5 ⭐) | 80.3% | Unusual distribution |
+| Rating Std | 1.19 | Moderate variance |
+
+> [!TIP]
+> **Insight:** Users preferentially leave reviews for products they like. Amazon reviews typically show 60-80% positive ratings due to self-selection bias.
 
 ---
 
@@ -59,6 +95,19 @@
 - Median interactions/item: 10.0
 - Cold-start items (<5 interactions): 0.0%
 - Power-law exponent α: 1.91
+
+### Power-Law Fit Quality Interpretation
+
+
+| Entity | α Value | Interpretation | Implication |
+|--------|---------|----------------|-------------|
+| Users | 2.80 | Good fit - typical power-law for recommendation data | Standard sampling OK |
+| Items | 1.91 | Flatter distribution - popularity more evenly spread | Uniform negative sampling acceptable |
+
+> [!NOTE]
+> **Power-Law Reference:** α ≈ 2.0-3.0 indicates a well-behaved power-law typical for recommendation systems.
+> - α < 2.0: Distribution is relatively flat (many active users/popular items)
+> - α > 3.0: Extreme concentration (Pareto principle strongly applies)
 
 ### Pareto Analysis (Interaction Concentration)
 
@@ -131,10 +180,9 @@ Top users account for a disproportionate share of interactions:
 
 | k | Users Retained | Items Retained | Interactions Retained |
 |---|----------------|----------------|----------------------|
-| 2 | 100.0% | 100.0% | 100.0% |
-| 3 | 100.0% | 100.0% | 100.0% |
 | 5 | 100.0% | 100.0% | 100.0% |
 | 10 | 16.9% | 24.2% | 30.0% |
+| 15 | 1.4% | 2.7% | 3.3% |
 | 20 | 0.0% | 0.0% | 0.0% |
 
 ---
@@ -152,17 +200,26 @@ Top categories in the dataset:
 
 ---
 
-## 9. Key Insights and Recommendations
+## 9. Data-Driven Insights and Recommendations
 
-### Data Quality
-1. **High Sparsity:** The dataset exhibits extreme sparsity typical of recommendation datasets
-2. **Power-Law Distribution:** Both users and items follow power-law distributions (long-tail)
-3. **Cold-Start Challenge:** Significant portion of users/items have few interactions
+### Dataset Quality Assessment
 
-### Preprocessing Recommendations
-1. **K-Core Filtering:** Use k=5 as baseline (balances data quality vs. coverage)
-2. **Multimodal Features:** Leverage text/image to address cold-start problem
-3. **Negative Sampling:** Use popularity-based hard negative sampling for BPR
+| Aspect | Finding | Implication |
+|--------|---------|-------------|
+| **5-Core Status** | ✅ 5-core validation passed - dataset is properly filtered | No additional k-core filtering needed; proceed with model training |
+| **Sparsity** | Extreme sparsity (<0.01% density) - collaborative filtering alone may struggle | Strongly recommend hybrid approach with content-based features (text/image embeddings) |
+| **Long-Tail** | User α=2.80, Item α=1.91 | Standard random sampling is acceptable for training |
+| **Cold-Start** | Cold-start is minimal (0.0% users, 0.0% items) thanks to 5-core filtering | Focus on recommendation quality rather than cold-start mitigation |
+
+### Actionable Recommendations
+
+1. **Multimodal Features:** At 0.00127974% density, leverage text and image embeddings to enrich item representations. CLIP or Sentence-BERT embeddings can bridge sparse interaction signals.
+
+2. **Rating Bias Correction:** Mean rating of 4.29 indicates strong positive bias. Consider using implicit feedback (interactions) rather than explicit ratings for training.
+
+3. **Ready for Training:** 5-core filtering ensures sufficient interaction density. Proceed with LATTICE, LightGCN, or other graph-based methods.
+
+4. **Visual Feature Extraction:** With 100% image coverage, consider CLIP-based visual embeddings for multimodal recommendation.
 
 
 ---
@@ -179,11 +236,11 @@ Tests the **Homophily Hypothesis**: Do visually similar items share similar inte
 | Metric | Value |
 |--------|-------|
 | Pairs Analyzed | 20,000 |
-| Pearson r | 0.0035 |
-| p-value | 0.6195 |
-| Spearman ρ | 0.0118 |
+| Pearson r | 0.0190 |
+| p-value | 0.0072 |
+| Spearman ρ | 0.0205 |
 
-**Interpretation:** No significant correlation - visual features may not align with user preferences
+**Interpretation:** Very weak correlation - visual signal exists but is minimal
 
 
 ### 10.2 Visual Manifold Structure (Xu et al., 2025)
@@ -196,7 +253,7 @@ Analyzes whether CLIP embeddings form meaningful clusters by category.
 |--------|-------|
 | Items Projected | 10,000 |
 | Projection Method | UMAP |
-| Silhouette Score | -0.1931 |
+| Silhouette Score | -0.1409 |
 | Unique Categories | 2 |
 
 **Interpretation:** No meaningful visual clustering - visual features may not align with categories
@@ -212,10 +269,10 @@ Evaluates whether random negative sampling produces informative training signal.
 |--------|-------|
 | Users Analyzed | 2,000 |
 | Pairs Analyzed | 40,000 |
-| Mean Visual Distance | 0.3719 |
+| Mean Visual Distance | 0.3722 |
 | Easy Negatives (>0.8) | 0.0% |
-| Medium Negatives | 79.6% |
-| Hard Negatives (<0.3) | 20.4% |
+| Medium Negatives | 80.0% |
+| Hard Negatives (<0.3) | 20.0% |
 
 **Interpretation:** Moderate negative difficulty - room for improvement
 
@@ -229,8 +286,8 @@ Evaluates whether random negative sampling produces informative training signal.
 | Items Processed | 25,000 |
 | Success Rate | 100.0% |
 | Embedding Dimension | 768 |
-| Processing Time | 184.1s |
-| Throughput | 135.8 items/sec |
+| Processing Time | 184.6s |
+| Throughput | 135.4 items/sec |
 | Avg Text Length | 429 chars |
 
 ### 10.5 Semantic-Interaction Alignment (Text)
@@ -298,8 +355,8 @@ Detects "Cone Effect" in embeddings and tests if mean centering helps.
 
 | Metric | Before Centering | After Centering |
 |--------|------------------|-----------------|
-| Avg Cosine Similarity | 0.6199 | 0.0007 |
-| Std Cosine Similarity | 0.0882 | 0.1423 |
+| Avg Cosine Similarity | 0.6195 | 0.0007 |
+| Std Cosine Similarity | 0.0881 | 0.1422 |
 | Pairs Sampled | 20,000 | - |
 | Improvement Ratio | 99.9% | - |
 | **Status** | ⚠️ ANISOTROPIC | - |
@@ -319,12 +376,12 @@ Measures whether users buy visually similar items (validates visual MRS approach
 | Users Analyzed | 1,500 |
 | Users with ≥5 Items | 2,524,981 |
 | Mean Local Distance | 0.3496 |
-| Mean Global Distance | 0.3796 |
-| **Consistency Ratio** | 0.9211 |
+| Mean Global Distance | 0.3801 |
+| **Consistency Ratio** | 0.9199 |
 | Users with Visual Coherence | 54.5% |
 | **Status** | ✅ CONSISTENT |
 
-**Interpretation:** MODERATE CONSISTENCY: Some visual preference signal exists. Local (0.350) < Global (0.380). Ratio = 0.921.
+**Interpretation:** MODERATE CONSISTENCY: Some visual preference signal exists. Local (0.350) < Global (0.380). Ratio = 0.920.
 
 **Recommendation:** Visual features have some predictive power. Consider combining with text features for better performance.
 
@@ -352,8 +409,8 @@ Measures whether users buy visually similar items (validates visual MRS approach
 | Metric | Value | Status |
 |--------|-------|--------|
 | Pairs Sampled | 50,000 | - |
-| Avg Cosine Similarity | 0.6200 | ⚠️ WARNING |
-| Std Cosine Similarity | 0.0882 | - |
+| Avg Cosine Similarity | 0.6199 | ⚠️ WARNING |
+| Std Cosine Similarity | 0.0881 | - |
 | High Similarity Pairs (>0.9) | 0.0% | - |
 | Pass Threshold | <0.5 | - |
 
@@ -363,9 +420,9 @@ Measures whether users buy visually similar items (validates visual MRS approach
 
 | Check | Value | Status |
 |-------|-------|--------|
-| Alignment (Pearson r) | 0.0035 | ✅ |
+| Alignment (Pearson r) | 0.019 | ✅ |
 | Connectivity (Giant %) | 100.0% | ✅ |
-| No Collapse (Avg Cosine) | 0.6200 | ❌ |
+| No Collapse (Avg Cosine) | 0.6199 | ❌ |
 
 **Decision:** STOP
 

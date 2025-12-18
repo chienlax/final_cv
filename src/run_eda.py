@@ -219,6 +219,29 @@ def run_eda_for_dataset(
         "memory_mb": round(meta_load_stats.memory_mb, 2),
     }
     
+    # 5-Core Validation: Verify dataset properties
+    user_counts = interactions_df.groupby("user_id").size()
+    item_counts = interactions_df.groupby("item_id").size()
+    min_user_interactions = int(user_counts.min())
+    min_item_interactions = int(item_counts.min())
+    
+    results["five_core_stats"] = {
+        "min_interactions_per_user": min_user_interactions,
+        "min_interactions_per_item": min_item_interactions,
+        "max_interactions_per_user": int(user_counts.max()),
+        "max_interactions_per_item": int(item_counts.max()),
+        "avg_interactions_per_user": round(user_counts.mean(), 2),
+        "avg_interactions_per_item": round(item_counts.mean(), 2),
+        "median_interactions_per_user": int(user_counts.median()),
+        "median_interactions_per_item": int(item_counts.median()),
+        "is_5_core_valid": min_user_interactions >= 5 and min_item_interactions >= 5,
+    }
+    
+    if results["five_core_stats"]["is_5_core_valid"]:
+        logger.info(f"\n✅ 5-Core Validation PASSED: min user={min_user_interactions}, min item={min_item_interactions}")
+    else:
+        logger.warning(f"\n⚠️ 5-Core Validation FAILED: min user={min_user_interactions}, min item={min_item_interactions}")
+    
     # =========================================================================
     # Phase 2: Basic Statistics
     # =========================================================================
@@ -317,8 +340,8 @@ def run_eda_for_dataset(
         "sparsity": f"{sparsity_stats.sparsity:.8%}",
     }
     
-    # K-core filtering simulation
-    kcore_results = simulate_kcore_filtering(interactions_df, k_values=[2, 3, 5, 10, 20])
+    # K-core filtering simulation (focus on k>=5 since data is already 5-core filtered)
+    kcore_results = simulate_kcore_filtering(interactions_df, k_values=[5, 10, 15, 20])
     results["kcore_analysis"] = kcore_results
     
     # =========================================================================
@@ -713,6 +736,53 @@ def generate_markdown_report(
 | Rating Std | {results['interaction_stats']['ratings']['std']:.2f} |
 | Sparsity | {results['sparsity']['sparsity']} |
 
+### 5-Core Validation
+
+This dataset uses **5-core filtering**, ensuring every user and item has at least 5 interactions.
+This removes cold-start users/items and creates a denser, more connected graph for recommendation algorithms.
+
+"""
+    # Add 5-core stats table
+    if results.get('five_core_stats'):
+        fc = results['five_core_stats']
+        status = "✅ VALID" if fc.get('is_5_core_valid', False) else "❌ INVALID"
+        md_content += f"""
+| Property | Value | Status |
+|----------|-------|--------|
+| Min interactions/user | {fc.get('min_interactions_per_user', 0)} | {status} |
+| Min interactions/item | {fc.get('min_interactions_per_item', 0)} | {status} |
+| Avg interactions/user | {fc.get('avg_interactions_per_user', 0):.2f} | - |
+| Avg interactions/item | {fc.get('avg_interactions_per_item', 0):.2f} | - |
+| Median interactions/user | {fc.get('median_interactions_per_user', 0)} | - |
+| Median interactions/item | {fc.get('median_interactions_per_item', 0)} | - |
+
+"""
+    
+    # Add density interpretation with benchmarks
+    try:
+        density_pct = float(results['sparsity']['density'].rstrip('%'))
+    except (KeyError, ValueError, AttributeError):
+        density_pct = 0.0
+    
+    if density_pct < 0.01:
+        density_interpretation = "extremely sparse - typical for raw e-commerce data before filtering"
+    elif density_pct < 0.1:
+        density_interpretation = "very sparse - typical for 5-core filtered e-commerce datasets"
+    elif density_pct < 1.0:
+        density_interpretation = "moderately sparse - suitable for most collaborative filtering methods"
+    else:
+        density_interpretation = "relatively dense - excellent for training recommendation models"
+    
+    md_content += f"""
+> [!NOTE]
+> **Density Analysis:** At {results['sparsity']['density']} density, this dataset is {density_interpretation}.
+> 
+> **Benchmark Reference:**
+> - Raw Amazon data: ~0.001-0.01% density (99.99%+ sparsity)
+> - 5-core filtered: ~0.01-0.1% density (typical range)
+> - MovieLens 20M: ~0.5% density (research benchmark)
+> - Netflix Prize: ~1.2% density (denser due to explicit ratings)
+
 ---
 
 ## 2. Rating Distribution
@@ -726,6 +796,40 @@ def generate_markdown_report(
     for row in results.get('rating_distribution', []):
         md_content += f"| {row.get('rating', 'N/A')} | {row.get('count', 0):,} | {row.get('percentage', 0):.1f}% |\n"
     
+    # Calculate rating skewness and positive rating percentage
+    rating_dist = results.get('rating_distribution', [])
+    total_ratings = sum(row.get('count', 0) for row in rating_dist)
+    positive_ratings = sum(row.get('count', 0) for row in rating_dist if row.get('rating', 0) >= 4)
+    positive_pct = (positive_ratings / total_ratings * 100) if total_ratings > 0 else 0
+    
+    # Interpret skewness
+    avg_rating = results['interaction_stats']['ratings']['mean']
+    if avg_rating > 4.0:
+        skew_desc = "strongly left-skewed (positive bias)"
+        skew_explanation = "Users preferentially leave reviews for products they like"
+    elif avg_rating > 3.5:
+        skew_desc = "moderately left-skewed"
+        skew_explanation = "Typical e-commerce pattern with slight positive bias"
+    elif avg_rating > 2.5:
+        skew_desc = "approximately symmetric"
+        skew_explanation = "Balanced distribution of positive and negative feedback"
+    else:
+        skew_desc = "right-skewed (negative bias)"
+        skew_explanation = "Unusual pattern - may indicate product quality issues"
+    
+    md_content += f"""
+### Rating Skewness Analysis
+
+| Metric | Value | Interpretation |
+|--------|-------|----------------|
+| Mean Rating | {avg_rating:.2f} | {skew_desc} |
+| % Positive (4-5 ⭐) | {positive_pct:.1f}% | {'Typical for e-commerce (60-80%)' if 60 <= positive_pct <= 80 else 'Unusual distribution'} |
+| Rating Std | {results['interaction_stats']['ratings']['std']:.2f} | {'Low variance' if results['interaction_stats']['ratings']['std'] < 1.0 else 'Moderate variance' if results['interaction_stats']['ratings']['std'] < 1.5 else 'High variance'} |
+
+> [!TIP]
+> **Insight:** {skew_explanation}. Amazon reviews typically show 60-80% positive ratings due to self-selection bias.
+"""
+
     md_content += f"""
 ---
 
@@ -746,6 +850,44 @@ def generate_markdown_report(
 - Median interactions/item: {results['user_item_patterns']['items']['interaction_stats'].get('median', 0):.1f}
 - Cold-start items (<5 interactions): {results['user_item_patterns']['items']['cold_start_pct']:.1f}%
 - Power-law exponent α: {results['user_item_patterns']['items']['power_law_alpha']:.2f}
+
+### Power-Law Fit Quality Interpretation
+
+"""
+    # Get power-law alpha values
+    user_alpha = results['user_item_patterns']['users']['power_law_alpha']
+    item_alpha = results['user_item_patterns']['items']['power_law_alpha']
+    
+    # Interpret user alpha
+    if 2.0 <= user_alpha <= 3.0:
+        user_alpha_interp = "Good fit - typical power-law for recommendation data"
+    elif user_alpha > 3.0:
+        user_alpha_interp = "Very heavy tail - few power users dominate activity"
+    elif user_alpha < 2.0:
+        user_alpha_interp = "Flatter distribution - more uniform user activity"
+    else:
+        user_alpha_interp = "Unusual distribution"
+    
+    # Interpret item alpha
+    if 2.0 <= item_alpha <= 3.0:
+        item_alpha_interp = "Good fit - typical popularity distribution"
+    elif item_alpha > 3.0:
+        item_alpha_interp = "Extreme long-tail - few items get most attention"
+    elif item_alpha < 2.0:
+        item_alpha_interp = "Flatter distribution - popularity more evenly spread"
+    else:
+        item_alpha_interp = "Unusual distribution"
+    
+    md_content += f"""
+| Entity | α Value | Interpretation | Implication |
+|--------|---------|----------------|-------------|
+| Users | {user_alpha:.2f} | {user_alpha_interp} | {'Consider user activity weighting' if user_alpha > 3.0 else 'Standard sampling OK'} |
+| Items | {item_alpha:.2f} | {item_alpha_interp} | {'Use popularity-aware negative sampling' if item_alpha > 3.0 else 'Uniform negative sampling acceptable'} |
+
+> [!NOTE]
+> **Power-Law Reference:** α ≈ 2.0-3.0 indicates a well-behaved power-law typical for recommendation systems.
+> - α < 2.0: Distribution is relatively flat (many active users/popular items)
+> - α > 3.0: Extreme concentration (Pareto principle strongly applies)
 
 ### Pareto Analysis (Interaction Concentration)
 
@@ -844,22 +986,102 @@ Top categories in the dataset:
         for cat, count in list(results['metadata_stats']['categories']['top_10'].items())[:10]:
             md_content += f"| {cat} | {count:,} |\n"
     
-    md_content += """
+    # Build data-driven insights and recommendations
+    fc = results.get('five_core_stats', {})
+    user_alpha = results['user_item_patterns']['users']['power_law_alpha']
+    item_alpha = results['user_item_patterns']['items']['power_law_alpha']
+    cold_start_users = results['user_item_patterns']['users']['cold_start_pct']
+    cold_start_items = results['user_item_patterns']['items']['cold_start_pct']
+    
+    # Determine sparsity level
+    try:
+        density_val = float(results['sparsity']['density'].rstrip('%'))
+    except:
+        density_val = 0.01
+    
+    if density_val < 0.01:
+        sparsity_insight = "Extreme sparsity (<0.01% density) - collaborative filtering alone may struggle"
+        sparsity_rec = "Strongly recommend hybrid approach with content-based features (text/image embeddings)"
+    elif density_val < 0.1:
+        sparsity_insight = "High sparsity (0.01-0.1% density) - typical for filtered e-commerce data"
+        sparsity_rec = "Collaborative filtering viable; multimodal features will improve cold-start handling"
+    else:
+        sparsity_insight = "Moderate density (>0.1%) - good for collaborative filtering"
+        sparsity_rec = "Standard matrix factorization or graph-based methods should work well"
+    
+    # Power-law recommendations
+    if user_alpha > 3.0 or item_alpha > 3.0:
+        powerlaw_rec = "Use stratified sampling or activity-weighted loss to handle extreme long-tail"
+    else:
+        powerlaw_rec = "Standard random sampling is acceptable for training"
+    
+    # Cold-start assessment
+    if cold_start_users < 1.0 and cold_start_items < 1.0:
+        coldstart_insight = f"Cold-start is minimal ({cold_start_users:.1f}% users, {cold_start_items:.1f}% items) thanks to 5-core filtering"
+        coldstart_rec = "Focus on recommendation quality rather than cold-start mitigation"
+    else:
+        coldstart_insight = f"Some cold-start users ({cold_start_users:.1f}%) and items ({cold_start_items:.1f}%) remain"
+        coldstart_rec = "Consider content-based fallback for cold-start entities"
+    
+    # 5-core status
+    if fc.get('is_5_core_valid', False):
+        fivecore_insight = "✅ 5-core validation passed - dataset is properly filtered"
+        fivecore_rec = "No additional k-core filtering needed; proceed with model training"
+    else:
+        fivecore_insight = f"⚠️ 5-core validation failed (min user={fc.get('min_interactions_per_user', 0)}, min item={fc.get('min_interactions_per_item', 0)})"
+        fivecore_rec = "Apply additional k-core filtering before training"
+    
+    md_content += f"""
 ---
 
-## 9. Key Insights and Recommendations
+## 9. Data-Driven Insights and Recommendations
 
-### Data Quality
-1. **High Sparsity:** The dataset exhibits extreme sparsity typical of recommendation datasets
-2. **Power-Law Distribution:** Both users and items follow power-law distributions (long-tail)
-3. **Cold-Start Challenge:** Significant portion of users/items have few interactions
+### Dataset Quality Assessment
 
-### Preprocessing Recommendations
-1. **K-Core Filtering:** Use k=5 as baseline (balances data quality vs. coverage)
-2. **Multimodal Features:** Leverage text/image to address cold-start problem
-3. **Negative Sampling:** Use popularity-based hard negative sampling for BPR
+| Aspect | Finding | Implication |
+|--------|---------|-------------|
+| **5-Core Status** | {fivecore_insight} | {fivecore_rec} |
+| **Sparsity** | {sparsity_insight} | {sparsity_rec} |
+| **Long-Tail** | User α={user_alpha:.2f}, Item α={item_alpha:.2f} | {powerlaw_rec} |
+| **Cold-Start** | {coldstart_insight} | {coldstart_rec} |
+
+### Actionable Recommendations
 
 """
+    
+    # Generate numbered recommendations based on insights
+    recommendations = []
+    
+    # Sparsity-based recommendation
+    if density_val < 0.1:
+        recommendations.append(f"**Multimodal Features:** At {results['sparsity']['density']} density, leverage text and image embeddings to enrich item representations. CLIP or Sentence-BERT embeddings can bridge sparse interaction signals.")
+    
+    # Power-law based recommendation
+    if item_alpha > 3.0:
+        recommendations.append(f"**Hard Negative Sampling:** Item α={item_alpha:.2f} indicates extreme popularity concentration. Use popularity-aware or in-batch hard negative sampling for BPR/InfoNCE training.")
+    
+    if user_alpha > 3.0:
+        recommendations.append(f"**User Activity Weighting:** User α={user_alpha:.2f} shows few power users dominate. Consider inverse-propensity weighting or sample weighting to balance learning.")
+    
+    # Rating-based recommendation
+    if avg_rating > 4.0:
+        recommendations.append(f"**Rating Bias Correction:** Mean rating of {avg_rating:.2f} indicates strong positive bias. Consider using implicit feedback (interactions) rather than explicit ratings for training.")
+    
+    # 5-core based recommendation
+    if fc.get('is_5_core_valid', False):
+        recommendations.append("**Ready for Training:** 5-core filtering ensures sufficient interaction density. Proceed with LATTICE, LightGCN, or other graph-based methods.")
+    else:
+        recommendations.append(f"**Pre-processing Required:** Apply k≥5 core filtering to ensure minimum {5 - fc.get('min_interactions_per_user', 0)} more interactions per user.")
+    
+    # Add multimodal recommendation if metadata coverage is good
+    if results.get('multimodal_coverage'):
+        img_cov = results['multimodal_coverage']['visual']['items_with_images_pct']
+        if img_cov > 80:
+            recommendations.append(f"**Visual Feature Extraction:** With {img_cov:.0f}% image coverage, consider CLIP-based visual embeddings for multimodal recommendation.")
+    
+    for i, rec in enumerate(recommendations, 1):
+        md_content += f"{i}. {rec}\n\n"
+    
     
     # Section 10: Academic Analysis (if available)
     if results.get('modality_alignment') or results.get('visual_manifold') or results.get('bpr_hardness'):

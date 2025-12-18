@@ -2,7 +2,7 @@
   "dataset": "electronics",
   "display_name": "Electronics",
   "data_format": "5-core CSV",
-  "timestamp": "2025-12-18T11:10:06.004718",
+  "timestamp": "2025-12-18T14:19:59.652981",
   "interactions_load_stats": {
     "total_records": 15473536,
     "sampled_records": 15473536,
@@ -14,6 +14,17 @@
     "total_records": 1610012,
     "sampled_records": 368228,
     "memory_mb": 893.19
+  },
+  "five_core_stats": {
+    "min_interactions_per_user": 5,
+    "min_interactions_per_item": 5,
+    "max_interactions_per_user": 938,
+    "max_interactions_per_item": 44948,
+    "avg_interactions_per_user": 9.43,
+    "avg_interactions_per_item": 42.02,
+    "median_interactions_per_user": 7,
+    "median_interactions_per_item": 12,
+    "is_5_core_valid": true
   },
   "interaction_stats": {
     "counts": {
@@ -2433,30 +2444,6 @@
     "sparsity": "99.99743931%"
   },
   "kcore_analysis": {
-    "2": {
-      "k": 2,
-      "n_users": 1641026,
-      "n_items": 368228,
-      "n_interactions": 15473536,
-      "user_retention_pct": 100.0,
-      "item_retention_pct": 100.0,
-      "interaction_retention_pct": 100.0,
-      "density_after": "0.002561%",
-      "avg_interactions_per_user": 9.43,
-      "avg_interactions_per_item": 42.02
-    },
-    "3": {
-      "k": 3,
-      "n_users": 1641026,
-      "n_items": 368228,
-      "n_interactions": 15473536,
-      "user_retention_pct": 100.0,
-      "item_retention_pct": 100.0,
-      "interaction_retention_pct": 100.0,
-      "density_after": "0.002561%",
-      "avg_interactions_per_user": 9.43,
-      "avg_interactions_per_item": 42.02
-    },
     "5": {
       "k": 5,
       "n_users": 1641026,
@@ -2481,6 +2468,18 @@
       "avg_interactions_per_user": 17.18,
       "avg_interactions_per_item": 48.55
     },
+    "15": {
+      "k": 15,
+      "n_users": 86439,
+      "n_items": 36896,
+      "n_interactions": 2031859,
+      "user_retention_pct": 5.27,
+      "item_retention_pct": 10.02,
+      "interaction_retention_pct": 13.13,
+      "density_after": "0.063710%",
+      "avg_interactions_per_user": 23.51,
+      "avg_interactions_per_item": 55.07
+    },
     "20": {
       "k": 20,
       "n_users": 0,
@@ -2496,50 +2495,50 @@
   },
   "embedding_extraction": {
     "n_items_attempted": 10000,
-    "n_items_successful": 10000,
-    "n_items_failed": 0,
-    "success_rate": 100.0,
+    "n_items_successful": 9999,
+    "n_items_failed": 1,
+    "success_rate": 99.99,
     "embedding_dim": 768,
     "device_used": "cuda",
-    "processing_time_sec": 697.31,
-    "items_per_second": 14.34
+    "processing_time_sec": 714.38,
+    "items_per_second": 14.0
   },
   "modality_alignment": {
     "n_pairs_sampled": 20000,
     "pearson": {
-      "correlation": -0.0032,
-      "pvalue": 0.6527459536911202
+      "correlation": 0.0158,
+      "pvalue": 0.025103928237586687
     },
     "spearman": {
-      "correlation": 0.0038,
-      "pvalue": 0.5891012587477098
+      "correlation": 0.0131,
+      "pvalue": 0.06447018542474056
     },
     "visual_similarity": {
-      "mean": 0.5635,
-      "std": 0.0843
+      "mean": 0.5627,
+      "std": 0.0849
     },
     "interaction_similarity": {
       "mean": 0.0,
-      "std": 0.0007
+      "std": 0.0006
     },
-    "interpretation": "No significant correlation - visual features may not align with user preferences"
+    "interpretation": "Very weak correlation - visual signal exists but is minimal"
   },
   "visual_manifold": {
-    "n_items": 10000,
+    "n_items": 9999,
     "method": "umap",
     "quality": {
-      "silhouette_score_category": -0.4743,
+      "silhouette_score_category": -0.4634,
       "n_unique_categories": 12
     },
     "interpretation": "No meaningful visual clustering - visual features may not align with categories",
     "projection_summary": {
       "x_range": [
-        -9.81360912322998,
-        17.314632415771484
+        -11.102875709533691,
+        17.342727661132812
       ],
       "y_range": [
-        -10.78869915008545,
-        14.892913818359375
+        -11.994768142700195,
+        14.026470184326172
       ]
     }
   },
@@ -2547,29 +2546,29 @@
     "n_users_analyzed": 2000,
     "n_pairs_analyzed": 40000,
     "visual_distance": {
-      "mean": 0.4364,
-      "median": 0.4346,
-      "std": 0.083
+      "mean": 0.4357,
+      "median": 0.4341,
+      "std": 0.0839
     },
     "hardness_distribution": {
       "easy_pct": 0.0,
-      "medium_pct": 95.39,
-      "hard_pct": 4.61
+      "medium_pct": 95.28,
+      "hard_pct": 4.72
     },
     "n_hard_negative_examples": 20,
     "interpretation": "Moderate negative difficulty - room for improvement",
     "recommendation": "Consider mixing random and hard negative sampling"
   },
   "graph_connectivity": {
-    "n_items": 10000,
+    "n_items": 9999,
     "k_neighbors": 5,
     "n_components": 4,
-    "giant_component_size": 9958,
+    "giant_component_size": 9957,
     "giant_component_coverage_pct": 99.58,
-    "avg_component_size": 2500.0,
+    "avg_component_size": 2499.75,
     "median_component_size": 16.0,
     "top_10_component_sizes": [
-      9958,
+      9957,
       17,
       15,
       10
@@ -2579,21 +2578,21 @@
     "interpretation": "PASS: Giant component covers 99.6% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE."
   },
   "feature_collapse": {
-    "n_items": 10000,
+    "n_items": 9999,
     "n_pairs_sampled": 50000,
     "statistics": {
-      "mean": 0.5624,
-      "std": 0.0845,
-      "min": 0.1738,
-      "max": 0.9244,
-      "median": 0.5641
+      "mean": 0.5625,
+      "std": 0.0847,
+      "min": 0.1695,
+      "max": 0.9468,
+      "median": 0.565
     },
     "distribution": {
       "very_low_pct": 0.0,
       "low_pct": 0.24,
-      "medium_pct": 21.5,
-      "high_pct": 78.25,
-      "very_high_pct": 0.01
+      "medium_pct": 21.63,
+      "high_pct": 78.11,
+      "very_high_pct": 0.02
     },
     "thresholds": {
       "pass": 0.5,
@@ -2601,7 +2600,7 @@
     },
     "is_pass": false,
     "is_collapsed": false,
-    "interpretation": "WARNING: Avg cosine similarity = 0.562 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder."
+    "interpretation": "WARNING: Avg cosine similarity = 0.563 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder."
   },
   "text_embedding_extraction": {
     "n_items_attempted": 25000,
@@ -2611,8 +2610,8 @@
     "embedding_dim": 768,
     "model_name": "sentence-transformers/all-mpnet-base-v2",
     "device_used": "cuda",
-    "processing_time_sec": 271.79,
-    "items_per_second": 91.98,
+    "processing_time_sec": 268.11,
+    "items_per_second": 93.25,
     "avg_text_length": 438.3,
     "text_columns_used": [
       "title",
@@ -2641,7 +2640,7 @@
     "recommendation": "Deprioritize text encoder in final model, or use text only as filter/fallback."
   },
   "cross_modal_consistency": {
-    "n_items_analyzed": 34074,
+    "n_items_analyzed": 34073,
     "n_items_with_both": 926,
     "statistics": {
       "mean": -0.0053,
@@ -2669,34 +2668,34 @@
     "n_items": 926,
     "n_components": 10,
     "canonical_correlations": [
-      0.9999999499698485,
-      0.999999824566421,
-      0.9999997338666811,
-      0.9999998527063563,
-      0.99999985272546,
-      0.9999995825644983,
-      0.9999998104201269,
-      0.9999994250089279,
-      0.9999996988363486,
-      0.9999998872159832
+      0.999999949974311,
+      0.9999997607160492,
+      0.9999997345920432,
+      0.9999998618552101,
+      0.9999998524916852,
+      0.9999997648358259,
+      0.9999997539152569,
+      0.9999998083302242,
+      0.9999997473513905,
+      0.9999997509553147
     ],
-    "mean_correlation": 0.999999761788065,
+    "mean_correlation": 0.999999798501731,
     "interpretation": "STRONG CCA correlation (1.000). Good linear relationship between modalities.",
     "recommendation": "MICRO contrastive loss should converge well."
   },
   "anisotropy": {
     "before_centering": {
-      "avg_cosine": 0.5616779327392578,
-      "std_cosine": 0.08507496863603592
+      "avg_cosine": 0.562290608882904,
+      "std_cosine": 0.0856587365269661
     },
     "after_centering": {
-      "avg_cosine": -0.002062547020614147,
-      "std_cosine": 0.1265665888786316
+      "avg_cosine": 0.00048578938003629446,
+      "std_cosine": 0.12893444299697876
     },
     "n_pairs_sampled": 20000,
     "is_anisotropic": true,
-    "improvement_ratio": 1.0036721168847693,
-    "interpretation": "ANISOTROPIC: Avg cosine = 0.562 (>0.4). Centering FIXED the issue: after centering = -0.002. Embeddings were in a narrow cone but centering spread them out.",
+    "improvement_ratio": 0.9991360528304013,
+    "interpretation": "ANISOTROPIC: Avg cosine = 0.562 (>0.4). Centering FIXED the issue: after centering = 0.000. Embeddings were in a narrow cone but centering spread them out.",
     "recommendation": "Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance."
   },
   "user_consistency": {
@@ -2705,10 +2704,10 @@
     "distances": {
       "mean_local": 0.4132798435458625,
       "std_local": 0.07073214662634865,
-      "mean_global": 0.43821972608566284,
-      "std_global": 0.08420666307210922
+      "mean_global": 0.4380328059196472,
+      "std_global": 0.08579826354980469
     },
-    "consistency_ratio": 0.9430881791594085,
+    "consistency_ratio": 0.9434906197908716,
     "is_consistent": true,
     "users_with_visual_coherence_pct": 69.6969696969697,
     "interpretation": "MODERATE CONSISTENCY: Some visual preference signal exists. Local (0.413) < Global (0.438). Ratio = 0.943.",
@@ -2718,7 +2717,7 @@
     "checks": {
       "alignment": {
         "pass": true,
-        "value": -0.0032
+        "value": 0.0158
       },
       "connectivity": {
         "pass": true,
@@ -2726,7 +2725,7 @@
       },
       "collapse": {
         "pass": false,
-        "value": 0.5624
+        "value": 0.5625
       }
     },
     "decision": "STOP"
