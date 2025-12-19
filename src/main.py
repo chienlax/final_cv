@@ -129,8 +129,15 @@ def create_model(
         logger.info(f"  temp (InfoNCE temperature): {config.DIFFMM_TEMP}")
         logger.info(f"  e_loss (GraphCL weight): {config.DIFFMM_E_LOSS}")
         logger.info(f"  rebuild_k: {config.DIFFMM_REBUILD_K}")
+        logger.info(f"  n_layers (GCN): {config.N_LAYERS}")
         model = DiffMM(
-            **common_args,
+            n_users=dataset.n_users,
+            n_items=dataset.n_items,
+            n_warm=dataset.n_warm,
+            embed_dim=config.EMBED_DIM,
+            n_layers=config.N_LAYERS,
+            feat_visual=dataset.feat_visual,
+            feat_text=dataset.feat_text,
             noise_scale=config.DIFFMM_NOISE_SCALE,
             noise_min=config.DIFFMM_NOISE_MIN,
             noise_max=config.DIFFMM_NOISE_MAX,
@@ -143,11 +150,13 @@ def create_model(
             e_loss=config.DIFFMM_E_LOSS,
             ssl_reg=config.DIFFMM_SSL_REG,
             temp=config.DIFFMM_TEMP,
+            reg=config.L2_REG,
             keep_rate=config.DIFFMM_KEEP_RATE,
             ris_lambda=config.DIFFMM_RIS_LAMBDA,
             ris_adj_lambda=config.DIFFMM_RIS_ADJ_LAMBDA,
             trans=config.DIFFMM_TRANS,
             cl_method=config.DIFFMM_CL_METHOD,
+            device=config.DEVICE,
         )
     else:
         raise ValueError(f"Unknown model: {model_name}")
