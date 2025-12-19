@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
 import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -62,12 +63,31 @@ class Trainer:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Optimizer
-        self.optimizer = Adam(
-            model.parameters(),
-            lr=config.LR,
-            weight_decay=0,  # We use explicit L2 reg in loss
-        )
+        # Check if this is DiffMM for special handling
+        self.is_diffmm = model.__class__.__name__ == "DiffMM"
+        
+        # Optimizer - DiffMM uses separate optimizers for denoisers and main model
+        if self.is_diffmm:
+            # Main optimizer (excludes denoisers)
+            self.optimizer = Adam(
+                model.get_main_parameters(),
+                lr=config.LR,
+                weight_decay=0,
+            )
+            # Denoiser optimizer - EXACT from Main.py line 76-81
+            self.denoise_optimizer = Adam(
+                model.get_denoiser_parameters(),
+                lr=config.LR,
+                weight_decay=0,
+            )
+            logger.info("DiffMM: Using separate optimizers for main model and denoisers")
+        else:
+            self.optimizer = Adam(
+                model.parameters(),
+                lr=config.LR,
+                weight_decay=0,  # We use explicit L2 reg in loss
+            )
+            self.denoise_optimizer = None
         
         # LR Scheduler
         lr_scheduler_type = getattr(config, 'LR_SCHEDULER', None)
@@ -244,6 +264,109 @@ class Trainer:
         
         return {k: v.avg for k, v in meters.items()}
     
+    def train_epoch_diffmm(self, bpr_dataloader: DataLoader, diffusion_data: torch.Tensor) -> dict:
+        """
+        Train DiffMM for one epoch with two-phase training.
+        
+        EXACT match to original Main.py trainEpoch() structure:
+        1. Phase 1: Train denoisers on diffusion task
+        2. Phase 2: Rebuild UI matrices using denoised samples
+        3. Phase 3: Train main model with BPR + CL
+        
+        Args:
+            bpr_dataloader: Standard BPR training dataloader
+            diffusion_data: Training matrix as dense tensor [n_users, n_items]
+            
+        Returns:
+            Dict of average losses
+        """
+        self.model.train()
+        
+        meters = {}
+        adj = self.dataset.norm_adj
+        batch_size = self.config.BATCH_SIZE
+        n_users = diffusion_data.shape[0]
+        
+        # =================================================================
+        # PHASE 1: Diffusion Training - EXACT from Main.py line 124-168
+        # =================================================================
+        logger.info("  Phase 1: Diffusion training...")
+        
+        diff_loss_image_total = 0.0
+        diff_loss_text_total = 0.0
+        n_diff_batches = 0
+        
+        for start_idx in range(0, n_users, batch_size):
+            end_idx = min(start_idx + batch_size, n_users)
+            batch_item = diffusion_data[start_idx:end_idx].to(self.model.device)
+            batch_index = torch.arange(start_idx, end_idx).to(self.model.device)
+            
+            self.denoise_optimizer.zero_grad()
+            
+            loss_image, loss_text = self.model.train_diffusion_step(batch_item, batch_index)
+            
+            total_diff_loss = loss_image + loss_text
+            total_diff_loss.backward()
+            
+            self.denoise_optimizer.step()
+            
+            diff_loss_image_total += loss_image.item()
+            diff_loss_text_total += loss_text.item()
+            n_diff_batches += 1
+        
+        meters["diff_loss_image"] = AverageMeter()
+        meters["diff_loss_text"] = AverageMeter()
+        meters["diff_loss_image"].update(diff_loss_image_total / max(n_diff_batches, 1))
+        meters["diff_loss_text"].update(diff_loss_text_total / max(n_diff_batches, 1))
+        
+        # =================================================================
+        # PHASE 2: Rebuild UI Matrices - EXACT from Main.py line 173-245
+        # =================================================================
+        logger.info("  Phase 2: Rebuilding UI matrices...")
+        
+        self.model.rebuild_ui_matrices(diffusion_data, batch_size=batch_size)
+        
+        logger.info("  Phase 3: BPR + CL training...")
+        
+        # =================================================================
+        # PHASE 3: BPR + CL Training - EXACT from Main.py line 247-305
+        # =================================================================
+        pbar = tqdm(bpr_dataloader, desc="BPR+CL Training", leave=False)
+        
+        for users, pos_items, neg_items in pbar:
+            users = users.to(self.model.device)
+            pos_items = pos_items.to(self.model.device)
+            neg_items = neg_items.to(self.model.device)
+            
+            self.optimizer.zero_grad()
+            
+            losses = self.model.compute_loss(
+                adj, users, pos_items, neg_items,
+                l2_reg=self.config.L2_REG,
+            )
+            
+            if torch.isnan(losses["loss"]) or torch.isinf(losses["loss"]):
+                logger.warning("⚠️ NaN/Inf detected in loss! Skipping this batch.")
+                continue
+            
+            losses["loss"].backward()
+            
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+            
+            self.optimizer.step()
+            
+            # Update meters
+            for key, value in losses.items():
+                if key not in meters:
+                    meters[key] = AverageMeter()
+                if isinstance(value, torch.Tensor):
+                    value = value.item()
+                meters[key].update(value)
+            
+            pbar.set_postfix({k: f"{v.avg:.4f}" for k, v in meters.items()})
+        
+        return {k: v.avg for k, v in meters.items()}
+    
     def train(
         self,
         n_epochs: int = None,
@@ -275,6 +398,23 @@ class Trainer:
             pin_memory=pin_memory,
         )
         
+        # DiffMM needs diffusion_data: dense training matrix [n_users, n_items]
+        # EXACT match to original DataHandler.py line 81-82: DiffusionData(torch.FloatTensor(self.trnMat.A))
+        diffusion_data = None
+        if self.is_diffmm:
+            logger.info("DiffMM: Building diffusion training matrix (dense user-item matrix)...")
+            from scipy import sparse
+            n_users = self.dataset.n_users
+            n_items = self.dataset.n_items
+            
+            # Build dense matrix from train_data
+            row = self.dataset.train_data[:, 0]
+            col = self.dataset.train_data[:, 1]
+            data = np.ones(len(row), dtype=np.float32)
+            trnMat = sparse.csr_matrix((data, (row, col)), shape=(n_users, n_items))
+            diffusion_data = torch.FloatTensor(trnMat.toarray())
+            logger.info(f"  Diffusion data shape: {diffusion_data.shape}")
+        
         history = {
             "train_loss": [],
             "val_recall": [],
@@ -290,6 +430,8 @@ class Trainer:
         logger.info(f"  N negatives: {self.config.N_NEGATIVES}")
         logger.info(f"  AMP enabled: {self.use_amp}")
         logger.info(f"  DataLoader workers: {num_workers}")
+        if self.is_diffmm:
+            logger.info(f"  DiffMM two-phase training: ENABLED")
         
         prev_loss = None  # Track loss for quirky message selection
         
@@ -302,8 +444,11 @@ class Trainer:
             current_lr = self.optimizer.param_groups[0]['lr']
             history["learning_rate"].append(current_lr)
             
-            # Train
-            train_losses = self.train_epoch(dataloader)
+            # Train - DiffMM uses specialized two-phase training
+            if self.is_diffmm:
+                train_losses = self.train_epoch_diffmm(dataloader, diffusion_data)
+            else:
+                train_losses = self.train_epoch(dataloader)
             history["train_loss"].append(train_losses["loss"])
             
             # Step LR scheduler

@@ -292,7 +292,6 @@ class GaussianDiffusion(nn.Module):
     def SNR(self, t: torch.Tensor) -> torch.Tensor:
         device = t.device
         self.alphas_cumprod = self.alphas_cumprod.to(device)
-        t = t.clamp(min=0)
         return self.alphas_cumprod[t] / (1 - self.alphas_cumprod[t])
 
 
@@ -648,8 +647,7 @@ class DiffMM(nn.Module):
         
         if self.cl_method == 1:
             clLoss = clLoss_
-        else:
-            clLoss = clLoss + clLoss_
+        # else: clLoss stays as modal-modal contrastive (already computed above)
         
         total_loss = bprLoss + regLoss + clLoss
         
@@ -708,7 +706,7 @@ class DiffMM(nn.Module):
         if self.cl_method == 1:
             return clLoss_
         else:
-            return clLoss + clLoss_
+            return clLoss  # modal-modal only when cl_method == 0
     
     # =========================================================================
     # For compatibility
@@ -740,3 +738,121 @@ class DiffMM(nn.Module):
             return self.forward_MM(adj, self.image_UI_matrix, self.text_UI_matrix)
         else:
             return self._simple_forward(adj)
+    
+    # =========================================================================
+    # Diffusion Training - EXACT from Main.py line 124-168
+    # =========================================================================
+    
+    def train_diffusion_step(
+        self,
+        batch_item: torch.Tensor,  # User interaction row from trnMat
+        batch_index: torch.Tensor,  # User index
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Single diffusion training step.
+        
+        EXACT match to original Main.py line 124-159.
+        
+        Args:
+            batch_item: User's interaction vector [batch, n_items]
+            batch_index: User indices [batch]
+            
+        Returns:
+            Tuple of (image_loss, text_loss)
+        """
+        # Detach embeddings from main model (no gradients flow back)
+        iEmbeds = self.iEmbeds.detach()
+        
+        image_feats = self.getImageFeats().detach()
+        text_feats = self.getTextFeats().detach()
+        
+        # Training losses for image denoiser
+        diff_loss_image, gc_loss_image = self.diffusion_model.training_losses(
+            self.denoise_model_image, batch_item, iEmbeds, batch_index, image_feats
+        )
+        loss_image = diff_loss_image.mean() + gc_loss_image.mean() * self.e_loss
+        
+        # Training losses for text denoiser
+        diff_loss_text, gc_loss_text = self.diffusion_model.training_losses(
+            self.denoise_model_text, batch_item, iEmbeds, batch_index, text_feats
+        )
+        loss_text = diff_loss_text.mean() + gc_loss_text.mean() * self.e_loss
+        
+        return loss_image, loss_text
+    
+    @torch.no_grad()
+    def rebuild_ui_matrices(
+        self,
+        diffusion_data: torch.Tensor,  # Full trnMat as dense tensor [n_users, n_items]
+        batch_size: int = 1024,
+    ) -> None:
+        """
+        Rebuild UI matrices using denoised samples.
+        
+        EXACT match to original Main.py line 173-235.
+        
+        Args:
+            diffusion_data: Training matrix as dense tensor [n_users, n_items]
+            batch_size: Batch size for processing
+        """
+        u_list_image = []
+        i_list_image = []
+        edge_list_image = []
+        
+        u_list_text = []
+        i_list_text = []
+        edge_list_text = []
+        
+        n_users = diffusion_data.shape[0]
+        
+        for start_idx in range(0, n_users, batch_size):
+            end_idx = min(start_idx + batch_size, n_users)
+            batch_item = diffusion_data[start_idx:end_idx].to(self.device)
+            batch_index = torch.arange(start_idx, end_idx).to(self.device)
+            
+            # Image denoising
+            denoised_batch = self.diffusion_model.p_sample(
+                self.denoise_model_image, batch_item, self.sampling_steps, self.sampling_noise
+            )
+            top_val, indices_ = torch.topk(denoised_batch, k=self.rebuild_k)
+            
+            for i in range(batch_index.shape[0]):
+                for j in range(indices_[i].shape[0]):
+                    u_list_image.append(int(batch_index[i].cpu().numpy()))
+                    i_list_image.append(int(indices_[i][j].cpu().numpy()))
+                    edge_list_image.append(1.0)
+            
+            # Text denoising
+            denoised_batch = self.diffusion_model.p_sample(
+                self.denoise_model_text, batch_item, self.sampling_steps, self.sampling_noise
+            )
+            top_val, indices_ = torch.topk(denoised_batch, k=self.rebuild_k)
+            
+            for i in range(batch_index.shape[0]):
+                for j in range(indices_[i].shape[0]):
+                    u_list_text.append(int(batch_index[i].cpu().numpy()))
+                    i_list_text.append(int(indices_[i][j].cpu().numpy()))
+                    edge_list_text.append(1.0)
+        
+        # Build image UI matrix
+        u_list_image = np.array(u_list_image)
+        i_list_image = np.array(i_list_image)
+        edge_list_image = np.array(edge_list_image)
+        self.image_UI_matrix = self.buildUIMatrix(u_list_image, i_list_image, edge_list_image)
+        self.image_UI_matrix = self.edgeDropper(self.image_UI_matrix)
+        
+        # Build text UI matrix
+        u_list_text = np.array(u_list_text)
+        i_list_text = np.array(i_list_text)
+        edge_list_text = np.array(edge_list_text)
+        self.text_UI_matrix = self.buildUIMatrix(u_list_text, i_list_text, edge_list_text)
+        self.text_UI_matrix = self.edgeDropper(self.text_UI_matrix)
+    
+    def get_denoiser_parameters(self) -> list:
+        """Get parameters for denoise models only (for separate optimizer)."""
+        return list(self.denoise_model_image.parameters()) + list(self.denoise_model_text.parameters())
+    
+    def get_main_parameters(self) -> list:
+        """Get parameters for main model only (excluding denoisers)."""
+        denoiser_params = set(self.get_denoiser_parameters())
+        return [p for p in self.parameters() if p not in denoiser_params]
