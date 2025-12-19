@@ -389,8 +389,8 @@ class Config:
     # =========================================================================
     # NEGATIVE SAMPLING
     # =========================================================================
-    # 128 negatives * 384 float16 * Batch Size = VRAM monster
-    N_NEGATIVES = 64          # Reduced from 128. Statistically sufficient.
+    # Original implementations (LATTICE, MICRO, DiffMM) all use 1 negative per sample
+    N_NEGATIVES = 1               # Must be 1 for compatibility with original loss functions
     NEGATIVE_STRATEGY = "uniform"
     
     # =========================================================================

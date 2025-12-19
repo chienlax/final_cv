@@ -145,6 +145,9 @@ class LATTICEModel(nn.Module):
         self.image_trs = nn.Linear(feat_visual.shape[1], feat_embed_dim)
         self.text_trs = nn.Linear(feat_text.shape[1], feat_embed_dim)
         
+        # Cold-start projection: raw features → embed_dim (for cold-start eval)
+        self.cold_proj = nn.Linear(feat_visual.shape[1], embed_dim)
+        
         # Modal weight - EXACT match to original line 80-81
         self.modal_weight = nn.Parameter(torch.Tensor([0.5, 0.5]))
         self.softmax = nn.Softmax(dim=0)
@@ -176,7 +179,8 @@ class LATTICEModel(nn.Module):
         text_feats = self.text_trs(self.text_embedding.weight)
         
         # Line 86-100: Build or reuse item adjacency
-        if build_item_graph:
+        # Must build on first call if item_adj is None
+        if build_item_graph or self.item_adj is None:
             weight = self.softmax(self.modal_weight)
             
             self.image_adj = build_sim(image_feats)
@@ -321,3 +325,26 @@ class LATTICEModel(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get all embeddings after propagation."""
         return self.forward(adj, build_item_graph=False)
+    
+    def get_modal_embeddings(self, items: torch.Tensor = None) -> torch.Tensor:
+        """
+        Get fused modal embeddings for items (for cold-start evaluation).
+        
+        Uses cold_proj to map raw 768-dim features to embed_dim (384).
+        
+        Args:
+            items: Item indices. If None, returns all items.
+            
+        Returns:
+            Fused visual + text embeddings in embed_dim space.
+        """
+        if items is not None:
+            img_feats = self.image_embedding.weight[items]
+            txt_feats = self.text_embedding.weight[items]
+        else:
+            img_feats = self.image_embedding.weight
+            txt_feats = self.text_embedding.weight
+        
+        # Project raw features to embed_dim and fuse
+        fused = 0.5 * self.cold_proj(img_feats) + 0.5 * self.cold_proj(txt_feats)
+        return F.normalize(fused, p=2, dim=1)

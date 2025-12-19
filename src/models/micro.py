@@ -249,7 +249,8 @@ class MICROModel(nn.Module):
         text_feats = self.text_trs(self.text_embedding.weight)
         
         # Line 98-109: Build or reuse item adjacencies
-        if build_item_graph:
+        # Must build on first call if adj is None
+        if build_item_graph or self.image_adj is None:
             self.image_adj = build_sim(image_feats)
             self.image_adj = build_knn_normalized_graph(self.image_adj, topk=self.topk, is_sparse=self.sparse, norm_type=self.norm_type)
             self.image_adj = (1 - self.lambda_coeff) * self.image_adj + self.lambda_coeff * self.image_original_adj
@@ -411,3 +412,22 @@ class MICROModel(nn.Module):
         """Get all embeddings after propagation."""
         u_emb, i_emb, _, _, _ = self.forward(adj, build_item_graph=False)
         return u_emb, i_emb
+    
+    def get_modal_embeddings(self, items: torch.Tensor = None) -> torch.Tensor:
+        """
+        Get fused modal embeddings for items (for cold-start evaluation).
+        
+        Args:
+            items: Item indices. If None, returns all items.
+            
+        Returns:
+            Fused visual + text embeddings.
+        """
+        if items is not None:
+            img_feats = self.image_trs(self.image_embedding.weight[items])
+            txt_feats = self.text_trs(self.text_embedding.weight[items])
+        else:
+            img_feats = self.image_trs(self.image_embedding.weight)
+            txt_feats = self.text_trs(self.text_embedding.weight)
+        
+        return F.normalize(0.5 * img_feats + 0.5 * txt_feats, p=2, dim=1)

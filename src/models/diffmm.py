@@ -856,3 +856,22 @@ class DiffMM(nn.Module):
         """Get parameters for main model only (excluding denoisers)."""
         denoiser_params = set(self.get_denoiser_parameters())
         return [p for p in self.parameters() if p not in denoiser_params]
+    
+    def get_modal_embeddings(self, items: torch.Tensor = None) -> torch.Tensor:
+        """
+        Get fused modal embeddings for items (for cold-start evaluation).
+        
+        Args:
+            items: Item indices. If None, returns all items.
+            
+        Returns:
+            Fused visual + text embeddings.
+        """
+        if items is not None:
+            img_feats = self.getImageFeats()[items]
+            txt_feats = self.getTextFeats()[items]
+        else:
+            img_feats = self.getImageFeats()
+            txt_feats = self.getTextFeats()
+        
+        return F.normalize(0.5 * img_feats + 0.5 * txt_feats, p=2, dim=1)
