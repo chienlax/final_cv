@@ -359,8 +359,8 @@ class Config:
     # =========================================================================
     # Regularization-aware: smaller batches = gradient noise = implicit regularization
     BATCH_SIZE = 1024        # Reduced from 2048 for regularization effect
-    EPOCHS = 50
-    PATIENCE = 10           # Early stopping (generous for generative models)
+    EPOCHS = 150
+    PATIENCE = 25           # Early stopping (generous for generative models)
     LR = 5e-4                # Lower LR for deeper model (was 1e-3)
     L2_REG = 1e-3            # Strong weight decay for high param-to-data ratio
     LR_SCHEDULER = "cosine"  # Cosine annealing

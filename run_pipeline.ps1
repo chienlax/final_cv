@@ -138,119 +138,119 @@ if ($PreprocessingOnly) {
     exit 0
 }
 
-# ============================================================
-# PHASE 2: Training
-# ============================================================
-Write-Host ""
-Write-Host "============================================" -ForegroundColor Green
-Write-Host " PHASE 2: MODEL TRAINING" -ForegroundColor Green
-Write-Host "============================================" -ForegroundColor Green
+# # ============================================================
+# # PHASE 2: Training
+# # ============================================================
+# Write-Host ""
+# Write-Host "============================================" -ForegroundColor Green
+# Write-Host " PHASE 2: MODEL TRAINING" -ForegroundColor Green
+# Write-Host "============================================" -ForegroundColor Green
 
-$totalRuns = $Datasets.Count * $Models.Count
-$currentRun = 0
-$failedRuns = @()
+# $totalRuns = $Datasets.Count * $Models.Count
+# $currentRun = 0
+# $failedRuns = @()
 
-foreach ($dataset in $Datasets) {
-    # Verify data exists before training
-    if (-not (Test-ProcessedData $dataset)) {
-        Write-Host "[ERROR] No preprocessed data for $dataset. Run preprocessing first." -ForegroundColor Red
-        continue
-    }
+# foreach ($dataset in $Datasets) {
+#     # Verify data exists before training
+#     if (-not (Test-ProcessedData $dataset)) {
+#         Write-Host "[ERROR] No preprocessed data for $dataset. Run preprocessing first." -ForegroundColor Red
+#         continue
+#     }
     
-    foreach ($model in $Models) {
-        $currentRun++
+#     foreach ($model in $Models) {
+#         $currentRun++
         
-        Write-Host ""
-        Write-Host ">>> [$currentRun/$totalRuns] Training: $model on $dataset" -ForegroundColor Cyan
-        Write-Host "-------------------------------------------"
+#         Write-Host ""
+#         Write-Host ">>> [$currentRun/$totalRuns] Training: $model on $dataset" -ForegroundColor Cyan
+#         Write-Host "-------------------------------------------"
         
-        Show-GpuMemory
+#         Show-GpuMemory
         
-        $startTime = Get-Date
+#         $startTime = Get-Date
         
-        try {
-            python src/main.py --model $model --dataset $dataset --seed $SEED
+#         try {
+#             python src/main.py --model $model --dataset $dataset --seed $SEED
             
-            $duration = (Get-Date) - $startTime
-            Write-Host "[SUCCESS] $model/$dataset completed in $($duration.TotalMinutes.ToString('F1')) minutes" -ForegroundColor Green
-        }
-        catch {
-            Write-Host "[ERROR] $model/$dataset training failed: $_" -ForegroundColor Red
-            $failedRuns += "$model/$dataset"
-            # Continue with next run instead of stopping
-        }
+#             $duration = (Get-Date) - $startTime
+#             Write-Host "[SUCCESS] $model/$dataset completed in $($duration.TotalMinutes.ToString('F1')) minutes" -ForegroundColor Green
+#         }
+#         catch {
+#             Write-Host "[ERROR] $model/$dataset training failed: $_" -ForegroundColor Red
+#             $failedRuns += "$model/$dataset"
+#             # Continue with next run instead of stopping
+#         }
         
-        # Clear VRAM after each training run
-        Clear-CudaVram
-    }
-}
+#         # Clear VRAM after each training run
+#         Clear-CudaVram
+#     }
+# }
 
-# ============================================================
-# Summary
-# ============================================================
-Write-Host ""
-Write-Host "============================================" -ForegroundColor Green
-Write-Host " PHASE 2 COMPLETE - TRAINING" -ForegroundColor Green
-Write-Host "============================================" -ForegroundColor Green
-Write-Host ""
+# # ============================================================
+# # Summary
+# # ============================================================
+# Write-Host ""
+# Write-Host "============================================" -ForegroundColor Green
+# Write-Host " PHASE 2 COMPLETE - TRAINING" -ForegroundColor Green
+# Write-Host "============================================" -ForegroundColor Green
+# Write-Host ""
 
-if ($failedRuns.Count -gt 0) {
-    Write-Host "Failed runs:" -ForegroundColor Red
-    foreach ($run in $failedRuns) {
-        Write-Host "  - $run" -ForegroundColor Red
-    }
-    Write-Host ""
-}
+# if ($failedRuns.Count -gt 0) {
+#     Write-Host "Failed runs:" -ForegroundColor Red
+#     foreach ($run in $failedRuns) {
+#         Write-Host "  - $run" -ForegroundColor Red
+#     }
+#     Write-Host ""
+# }
 
-# ============================================================
-# PHASE 3: Ablation Analysis
-# ============================================================
-# Tests the contribution of visual vs text modalities
-# Runs ALL models × ALL datasets × 2 ablation modes
+# # ============================================================
+# # PHASE 3: Ablation Analysis
+# # ============================================================
+# # Tests the contribution of visual vs text modalities
+# # Runs ALL models × ALL datasets × 2 ablation modes
 
-Write-Host ""
-Write-Host "============================================" -ForegroundColor Magenta
-Write-Host " PHASE 3: ABLATION ANALYSIS" -ForegroundColor Magenta
-Write-Host "============================================" -ForegroundColor Magenta
+# Write-Host ""
+# Write-Host "============================================" -ForegroundColor Magenta
+# Write-Host " PHASE 3: ABLATION ANALYSIS" -ForegroundColor Magenta
+# Write-Host "============================================" -ForegroundColor Magenta
 
-$ablationModes = @("no_visual", "no_text")
-$totalAblationRuns = $Datasets.Count * $Models.Count * $ablationModes.Count
-$currentAblationRun = 0
+# $ablationModes = @("no_visual", "no_text")
+# $totalAblationRuns = $Datasets.Count * $Models.Count * $ablationModes.Count
+# $currentAblationRun = 0
 
-foreach ($dataset in $Datasets) {
-    foreach ($model in $Models) {
-        foreach ($ablation in $ablationModes) {
-            $currentAblationRun++
+# foreach ($dataset in $Datasets) {
+#     foreach ($model in $Models) {
+#         foreach ($ablation in $ablationModes) {
+#             $currentAblationRun++
             
-            Write-Host ""
-            Write-Host ">>> [$currentAblationRun/$totalAblationRuns] Ablation: $model on $dataset ($ablation)" -ForegroundColor Cyan
-            Write-Host "    Using base config, only modifying ablation mode"
-            Write-Host "-------------------------------------------"
+#             Write-Host ""
+#             Write-Host ">>> [$currentAblationRun/$totalAblationRuns] Ablation: $model on $dataset ($ablation)" -ForegroundColor Cyan
+#             Write-Host "    Using base config, only modifying ablation mode"
+#             Write-Host "-------------------------------------------"
             
-            Show-GpuMemory
-            $startTime = Get-Date
+#             Show-GpuMemory
+#             $startTime = Get-Date
             
-            try {
-                # Use base config params, only modify ablation mode
-                # Output auto-routes to checkpoints_ablation/
-                python src/main.py --model $model --dataset $dataset --ablation $ablation --seed $SEED
+#             try {
+#                 # Use base config params, only modify ablation mode
+#                 # Output auto-routes to checkpoints_ablation/
+#                 python src/main.py --model $model --dataset $dataset --ablation $ablation --seed $SEED
                 
-                $duration = (Get-Date) - $startTime
-                Write-Host "[SUCCESS] $model/$ablation on $dataset completed in $($duration.TotalMinutes.ToString('F1')) minutes" -ForegroundColor Green
-            }
-            catch {
-                Write-Host "[ERROR] Ablation failed: $_" -ForegroundColor Red
-                $failedRuns += "ablation_${model}_${ablation}/${dataset}"
-            }
+#                 $duration = (Get-Date) - $startTime
+#                 Write-Host "[SUCCESS] $model/$ablation on $dataset completed in $($duration.TotalMinutes.ToString('F1')) minutes" -ForegroundColor Green
+#             }
+#             catch {
+#                 Write-Host "[ERROR] Ablation failed: $_" -ForegroundColor Red
+#                 $failedRuns += "ablation_${model}_${ablation}/${dataset}"
+#             }
             
-            Clear-CudaVram
-        }
-    }
-}
+#             Clear-CudaVram
+#         }
+#     }
+# }
 
-Write-Host ""
-Write-Host "[DONE] Ablation analysis complete! ($totalAblationRuns runs)" -ForegroundColor Green
-Write-Host "Results saved to: checkpoints_ablation/{dataset}/{model}_{ablation}/"
+# Write-Host ""
+# Write-Host "[DONE] Ablation analysis complete! ($totalAblationRuns runs)" -ForegroundColor Green
+# Write-Host "Results saved to: checkpoints_ablation/{dataset}/{model}_{ablation}/"
 
 # ============================================================
 # PHASE 4: Visualization (Inductive Gap Analysis)

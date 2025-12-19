@@ -21,6 +21,22 @@ from sklearn.manifold import TSNE
 logger = logging.getLogger(__name__)
 
 
+def _get_item_id_embedding(model, indices: torch.Tensor) -> torch.Tensor:
+    """Get item ID embeddings - handles different model attribute names.
+    
+    - LATTICE/MICRO: use item_id_embedding (nn.Embedding)
+    - DiffMM: uses iEmbeds (nn.Parameter)
+    """
+    if hasattr(model, 'item_id_embedding'):
+        # LATTICE and MICRO
+        return model.item_id_embedding(indices)
+    elif hasattr(model, 'iEmbeds'):
+        # DiffMM uses Parameter directly
+        return model.iEmbeds[indices]
+    else:
+        raise AttributeError(f"Model {type(model).__name__} has no recognized item embedding attribute")
+
+
 def plot_inductive_gap(
     model,
     dataset,
@@ -45,12 +61,13 @@ def plot_inductive_gap(
     device = model.device
     
     logger.info(f"🎨 Generating inductive gap visualization...")
-    logger.info(f"   Warm items: {model.n_warm}, Cold items: {model.n_cold}")
+    n_cold = model.n_items - model.n_warm
+    logger.info(f"   Warm items: {model.n_warm}, Cold items: {n_cold}")
     
     with torch.no_grad():
         # 1. Get Warm Item Embeddings (ID + Modal)
         warm_indices = torch.arange(model.n_warm, device=device)
-        warm_id_emb = model.item_embedding(warm_indices)
+        warm_id_emb = _get_item_id_embedding(model, warm_indices)
         warm_modal_emb = model.get_modal_embeddings(warm_indices)
         warm_emb = warm_id_emb + warm_modal_emb
         
@@ -189,12 +206,12 @@ def load_and_plot(
     ModelClass = model_classes[model_name]
     
     # Create model with same architecture
+    # Note: LATTICE/MICRO use n_ui_layers, DiffMM uses n_layers
     common_args = dict(
         n_users=dataset.n_users,
         n_items=dataset.n_items,
         n_warm=dataset.n_warm,
         embed_dim=config.EMBED_DIM,
-        n_layers=config.N_LAYERS,
         feat_visual=dataset.feat_visual,
         feat_text=dataset.feat_text,
         projection_hidden_dim=config.PROJECTION_HIDDEN_DIM,
@@ -203,16 +220,47 @@ def load_and_plot(
     )
     
     if model_name == "lattice":
-        model = ModelClass(**common_args, k=config.LATTICE_K, graph_lambda=config.LATTICE_LAMBDA)
+        model = ModelClass(
+            **common_args,
+            n_ui_layers=config.N_LAYERS,
+            topk=config.LATTICE_K,
+            lambda_coeff=config.LATTICE_LAMBDA,
+            feat_embed_dim=config.LATTICE_FEAT_EMBED_DIM,
+            n_layers=config.LATTICE_N_ITEM_LAYERS,
+        )
     elif model_name == "micro":
-        model = ModelClass(**common_args, tau=config.MICRO_TAU, alpha=config.MICRO_ALPHA)
+        model = ModelClass(
+            **common_args,
+            n_ui_layers=config.N_LAYERS,
+            topk=config.MICRO_TOPK,
+            lambda_coeff=config.MICRO_LAMBDA,
+            tau=config.MICRO_TAU,
+            loss_ratio=config.MICRO_LOSS_RATIO,
+            layers=config.MICRO_ITEM_LAYERS,
+            sparse=config.MICRO_SPARSE,
+            norm_type=config.MICRO_NORM_TYPE,
+        )
     else:
         model = ModelClass(
             **common_args,
-            n_steps=config.DIFFMM_STEPS,
+            n_layers=config.N_LAYERS,
             noise_scale=config.DIFFMM_NOISE_SCALE,
-            lambda_msi=config.DIFFMM_LAMBDA_MSI,
-            mlp_width=config.DIFFMM_MLP_WIDTH,
+            noise_min=config.DIFFMM_NOISE_MIN,
+            noise_max=config.DIFFMM_NOISE_MAX,
+            steps=config.DIFFMM_STEPS,
+            dims=config.DIFFMM_DIMS,
+            d_emb_size=config.DIFFMM_D_EMB_SIZE,
+            sampling_steps=config.DIFFMM_SAMPLING_STEPS,
+            sampling_noise=config.DIFFMM_SAMPLING_NOISE,
+            rebuild_k=config.DIFFMM_REBUILD_K,
+            e_loss=config.DIFFMM_E_LOSS,
+            ssl_reg=config.DIFFMM_SSL_REG,
+            temp=config.DIFFMM_TEMP,
+            keep_rate=config.DIFFMM_KEEP_RATE,
+            ris_lambda=config.DIFFMM_RIS_LAMBDA,
+            ris_adj_lambda=config.DIFFMM_RIS_ADJ_LAMBDA,
+            trans=config.DIFFMM_TRANS,
+            cl_method=config.DIFFMM_CL_METHOD,
         )
     
     # Load checkpoint
