@@ -373,9 +373,115 @@ def plot_training_curves(
         logger.info(f"Saved: {output_path}")
 
 
+def plot_combined_training_curves(
+    history: Dict[str, Dict[str, Dict]],
+    output_dir: Path,
+):
+    """
+    Plot combined training curves (Loss + Validation Recall) in a 2-panel figure.
+    
+    Args:
+        history: Nested dict {dataset: {model: {history}}}
+        output_dir: Directory to save plots
+    """
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    for dataset in DATASETS:
+        if dataset not in history:
+            continue
+        
+        # Create 2-panel figure (1 row, 2 columns)
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+        
+        max_epochs = 0
+        
+        # Panel 1: Training Loss
+        for model in MODELS:
+            if model not in history[dataset]:
+                continue
+            
+            model_history = history[dataset][model]
+            if "train_loss" not in model_history:
+                continue
+            
+            values = model_history["train_loss"]
+            epochs = range(1, len(values) + 1)
+            max_epochs = max(max_epochs, len(values))
+            
+            ax1.plot(
+                epochs,
+                values,
+                color=MODEL_COLORS[model],
+                marker=MODEL_MARKERS[model],
+                markevery=max(1, len(values) // 10),
+                markersize=5,
+                linewidth=1.5,
+                label=MODEL_DISPLAY_NAMES[model],
+                alpha=0.9,
+            )
+        
+        ax1.set_xlabel("Epoch", fontsize=11)
+        ax1.set_ylabel("Training Loss (BPR)", fontsize=11)
+        ax1.set_title("(a) Training Loss", fontsize=12, fontweight="bold")
+        ax1.legend(loc="upper right", fontsize=9)
+        ax1.grid(True, alpha=0.3)
+        ax1.set_xlim(1, max_epochs)
+        
+        # Panel 2: Validation Recall@20
+        for model in MODELS:
+            if model not in history[dataset]:
+                continue
+            
+            model_history = history[dataset][model]
+            if "val_recall" not in model_history:
+                continue
+            
+            values = model_history["val_recall"]
+            epochs = range(1, len(values) + 1)
+            
+            ax2.plot(
+                epochs,
+                values,
+                color=MODEL_COLORS[model],
+                marker=MODEL_MARKERS[model],
+                markevery=max(1, len(values) // 10),
+                markersize=5,
+                linewidth=1.5,
+                label=MODEL_DISPLAY_NAMES[model],
+                alpha=0.9,
+            )
+        
+        ax2.set_xlabel("Epoch", fontsize=11)
+        ax2.set_ylabel("Validation Recall@20", fontsize=11)
+        ax2.set_title("(b) Validation Recall@20", fontsize=12, fontweight="bold")
+        ax2.legend(loc="lower right", fontsize=9)
+        ax2.grid(True, alpha=0.3)
+        ax2.set_xlim(1, max_epochs)
+        
+        # Overall title
+        fig.suptitle(
+            f"{DATASET_DISPLAY_NAMES[dataset]} - Training Dynamics",
+            fontsize=14,
+            fontweight="bold",
+            y=1.02
+        )
+        
+        plt.tight_layout()
+        
+        output_path = output_dir / f"training_combined_{dataset}.png"
+        plt.savefig(output_path, dpi=FIGURE_DPI, bbox_inches="tight")
+        plt.close()
+        
+        logger.info(f"Saved: {output_path}")
+
+
 def plot_all_training_curves(history: Dict, output_dir: Path):
     """Generate all training curve plots."""
     
+    # Combined plots (Loss + Val Recall in one figure)
+    plot_combined_training_curves(history, output_dir)
+    
+    # Individual plots (kept for reference)
     # 1. Training Loss
     plot_training_curves(
         history, output_dir,
