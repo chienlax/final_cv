@@ -123,6 +123,9 @@ class Trainer:
         meters = {}
         adj = self.dataset.norm_adj
         
+        # Track first batch for build_item_graph flag
+        first_batch = True
+        
         pbar = tqdm(dataloader, desc="Training", leave=False)
         
         for users, pos_items, neg_items in pbar:
@@ -136,16 +139,38 @@ class Trainer:
             # Forward pass in FP32 (sparse mm doesn't support FP16)
             # Then use AMP only for loss computation and backward
             if self.use_amp:
+                # Determine if we need to rebuild item graphs (LATTICE/MICRO)
+                # Build on first batch of epoch only
+                build_graph = first_batch and hasattr(self.model, 'item_adj')
+                
                 # Forward pass WITHOUT autocast (sparse ops need FP32)
-                user_emb, pos_emb, neg_emb = self.model.forward(
+                forward_result = self.model.forward(
                     adj, users, pos_items, neg_items
                 )
+                
+                # Handle different forward signatures (DiffMM returns 3, MICRO returns 5)
+                if len(forward_result) == 3:
+                    user_emb, pos_emb, neg_emb = forward_result
+                elif len(forward_result) == 5:
+                    user_emb, pos_emb, image_emb, text_emb, fusion_emb = forward_result
+                    # Get neg embeddings separately for MICRO
+                    _, all_item_emb, _, _, _ = self.model.forward(adj, build_item_graph=False)
+                    neg_emb = all_item_emb[neg_items]
+                else:
+                    user_emb, pos_emb, neg_emb = forward_result[:3]
                 
                 # For DiffMM: Compute contrastive loss BEFORE autocast
                 # (it uses sparse ops internally via forward_visual/text_view)
                 cl_loss_precomputed = None
                 if hasattr(self.model, 'compute_contrastive_loss'):
                     cl_loss_precomputed = self.model.compute_contrastive_loss(adj, users, pos_items)
+                
+                # MICRO: Store modal embeddings for contrastive loss
+                extra_kwargs = {}
+                if len(forward_result) == 5:
+                    extra_kwargs['image_emb'] = image_emb
+                    extra_kwargs['text_emb'] = text_emb
+                    extra_kwargs['fusion_emb'] = fusion_emb
                 
                 # Loss computation WITH autocast (but cl_loss already computed in FP32)
                 with torch.amp.autocast('cuda'):
@@ -155,11 +180,13 @@ class Trainer:
                         adj=None,  # Don't pass adj - we precomputed cl_loss
                         l2_reg=self.config.L2_REG,
                         cl_loss_precomputed=cl_loss_precomputed,  # Pass precomputed CL loss
+                        **extra_kwargs,
                     )
                 
                 # NaN/Inf safety check - critical for long training runs
                 if torch.isnan(losses["loss"]) or torch.isinf(losses["loss"]):
                     logger.warning(f"⚠️ NaN/Inf detected in loss! Skipping this batch.")
+                    first_batch = False  # Don't rebuild on next batch either
                     continue
                 
                 # Backward with gradient scaling
@@ -172,14 +199,26 @@ class Trainer:
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
             else:
-                losses = self.model.compute_loss(
-                    adj, users, pos_items, neg_items,
-                    l2_reg=self.config.L2_REG,
-                )
+                # Determine if we need to rebuild item graphs (LATTICE/MICRO)
+                build_graph = first_batch and hasattr(self.model, 'item_adj')
+                
+                # Check if model supports build_item_graph parameter
+                if hasattr(self.model, 'item_adj'):
+                    losses = self.model.compute_loss(
+                        adj, users, pos_items, neg_items,
+                        l2_reg=self.config.L2_REG,
+                        build_item_graph=build_graph,
+                    )
+                else:
+                    losses = self.model.compute_loss(
+                        adj, users, pos_items, neg_items,
+                        l2_reg=self.config.L2_REG,
+                    )
                 
                 # NaN/Inf safety check
                 if torch.isnan(losses["loss"]) or torch.isinf(losses["loss"]):
                     logger.warning(f"⚠️ NaN/Inf detected in loss! Skipping this batch.")
+                    first_batch = False
                     continue
                 
                 losses["loss"].backward()
@@ -198,6 +237,9 @@ class Trainer:
                 meters[key].update(value)
             
             pbar.set_postfix({k: f"{v.avg:.4f}" for k, v in meters.items()})
+            
+            # Only first batch
+            first_batch = False
         
         return {k: v.avg for k, v in meters.items()}
     

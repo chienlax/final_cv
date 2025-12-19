@@ -76,38 +76,62 @@ def create_model(
     
     if model_name == "lattice":
         logger.info("Model: LATTICE (k-NN Graph Learning)")
-        logger.info(f"  k_neighbors: {config.LATTICE_K}")
-        logger.info(f"  graph_lambda: {config.LATTICE_LAMBDA}")
+        logger.info(f"  topk: {config.LATTICE_K}")
+        logger.info(f"  lambda_coeff: {config.LATTICE_LAMBDA}")
+        logger.info(f"  feat_embed_dim: {config.LATTICE_FEAT_EMBED_DIM}")
+        logger.info(f"  n_item_layers: {config.LATTICE_N_ITEM_LAYERS}")
         model = LATTICEModel(
             **common_args,
-            k=config.LATTICE_K,
-            graph_lambda=config.LATTICE_LAMBDA,
+            topk=config.LATTICE_K,
+            lambda_coeff=config.LATTICE_LAMBDA,
+            feat_embed_dim=config.LATTICE_FEAT_EMBED_DIM,
+            n_item_layers=config.LATTICE_N_ITEM_LAYERS,
         )
     elif model_name == "micro":
         logger.info("Model: MICRO (Contrastive Multimodal)")
         logger.info(f"  tau (temperature): {config.MICRO_TAU}")
-        logger.info(f"  alpha (contrastive weight): {config.MICRO_ALPHA}")
+        logger.info(f"  loss_ratio: {config.MICRO_LOSS_RATIO}")
+        logger.info(f"  topk: {config.MICRO_TOPK}")
+        logger.info(f"  lambda_coeff: {config.MICRO_LAMBDA}")
+        logger.info(f"  item_layers: {config.MICRO_ITEM_LAYERS}")
         model = MICROModel(
             **common_args,
+            topk=config.MICRO_TOPK,
+            lambda_coeff=config.MICRO_LAMBDA,
+            item_layers=config.MICRO_ITEM_LAYERS,
             tau=config.MICRO_TAU,
-            alpha=config.MICRO_ALPHA,
+            loss_ratio=config.MICRO_LOSS_RATIO,
+            sparse=config.MICRO_SPARSE,
+            norm_type=config.MICRO_NORM_TYPE,
         )
     elif model_name == "diffmm":
         logger.info("Model: DiffMM (Diffusion-based + Cross-Modal Contrastive)")
-        logger.info(f"  n_steps: {config.DIFFMM_STEPS}")
+        logger.info(f"  steps: {config.DIFFMM_STEPS}")
         logger.info(f"  noise_scale: {config.DIFFMM_NOISE_SCALE}")
-        logger.info(f"  lambda_msi (diffusion weight): {config.DIFFMM_LAMBDA_MSI}")
+        logger.info(f"  dims: {config.DIFFMM_DIMS}")
         logger.info(f"  ssl_reg (contrastive weight): {config.DIFFMM_SSL_REG}")
         logger.info(f"  temp (InfoNCE temperature): {config.DIFFMM_TEMP}")
-        logger.info(f"  mlp_width: {config.DIFFMM_MLP_WIDTH}")
+        logger.info(f"  e_loss (GraphCL weight): {config.DIFFMM_E_LOSS}")
+        logger.info(f"  rebuild_k: {config.DIFFMM_REBUILD_K}")
         model = DiffMM(
             **common_args,
-            n_steps=config.DIFFMM_STEPS,
             noise_scale=config.DIFFMM_NOISE_SCALE,
-            lambda_msi=config.DIFFMM_LAMBDA_MSI,
-            ssl_reg=config.DIFFMM_SSL_REG,    # NEW
-            temp=config.DIFFMM_TEMP,           # NEW
-            mlp_width=config.DIFFMM_MLP_WIDTH,
+            noise_min=config.DIFFMM_NOISE_MIN,
+            noise_max=config.DIFFMM_NOISE_MAX,
+            steps=config.DIFFMM_STEPS,
+            dims=config.DIFFMM_DIMS,
+            d_emb_size=config.DIFFMM_D_EMB_SIZE,
+            sampling_steps=config.DIFFMM_SAMPLING_STEPS,
+            sampling_noise=config.DIFFMM_SAMPLING_NOISE,
+            rebuild_k=config.DIFFMM_REBUILD_K,
+            e_loss=config.DIFFMM_E_LOSS,
+            ssl_reg=config.DIFFMM_SSL_REG,
+            temp=config.DIFFMM_TEMP,
+            keep_rate=config.DIFFMM_KEEP_RATE,
+            ris_lambda=config.DIFFMM_RIS_LAMBDA,
+            ris_adj_lambda=config.DIFFMM_RIS_ADJ_LAMBDA,
+            trans=config.DIFFMM_TRANS,
+            cl_method=config.DIFFMM_CL_METHOD,
         )
     else:
         raise ValueError(f"Unknown model: {model_name}")
