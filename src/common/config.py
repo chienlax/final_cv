@@ -346,7 +346,7 @@ class Config:
     # =========================================================================
     NUM_WORKERS = 6          # P-cores for parallel data loading
     PIN_MEMORY = True        # Faster CPU→GPU transfer
-    PREFETCH_FACTOR = 8      # Batches to prefetch per worker
+    PREFETCH_FACTOR = 32      # Batches to prefetch per worker
     PERSISTENT_WORKERS = True  # Avoid worker restart overhead
     
     # =========================================================================
