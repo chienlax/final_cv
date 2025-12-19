@@ -93,16 +93,20 @@ def create_model(
             alpha=config.MICRO_ALPHA,
         )
     elif model_name == "diffmm":
-        logger.info("Model: DiffMM (Diffusion-based)")
+        logger.info("Model: DiffMM (Diffusion-based + Cross-Modal Contrastive)")
         logger.info(f"  n_steps: {config.DIFFMM_STEPS}")
         logger.info(f"  noise_scale: {config.DIFFMM_NOISE_SCALE}")
-        logger.info(f"  lambda_msi: {config.DIFFMM_LAMBDA_MSI}")
+        logger.info(f"  lambda_msi (diffusion weight): {config.DIFFMM_LAMBDA_MSI}")
+        logger.info(f"  ssl_reg (contrastive weight): {config.DIFFMM_SSL_REG}")
+        logger.info(f"  temp (InfoNCE temperature): {config.DIFFMM_TEMP}")
         logger.info(f"  mlp_width: {config.DIFFMM_MLP_WIDTH}")
         model = DiffMM(
             **common_args,
             n_steps=config.DIFFMM_STEPS,
             noise_scale=config.DIFFMM_NOISE_SCALE,
             lambda_msi=config.DIFFMM_LAMBDA_MSI,
+            ssl_reg=config.DIFFMM_SSL_REG,    # NEW
+            temp=config.DIFFMM_TEMP,           # NEW
             mlp_width=config.DIFFMM_MLP_WIDTH,
         )
     else:

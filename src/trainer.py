@@ -141,12 +141,20 @@ class Trainer:
                     adj, users, pos_items, neg_items
                 )
                 
-                # Loss computation WITH autocast
+                # For DiffMM: Compute contrastive loss BEFORE autocast
+                # (it uses sparse ops internally via forward_visual/text_view)
+                cl_loss_precomputed = None
+                if hasattr(self.model, 'compute_contrastive_loss'):
+                    cl_loss_precomputed = self.model.compute_contrastive_loss(adj, users, pos_items)
+                
+                # Loss computation WITH autocast (but cl_loss already computed in FP32)
                 with torch.amp.autocast('cuda'):
                     losses = self.model._compute_loss_from_emb(
                         user_emb, pos_emb, neg_emb,
                         users, pos_items, neg_items,
+                        adj=None,  # Don't pass adj - we precomputed cl_loss
                         l2_reg=self.config.L2_REG,
+                        cl_loss_precomputed=cl_loss_precomputed,  # Pass precomputed CL loss
                     )
                 
                 # NaN/Inf safety check - critical for long training runs

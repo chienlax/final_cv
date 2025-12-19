@@ -317,7 +317,9 @@ class LATTICEModel(BaseMultimodalModel):
         users: torch.Tensor,      # (batch,)
         pos_items: torch.Tensor,  # (batch,)
         neg_items: torch.Tensor,  # (batch,) or (batch, n_neg)
+        adj: torch.Tensor = None, # Unused, for API compatibility with DiffMM
         l2_reg: float = 1e-4,
+        cl_loss_precomputed: torch.Tensor = None,  # Unused, for API compatibility
     ) -> dict:
         """
         Compute loss from pre-computed embeddings.

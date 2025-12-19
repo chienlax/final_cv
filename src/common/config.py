@@ -359,8 +359,8 @@ class Config:
     # =========================================================================
     # Regularization-aware: smaller batches = gradient noise = implicit regularization
     BATCH_SIZE = 1024        # Reduced from 2048 for regularization effect
-    EPOCHS = 300
-    PATIENCE = 50           # Early stopping (generous for generative models)
+    EPOCHS = 50
+    PATIENCE = 15           # Early stopping (generous for generative models)
     LR = 5e-4                # Lower LR for deeper model (was 1e-3)
     L2_REG = 1e-3            # Strong weight decay for high param-to-data ratio
     LR_SCHEDULER = "cosine"  # Cosine annealing
@@ -412,3 +412,7 @@ class Config:
     DIFFMM_NOISE_SCALE = 0.1
     DIFFMM_LAMBDA_MSI = 1e-2
     DIFFMM_MLP_WIDTH = 512   # Width of internal denoising MLP
+    
+    # Cross-Modal Contrastive Learning (per official HKUDS/DiffMM)
+    DIFFMM_SSL_REG = 1e-2    # Weight for cross-modal contrastive loss (λ_cl)
+    DIFFMM_TEMP = 0.2        # Temperature for InfoNCE (τ)
