@@ -143,34 +143,36 @@ class Trainer:
                 # Build on first batch of epoch only
                 build_graph = first_batch and hasattr(self.model, 'item_adj')
                 
-                # Forward pass WITHOUT autocast (sparse ops need FP32)
-                forward_result = self.model.forward(
-                    adj, users, pos_items, neg_items
-                )
+                # Check model type to determine forward signature
+                model_type = self.model.__class__.__name__
                 
-                # Handle different forward signatures (DiffMM returns 3, MICRO returns 5)
-                if len(forward_result) == 3:
-                    user_emb, pos_emb, neg_emb = forward_result
-                elif len(forward_result) == 5:
-                    user_emb, pos_emb, image_emb, text_emb, fusion_emb = forward_result
-                    # Get neg embeddings separately for MICRO
+                if model_type == "LATTICEModel":
+                    # LATTICE: forward(adj, build_item_graph) -> (all_u, all_i)
+                    all_u, all_i = self.model.forward(adj, build_item_graph=build_graph)
+                    user_emb = all_u[users]
+                    pos_emb = all_i[pos_items]
+                    neg_emb = all_i[neg_items]
+                    extra_kwargs = {}
+                    
+                elif model_type == "MICROModel":
+                    # MICRO: forward returns 5 values
+                    result = self.model.forward(adj, users, pos_items, neg_items, build_item_graph=build_graph)
+                    user_emb, pos_emb, image_emb, text_emb, fusion_emb = result
+                    # Get neg embeddings
                     _, all_item_emb, _, _, _ = self.model.forward(adj, build_item_graph=False)
                     neg_emb = all_item_emb[neg_items]
+                    extra_kwargs = {'image_emb': image_emb, 'text_emb': text_emb, 'fusion_emb': fusion_emb}
+                    
                 else:
-                    user_emb, pos_emb, neg_emb = forward_result[:3]
+                    # DiffMM and others: forward(adj, users, pos, neg) -> (u, pos, neg)
+                    user_emb, pos_emb, neg_emb = self.model.forward(adj, users, pos_items, neg_items)
+                    extra_kwargs = {}
                 
                 # For DiffMM: Compute contrastive loss BEFORE autocast
                 # (it uses sparse ops internally via forward_visual/text_view)
                 cl_loss_precomputed = None
                 if hasattr(self.model, 'compute_contrastive_loss'):
                     cl_loss_precomputed = self.model.compute_contrastive_loss(adj, users, pos_items)
-                
-                # MICRO: Store modal embeddings for contrastive loss
-                extra_kwargs = {}
-                if len(forward_result) == 5:
-                    extra_kwargs['image_emb'] = image_emb
-                    extra_kwargs['text_emb'] = text_emb
-                    extra_kwargs['fusion_emb'] = fusion_emb
                 
                 # Loss computation WITH autocast (but cl_loss already computed in FP32)
                 with torch.amp.autocast('cuda'):

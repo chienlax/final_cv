@@ -1,180 +1,155 @@
 """
 LATTICE: Mining Latent Structures for Multimodal Recommendation.
 
-Faithful implementation matching the official LATTICE paper (MM'21).
+FAITHFUL implementation matching the official CRIPAC-DIG/LATTICE (MM'21).
 Reference: https://github.com/CRIPAC-DIG/LATTICE
 
-Key Architecture:
-    1. Item-item graph learning: k-NN from modal features
-    2. Dynamic graph rebuilding: `build_item_graph` flag per epoch
-    3. LightGCN backbone for user-item propagation
-    4. Modal fusion with learnable weights
-
-Training:
-    - First batch of each epoch: build_item_graph=True
-    - Subsequent batches: build_item_graph=False (use cached)
+This is a DIRECT PORT of the original code with minimal adaptation.
 """
 
-from typing import Tuple, Optional
-
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .base import BaseMultimodalModel
+from typing import Tuple, Optional
 
 
 # =============================================================================
-# Utility Functions (from original codes/Models.py)
+# Utility Functions - EXACT COPY from original Models.py
 # =============================================================================
-
-def build_sim(context: torch.Tensor) -> torch.Tensor:
-    """
-    Build cosine similarity matrix.
-    
-    Args:
-        context: (N, dim) feature matrix
-        
-    Returns:
-        (N, N) similarity matrix
-    """
-    context_norm = context / (context.norm(p=2, dim=-1, keepdim=True) + 1e-8)
-    sim = torch.mm(context_norm, context_norm.T)
-    return sim
-
 
 def build_knn_neighbourhood(adj: torch.Tensor, topk: int) -> torch.Tensor:
-    """
-    Build k-NN adjacency by keeping top-k neighbors per node.
+    """Build k-NN adjacency by keeping top-k neighbors per node.
     
-    Args:
-        adj: (N, N) similarity matrix
-        topk: Number of neighbors to keep
-        
-    Returns:
-        (N, N) sparse k-NN adjacency
+    EXACT match to original LATTICE/codes/Models.py line 13-16.
     """
     knn_val, knn_ind = torch.topk(adj, topk, dim=-1)
-    weighted_adj = torch.zeros_like(adj).scatter_(-1, knn_ind, knn_val)
-    return weighted_adj
+    weighted_adjacency_matrix = (torch.zeros_like(adj)).scatter_(-1, knn_ind, knn_val)
+    return weighted_adjacency_matrix
 
 
 def compute_normalized_laplacian(adj: torch.Tensor) -> torch.Tensor:
-    """
-    Compute symmetric normalized Laplacian: D^(-1/2) A D^(-1/2).
+    """Compute symmetric normalized Laplacian.
     
-    Args:
-        adj: (N, N) adjacency matrix
-        
-    Returns:
-        (N, N) normalized adjacency
+    EXACT match to original LATTICE/codes/Models.py line 17-23.
+    Uses torch.diagflat() as in original.
     """
-    rowsum = torch.sum(adj, dim=-1)
-    d_inv_sqrt = torch.pow(rowsum + 1e-8, -0.5)
-    d_inv_sqrt[torch.isinf(d_inv_sqrt)] = 0.0
-    d_mat_inv_sqrt = torch.diag(d_inv_sqrt)
+    rowsum = torch.sum(adj, -1)
+    d_inv_sqrt = torch.pow(rowsum, -0.5)
+    d_inv_sqrt[torch.isinf(d_inv_sqrt)] = 0.
+    d_mat_inv_sqrt = torch.diagflat(d_inv_sqrt)
     L_norm = torch.mm(torch.mm(d_mat_inv_sqrt, adj), d_mat_inv_sqrt)
     return L_norm
 
 
+def build_sim(context: torch.Tensor) -> torch.Tensor:
+    """Build cosine similarity matrix.
+    
+    EXACT match to original LATTICE/codes/Models.py line 24-27.
+    Uses .div() without epsilon as in original.
+    """
+    context_norm = context.div(torch.norm(context, p=2, dim=-1, keepdim=True))
+    sim = torch.mm(context_norm, context_norm.transpose(1, 0))
+    return sim
+
+
 # =============================================================================
-# LATTICE Model
+# LATTICE Model - FAITHFUL TO ORIGINAL
 # =============================================================================
 
-class LATTICEModel(BaseMultimodalModel):
+class LATTICEModel(nn.Module):
     """
-    LATTICE: Learning All-modality Structured Item Graph for Recommendation.
+    LATTICE: Learning All-modality Structured Item Graph.
     
-    Full implementation matching the official LATTICE paper.
-    
-    Architecture:
-        1. Modal feature projection (linear)
-        2. k-NN item graph from projected features
-        3. Item graph message passing (n_layers hops)
-        4. LightGCN on user-item bipartite graph
-        5. Learnable modal fusion weights
+    DIRECT PORT from original LATTICE/codes/Models.py with:
+    - Same architecture
+    - Same forward pass logic
+    - Same variable names where practical
+    - LightGCN backbone only (per user request)
     """
     
     def __init__(
         self,
         n_users: int,
         n_items: int,
-        n_warm: int,
+        n_warm: int,  # For cold-start compatibility
         embed_dim: int,
-        n_layers: int,
+        n_ui_layers: int,  # Number of UI graph layers (weight_size length in original)
         feat_visual: torch.Tensor,
         feat_text: torch.Tensor,
-        # LATTICE-specific params
+        # LATTICE-specific params (from parser.py)
         topk: int = 10,
         lambda_coeff: float = 0.9,
         feat_embed_dim: int = 64,
-        n_item_layers: int = 1,
-        # Base params
+        n_layers: int = 1,  # Number of item graph layers (args.n_layers in original)
+        # Unused but kept for API compatibility
         projection_hidden_dim: int = 1024,
         projection_dropout: float = 0.5,
         device: str = "cuda",
     ):
         """
-        Args:
-            n_users: Number of users
-            n_items: Number of items
-            n_warm: Number of warm items
-            embed_dim: Embedding dimension
-            n_layers: Number of LightGCN layers
-            feat_visual: (n_items, visual_dim) visual features
-            feat_text: (n_items, text_dim) text features
-            topk: k for k-NN graph
-            lambda_coeff: Weight for original vs learned graph (higher = more original)
-            feat_embed_dim: Modal feature projection dimension
-            n_item_layers: Number of item graph conv layers
-            projection_hidden_dim: Base projection hidden dim
-            projection_dropout: Base projection dropout
-            device: Torch device
-        """
-        super().__init__(
-            n_users, n_items, n_warm, embed_dim, n_layers,
-            feat_visual, feat_text,
-            projection_hidden_dim=projection_hidden_dim,
-            projection_dropout=projection_dropout,
-            device=device,
-        )
+        Args match original LATTICE __init__ params from Models.py line 30.
         
+        n_users, n_items: Dataset sizes
+        embed_dim: embedding_dim in original (args.embed_size)
+        n_ui_layers: len(weight_size) in original - number of UI GCN layers
+        feat_visual: image_feats in original
+        feat_text: text_feats in original
+        topk: args.topk
+        lambda_coeff: args.lambda_coeff
+        feat_embed_dim: args.feat_embed_dim
+        n_layers: args.n_layers for item graph conv
+        """
+        super().__init__()
+        
+        self.n_users = n_users
+        self.n_items = n_items
+        self.n_warm = n_warm
+        self.embedding_dim = embed_dim
+        self.n_ui_layers = n_ui_layers  # For user-item GCN
+        self.n_layers = n_layers  # For item graph propagation
         self.topk = topk
         self.lambda_coeff = lambda_coeff
-        self.feat_embed_dim = feat_embed_dim
-        self.n_item_layers = n_item_layers
+        self.device = device
         
-        # Modal embeddings (trainable from pretrained)
+        # ID Embeddings - EXACT match to original line 38-41
+        self.user_embedding = nn.Embedding(n_users, self.embedding_dim)
+        self.item_id_embedding = nn.Embedding(n_items, self.embedding_dim)
+        nn.init.xavier_uniform_(self.user_embedding.weight)
+        nn.init.xavier_uniform_(self.item_id_embedding.weight)
+        
+        # Modal Embeddings - EXACT match to original line 53-54
         self.image_embedding = nn.Embedding.from_pretrained(
-            feat_visual.clone(), freeze=False
+            feat_visual.clone() if isinstance(feat_visual, torch.Tensor) else torch.Tensor(feat_visual),
+            freeze=False
         )
         self.text_embedding = nn.Embedding.from_pretrained(
-            feat_text.clone(), freeze=False
+            feat_text.clone() if isinstance(feat_text, torch.Tensor) else torch.Tensor(feat_text),
+            freeze=False
         )
         
-        # Modal transformation layers
+        # Build original adjacencies - EXACT match to original line 60-74
+        # Note: Original loads from file if exists, we compute directly
+        image_adj = build_sim(self.image_embedding.weight.detach())
+        image_adj = build_knn_neighbourhood(image_adj, topk=topk)
+        image_adj = compute_normalized_laplacian(image_adj)
+        
+        text_adj = build_sim(self.text_embedding.weight.detach())
+        text_adj = build_knn_neighbourhood(text_adj, topk=topk)
+        text_adj = compute_normalized_laplacian(text_adj)
+        
+        self.register_buffer("text_original_adj", text_adj)
+        self.register_buffer("image_original_adj", image_adj)
+        
+        # Modal transformation - EXACT match to original line 76-77
         self.image_trs = nn.Linear(feat_visual.shape[1], feat_embed_dim)
         self.text_trs = nn.Linear(feat_text.shape[1], feat_embed_dim)
         
-        # Learnable modal fusion weights
+        # Modal weight - EXACT match to original line 80-81
         self.modal_weight = nn.Parameter(torch.Tensor([0.5, 0.5]))
         self.softmax = nn.Softmax(dim=0)
         
-        # Build original adjacencies from raw features
-        with torch.no_grad():
-            image_adj = build_sim(feat_visual.to(device))
-            image_adj = build_knn_neighbourhood(image_adj, topk=topk)
-            image_adj = compute_normalized_laplacian(image_adj)
-            
-            text_adj = build_sim(feat_text.to(device))
-            text_adj = build_knn_neighbourhood(text_adj, topk=topk)
-            text_adj = compute_normalized_laplacian(text_adj)
-        
-        self.register_buffer("image_original_adj", image_adj)
-        self.register_buffer("text_original_adj", text_adj)
-        
-        # Learned item adjacency (will be set during forward with build_item_graph=True)
+        # Item adjacency (set during forward)
         self.item_adj: Optional[torch.Tensor] = None
         
         self.to(device)
@@ -182,89 +157,59 @@ class LATTICEModel(BaseMultimodalModel):
     def forward(
         self,
         adj: torch.Tensor,
-        users: torch.Tensor = None,
-        pos_items: torch.Tensor = None,
-        neg_items: torch.Tensor = None,
         build_item_graph: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Forward pass with optional item graph rebuilding.
+        Forward pass - EXACT match to original Models.py line 83-136.
+        
+        Returns (u_g_embeddings, i_g_embeddings) as in original.
         
         Args:
-            adj: (N, N) user-item bipartite adjacency
-            users: (batch,) user indices (optional for get_embeddings mode)
-            pos_items: (batch,) positive item indices
-            neg_items: (batch,) or (batch, n_neg) negative item indices
-            build_item_graph: Whether to rebuild item graph (first batch of epoch)
+            adj: Normalized user-item bipartite adjacency (sparse)
+            build_item_graph: Whether to rebuild item graph
             
         Returns:
-            (user_emb, pos_item_emb, neg_item_emb) for batch if users provided
-            (all_user_emb, all_item_emb, None) if users is None
+            Tuple of (user_embeddings, item_embeddings)
         """
-        # Project modal features
-        image_feats = self.image_trs(self.image_embedding.weight)  # (n_items, feat_dim)
-        text_feats = self.text_trs(self.text_embedding.weight)  # (n_items, feat_dim)
+        # Line 84-85: Project modal features
+        image_feats = self.image_trs(self.image_embedding.weight)
+        text_feats = self.text_trs(self.text_embedding.weight)
         
+        # Line 86-100: Build or reuse item adjacency
         if build_item_graph:
-            # Rebuild learned adjacency from projected features
             weight = self.softmax(self.modal_weight)
             
-            image_adj = build_sim(image_feats)
-            image_adj = build_knn_neighbourhood(image_adj, topk=self.topk)
+            self.image_adj = build_sim(image_feats)
+            self.image_adj = build_knn_neighbourhood(self.image_adj, topk=self.topk)
             
-            text_adj = build_sim(text_feats)
-            text_adj = build_knn_neighbourhood(text_adj, topk=self.topk)
+            self.text_adj = build_sim(text_feats)
+            self.text_adj = build_knn_neighbourhood(self.text_adj, topk=self.topk)
             
-            # Weighted fusion of learned adjacencies
-            learned_adj = weight[0] * image_adj + weight[1] * text_adj
+            learned_adj = weight[0] * self.image_adj + weight[1] * self.text_adj
             learned_adj = compute_normalized_laplacian(learned_adj)
-            
-            # Combine with original adjacencies
             original_adj = weight[0] * self.image_original_adj + weight[1] * self.text_original_adj
-            
-            # Interpolate: learned vs original
             self.item_adj = (1 - self.lambda_coeff) * learned_adj + self.lambda_coeff * original_adj
         else:
-            # Use cached adjacency (detach to avoid gradient flow through graph construction)
-            if self.item_adj is not None:
-                self.item_adj = self.item_adj.detach()
+            self.item_adj = self.item_adj.detach()
         
-        # Item graph propagation (n_item_layers hops)
-        h = self.item_embedding.weight  # (n_items, dim)
-        if self.item_adj is not None:
-            for _ in range(self.n_item_layers):
-                h = torch.mm(self.item_adj, h)
+        # Line 102-104: Item graph propagation
+        h = self.item_id_embedding.weight
+        for i in range(self.n_layers):
+            h = torch.mm(self.item_adj, h)
         
-        # LightGCN on user-item graph
-        ego_embeddings = torch.cat([
-            self.user_embedding.weight,
-            self.item_embedding.weight
-        ], dim=0)  # (N, dim)
-        
+        # Line 125-136: LightGCN on user-item graph
+        ego_embeddings = torch.cat((self.user_embedding.weight, self.item_id_embedding.weight), dim=0)
         all_embeddings = [ego_embeddings]
-        for _ in range(self.n_layers):
+        for i in range(self.n_ui_layers):
             side_embeddings = torch.sparse.mm(adj, ego_embeddings)
             ego_embeddings = side_embeddings
-            all_embeddings.append(ego_embeddings)
-        
+            all_embeddings += [ego_embeddings]
         all_embeddings = torch.stack(all_embeddings, dim=1)
-        all_embeddings = all_embeddings.mean(dim=1)  # (N, dim)
-        
-        u_g_embeddings, i_g_embeddings = torch.split(
-            all_embeddings, [self.n_users, self.n_items], dim=0
-        )
-        
-        # Add item graph enhanced embeddings
+        all_embeddings = all_embeddings.mean(dim=1, keepdim=False)
+        u_g_embeddings, i_g_embeddings = torch.split(all_embeddings, [self.n_users, self.n_items], dim=0)
         i_g_embeddings = i_g_embeddings + F.normalize(h, p=2, dim=1)
         
-        if users is None:
-            return u_g_embeddings, i_g_embeddings, None
-        
-        return (
-            u_g_embeddings[users],
-            i_g_embeddings[pos_items],
-            i_g_embeddings[neg_items],
-        )
+        return u_g_embeddings, i_g_embeddings
     
     def compute_loss(
         self,
@@ -276,25 +221,40 @@ class LATTICEModel(BaseMultimodalModel):
         build_item_graph: bool = False,
     ) -> dict:
         """
-        Compute BPR + L2 loss.
+        Compute BPR loss - matches original main.py bpr_loss (line 164-176).
         
-        Args:
-            adj: User-item adjacency
-            users: User indices
-            pos_items: Positive item indices
-            neg_items: Negative item indices
-            l2_reg: L2 regularization weight
-            build_item_graph: Whether to rebuild item graph
+        Original uses:
+        - torch.mul() for element-wise multiplication
+        - torch.sum() for sum
+        - F.logsigmoid for BPR
+        - Regularization: 1/2 * sum of squared embeddings / batch_size
         """
-        user_emb, pos_emb, neg_emb = self.forward(
-            adj, users, pos_items, neg_items, build_item_graph=build_item_graph
-        )
+        # Get embeddings
+        ua_embeddings, ia_embeddings = self.forward(adj, build_item_graph=build_item_graph)
         
-        return self._compute_loss_from_emb(
-            user_emb, pos_emb, neg_emb,
-            users, pos_items, neg_items,
-            l2_reg=l2_reg,
-        )
+        u_g_embeddings = ua_embeddings[users]
+        pos_i_g_embeddings = ia_embeddings[pos_items]
+        neg_i_g_embeddings = ia_embeddings[neg_items]
+        
+        # BPR loss - EXACT match to original main.py line 164-176
+        pos_scores = torch.sum(torch.mul(u_g_embeddings, pos_i_g_embeddings), dim=1)
+        neg_scores = torch.sum(torch.mul(u_g_embeddings, neg_i_g_embeddings), dim=1)
+        
+        regularizer = 1./2*(u_g_embeddings**2).sum() + 1./2*(pos_i_g_embeddings**2).sum() + 1./2*(neg_i_g_embeddings**2).sum()
+        regularizer = regularizer / u_g_embeddings.shape[0]
+        
+        maxi = F.logsigmoid(pos_scores - neg_scores)
+        mf_loss = -torch.mean(maxi)
+        
+        emb_loss = l2_reg * regularizer
+        
+        batch_loss = mf_loss + emb_loss
+        
+        return {
+            "loss": batch_loss,
+            "bpr_loss": mf_loss.item(),
+            "reg_loss": emb_loss.item(),
+        }
     
     def _compute_loss_from_emb(
         self,
@@ -308,26 +268,23 @@ class LATTICEModel(BaseMultimodalModel):
         l2_reg: float = 1e-5,
         cl_loss_precomputed: torch.Tensor = None,
     ) -> dict:
-        """Compute loss from pre-computed embeddings."""
-        # BPR loss
-        pos_scores = (user_emb * pos_emb).sum(dim=-1)
-        neg_scores = (user_emb * neg_emb).sum(dim=-1)
+        """Compute loss from pre-computed embeddings (for AMP compatibility)."""
+        # BPR loss - same formula as compute_loss
+        pos_scores = torch.sum(torch.mul(user_emb, pos_emb), dim=1)
+        neg_scores = torch.sum(torch.mul(user_emb, neg_emb), dim=1)
         
-        mf_loss = -F.logsigmoid(pos_scores - neg_scores).mean()
-        
-        # L2 regularization
-        regularizer = (
-            0.5 * (user_emb ** 2).sum() +
-            0.5 * (pos_emb ** 2).sum() +
-            0.5 * (neg_emb ** 2).sum()
-        )
+        regularizer = 1./2*(user_emb**2).sum() + 1./2*(pos_emb**2).sum() + 1./2*(neg_emb**2).sum()
         regularizer = regularizer / user_emb.shape[0]
+        
+        maxi = F.logsigmoid(pos_scores - neg_scores)
+        mf_loss = -torch.mean(maxi)
+        
         emb_loss = l2_reg * regularizer
         
-        total = mf_loss + emb_loss
+        batch_loss = mf_loss + emb_loss
         
         return {
-            "loss": total,
+            "loss": batch_loss,
             "bpr_loss": mf_loss.item(),
             "reg_loss": emb_loss.item(),
         }
@@ -343,10 +300,9 @@ class LATTICEModel(BaseMultimodalModel):
         
         Cold items (idx >= n_warm) use modal features only.
         """
-        # Get all embeddings
-        u_emb, i_emb, _ = self.forward(adj, build_item_graph=False)
+        u_emb, i_emb = self.forward(adj, build_item_graph=False)
         
-        # Cold items: Replace with modal features
+        # Cold items: Replace with projected modal features
         cold_mask = items >= self.n_warm
         if cold_mask.any():
             cold_items = items[cold_mask]
@@ -364,5 +320,4 @@ class LATTICEModel(BaseMultimodalModel):
         adj: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get all embeddings after propagation."""
-        u_emb, i_emb, _ = self.forward(adj, build_item_graph=False)
-        return u_emb, i_emb
+        return self.forward(adj, build_item_graph=False)

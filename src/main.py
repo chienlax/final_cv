@@ -79,13 +79,21 @@ def create_model(
         logger.info(f"  topk: {config.LATTICE_K}")
         logger.info(f"  lambda_coeff: {config.LATTICE_LAMBDA}")
         logger.info(f"  feat_embed_dim: {config.LATTICE_FEAT_EMBED_DIM}")
-        logger.info(f"  n_item_layers: {config.LATTICE_N_ITEM_LAYERS}")
+        logger.info(f"  n_layers (item graph): {config.LATTICE_N_ITEM_LAYERS}")
+        logger.info(f"  n_ui_layers (LightGCN): {config.N_LAYERS}")
         model = LATTICEModel(
-            **common_args,
+            n_users=dataset.n_users,
+            n_items=dataset.n_items,
+            n_warm=dataset.n_warm,
+            embed_dim=config.EMBED_DIM,
+            n_ui_layers=config.N_LAYERS,  # LightGCN layers
+            feat_visual=dataset.feat_visual,
+            feat_text=dataset.feat_text,
             topk=config.LATTICE_K,
             lambda_coeff=config.LATTICE_LAMBDA,
             feat_embed_dim=config.LATTICE_FEAT_EMBED_DIM,
-            n_item_layers=config.LATTICE_N_ITEM_LAYERS,
+            n_layers=config.LATTICE_N_ITEM_LAYERS,  # Item graph layers
+            device=config.DEVICE,
         )
     elif model_name == "micro":
         logger.info("Model: MICRO (Contrastive Multimodal)")
