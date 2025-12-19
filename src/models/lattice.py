@@ -1,17 +1,23 @@
 """
 LATTICE: Mining Latent Structures for Multimodal Recommendation.
 
-Learns a latent item-item graph from multimodal features, then uses
-LightGCN-style message passing for recommendation.
+Faithful implementation matching the official LATTICE paper (MM'21).
+Reference: https://github.com/CRIPAC-DIG/LATTICE
 
-Key components:
-- k-NN graph learner: Builds item similarity graph from modal features
-- Graph fusion: Combines learned graph with interaction graph
-- Inductive mode: Uses only modal embeddings for cold items
+Key Architecture:
+    1. Item-item graph learning: k-NN from modal features
+    2. Dynamic graph rebuilding: `build_item_graph` flag per epoch
+    3. LightGCN backbone for user-item propagation
+    4. Modal fusion with learnable weights
+
+Training:
+    - First batch of each epoch: build_item_graph=True
+    - Subsequent batches: build_item_graph=False (use cached)
 """
 
-from typing import Optional
+from typing import Tuple, Optional
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -19,12 +25,75 @@ import torch.nn.functional as F
 from .base import BaseMultimodalModel
 
 
+# =============================================================================
+# Utility Functions (from original codes/Models.py)
+# =============================================================================
+
+def build_sim(context: torch.Tensor) -> torch.Tensor:
+    """
+    Build cosine similarity matrix.
+    
+    Args:
+        context: (N, dim) feature matrix
+        
+    Returns:
+        (N, N) similarity matrix
+    """
+    context_norm = context / (context.norm(p=2, dim=-1, keepdim=True) + 1e-8)
+    sim = torch.mm(context_norm, context_norm.T)
+    return sim
+
+
+def build_knn_neighbourhood(adj: torch.Tensor, topk: int) -> torch.Tensor:
+    """
+    Build k-NN adjacency by keeping top-k neighbors per node.
+    
+    Args:
+        adj: (N, N) similarity matrix
+        topk: Number of neighbors to keep
+        
+    Returns:
+        (N, N) sparse k-NN adjacency
+    """
+    knn_val, knn_ind = torch.topk(adj, topk, dim=-1)
+    weighted_adj = torch.zeros_like(adj).scatter_(-1, knn_ind, knn_val)
+    return weighted_adj
+
+
+def compute_normalized_laplacian(adj: torch.Tensor) -> torch.Tensor:
+    """
+    Compute symmetric normalized Laplacian: D^(-1/2) A D^(-1/2).
+    
+    Args:
+        adj: (N, N) adjacency matrix
+        
+    Returns:
+        (N, N) normalized adjacency
+    """
+    rowsum = torch.sum(adj, dim=-1)
+    d_inv_sqrt = torch.pow(rowsum + 1e-8, -0.5)
+    d_inv_sqrt[torch.isinf(d_inv_sqrt)] = 0.0
+    d_mat_inv_sqrt = torch.diag(d_inv_sqrt)
+    L_norm = torch.mm(torch.mm(d_mat_inv_sqrt, adj), d_mat_inv_sqrt)
+    return L_norm
+
+
+# =============================================================================
+# LATTICE Model
+# =============================================================================
+
 class LATTICEModel(BaseMultimodalModel):
     """
     LATTICE: Learning All-modality Structured Item Graph for Recommendation.
     
-    The model that said: "What if items that look similar... are similar?"
-    Revolutionary, I know. But it works! 🎉
+    Full implementation matching the official LATTICE paper.
+    
+    Architecture:
+        1. Modal feature projection (linear)
+        2. k-NN item graph from projected features
+        3. Item graph message passing (n_layers hops)
+        4. LightGCN on user-item bipartite graph
+        5. Learnable modal fusion weights
     """
     
     def __init__(
@@ -36,26 +105,32 @@ class LATTICEModel(BaseMultimodalModel):
         n_layers: int,
         feat_visual: torch.Tensor,
         feat_text: torch.Tensor,
-        k: int = 10,
-        graph_lambda: float = 0.5,
+        # LATTICE-specific params
+        topk: int = 10,
+        lambda_coeff: float = 0.9,
+        feat_embed_dim: int = 64,
+        n_item_layers: int = 1,
+        # Base params
         projection_hidden_dim: int = 1024,
         projection_dropout: float = 0.5,
         device: str = "cuda",
     ):
         """
         Args:
-            n_users: Number of users.
-            n_items: Total number of items.
-            n_warm: Number of warm items.
-            embed_dim: Embedding dimension.
-            n_layers: Number of LightGCN layers.
-            feat_visual: Visual features.
-            feat_text: Text features.
-            k: Number of k-NN neighbors for graph learning.
-            graph_lambda: Weight to balance original vs learned graph.
-            projection_hidden_dim: Hidden dim for modality MLP.
-            projection_dropout: Dropout for modality MLP.
-            device: torch device.
+            n_users: Number of users
+            n_items: Number of items
+            n_warm: Number of warm items
+            embed_dim: Embedding dimension
+            n_layers: Number of LightGCN layers
+            feat_visual: (n_items, visual_dim) visual features
+            feat_text: (n_items, text_dim) text features
+            topk: k for k-NN graph
+            lambda_coeff: Weight for original vs learned graph (higher = more original)
+            feat_embed_dim: Modal feature projection dimension
+            n_item_layers: Number of item graph conv layers
+            projection_hidden_dim: Base projection hidden dim
+            projection_dropout: Base projection dropout
+            device: Torch device
         """
         super().__init__(
             n_users, n_items, n_warm, embed_dim, n_layers,
@@ -65,232 +140,131 @@ class LATTICEModel(BaseMultimodalModel):
             device=device,
         )
         
-        self.k = k
-        self.graph_lambda = graph_lambda
+        self.topk = topk
+        self.lambda_coeff = lambda_coeff
+        self.feat_embed_dim = feat_embed_dim
+        self.n_item_layers = n_item_layers
         
-        # Modality-specific attention weights (learning to balance eyes vs words)
-        self.modal_attention = nn.Parameter(torch.ones(2) / 2)
+        # Modal embeddings (trainable from pretrained)
+        self.image_embedding = nn.Embedding.from_pretrained(
+            feat_visual.clone(), freeze=False
+        )
+        self.text_embedding = nn.Embedding.from_pretrained(
+            feat_text.clone(), freeze=False
+        )
         
-        # Build learned item-item graph (the secret sauce)
-        self.item_graph = None  # Will be built lazily
+        # Modal transformation layers
+        self.image_trs = nn.Linear(feat_visual.shape[1], feat_embed_dim)
+        self.text_trs = nn.Linear(feat_text.shape[1], feat_embed_dim)
+        
+        # Learnable modal fusion weights
+        self.modal_weight = nn.Parameter(torch.Tensor([0.5, 0.5]))
+        self.softmax = nn.Softmax(dim=0)
+        
+        # Build original adjacencies from raw features
+        with torch.no_grad():
+            image_adj = build_sim(feat_visual.to(device))
+            image_adj = build_knn_neighbourhood(image_adj, topk=topk)
+            image_adj = compute_normalized_laplacian(image_adj)
+            
+            text_adj = build_sim(feat_text.to(device))
+            text_adj = build_knn_neighbourhood(text_adj, topk=topk)
+            text_adj = compute_normalized_laplacian(text_adj)
+        
+        self.register_buffer("image_original_adj", image_adj)
+        self.register_buffer("text_original_adj", text_adj)
+        
+        # Learned item adjacency (will be set during forward with build_item_graph=True)
+        self.item_adj: Optional[torch.Tensor] = None
         
         self.to(device)
-    
-    def _build_item_graph(self) -> torch.Tensor:
-        """
-        Build k-NN item-item graph from modal features.
-        
-        Returns:
-            Sparse (n_items, n_items) adjacency matrix.
-        """
-        with torch.no_grad():
-            # Project features
-            visual_emb = self.visual_proj(self.feat_visual)
-            text_emb = self.text_proj(self.feat_text)
-            
-            # Attention-weighted fusion
-            attn = F.softmax(self.modal_attention, dim=0)
-            fused = attn[0] * visual_emb + attn[1] * text_emb
-            
-            # Normalize for cosine similarity
-            fused = F.normalize(fused, p=2, dim=1)
-            
-            # Compute similarity matrix (chunked to save memory)
-            n_items = fused.shape[0]
-            chunk_size = 1000
-            
-            indices_list = []
-            values_list = []
-            
-            for i in range(0, n_items, chunk_size):
-                end_i = min(i + chunk_size, n_items)
-                chunk = fused[i:end_i]
-                
-                # Compute similarities for chunk
-                sims = chunk @ fused.T  # (chunk_size, n_items)
-                
-                # Get top-k for each row (excluding self)
-                sims[:, i:end_i] = -float('inf')  # Mask self-connections
-                topk_vals, topk_idx = sims.topk(self.k, dim=1)
-                
-                # Build sparse indices
-                for j in range(end_i - i):
-                    row_idx = i + j
-                    for kk in range(self.k):
-                        col_idx = topk_idx[j, kk].item()
-                        val = topk_vals[j, kk].item()
-                        if val > 0:
-                            indices_list.append([row_idx, col_idx])
-                            values_list.append(val)
-            
-            # Create sparse tensor
-            if indices_list:
-                indices = torch.LongTensor(indices_list).T.to(self.device)
-                values = torch.FloatTensor(values_list).to(self.device)
-                graph = torch.sparse_coo_tensor(
-                    indices, values, (n_items, n_items)
-                ).coalesce()
-            else:
-                graph = torch.sparse_coo_tensor(
-                    torch.empty(2, 0, dtype=torch.long, device=self.device),
-                    torch.empty(0, device=self.device),
-                    (n_items, n_items)
-                )
-            
-            # Symmetric normalization
-            graph = self._normalize_sparse(graph)
-            
-        return graph
-    
-    def _normalize_sparse(self, adj: torch.Tensor) -> torch.Tensor:
-        """Normalize sparse adjacency matrix."""
-        # Add self-loops
-        n = adj.shape[0]
-        eye_indices = torch.arange(n, device=self.device).unsqueeze(0).repeat(2, 1)
-        eye_values = torch.ones(n, device=self.device)
-        eye = torch.sparse_coo_tensor(eye_indices, eye_values, (n, n))
-        
-        adj = adj + eye
-        adj = adj.coalesce()
-        
-        # Compute degrees
-        degrees = torch.sparse.sum(adj, dim=1).to_dense()
-        d_inv_sqrt = degrees.pow(-0.5)
-        d_inv_sqrt[torch.isinf(d_inv_sqrt)] = 0.0
-        
-        # D^(-1/2) * A * D^(-1/2)
-        indices = adj.indices()
-        values = adj.values()
-        values = d_inv_sqrt[indices[0]] * values * d_inv_sqrt[indices[1]]
-        
-        return torch.sparse_coo_tensor(indices, values, adj.shape).coalesce()
-    
-    def lightgcn_propagate(
-        self,
-        adj: torch.Tensor,
-        user_emb: torch.Tensor,
-        item_emb: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        LightGCN message passing.
-        
-        Args:
-            adj: Normalized user-item bipartite adjacency.
-            user_emb: (n_users, dim) user embeddings.
-            item_emb: (n_items, dim) item embeddings.
-            
-        Returns:
-            Tuple of aggregated (user_emb, item_emb).
-        """
-        # Stack user and item embeddings
-        all_emb = torch.cat([user_emb, item_emb], dim=0)
-        
-        embs = [all_emb]
-        
-        for _ in range(self.n_layers):
-            all_emb = torch.sparse.mm(adj, all_emb)
-            embs.append(all_emb)
-        
-        # Mean aggregation
-        all_emb = torch.stack(embs, dim=0).mean(dim=0)
-        
-        user_emb = all_emb[:self.n_users]
-        item_emb = all_emb[self.n_users:]
-        
-        return user_emb, item_emb
-    
-    def item_graph_enhance(
-        self,
-        item_emb: torch.Tensor,
-    ) -> torch.Tensor:
-        """
-        Enhance item embeddings with learned item graph.
-        
-        Args:
-            item_emb: (n_items, dim) item embeddings.
-            
-        Returns:
-            Enhanced item embeddings.
-        """
-        if self.item_graph is None:
-            self.item_graph = self._build_item_graph()
-        
-        # Message passing on item graph
-        enhanced = torch.sparse.mm(self.item_graph, item_emb)
-        
-        # Blend with original
-        item_emb = self.graph_lambda * enhanced + (1 - self.graph_lambda) * item_emb
-        
-        return item_emb
     
     def forward(
         self,
         adj: torch.Tensor,
-        users: torch.Tensor,
-        pos_items: torch.Tensor,
-        neg_items: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Forward pass for BPR training."""
-        # Get base embeddings
-        user_emb = self.user_embedding.weight
-        item_emb = self.item_embedding.weight
-        
-        # Add modal information to items
-        modal_emb = self.get_modal_embeddings()
-        item_emb = item_emb + modal_emb
-        
-        # LightGCN propagation on user-item graph
-        user_emb, item_emb = self.lightgcn_propagate(adj, user_emb, item_emb)
-        
-        # Enhance items with learned item graph
-        item_emb = self.item_graph_enhance(item_emb)
-        
-        # Lookup batch embeddings
-        user_batch = user_emb[users]
-        pos_batch = item_emb[pos_items]
-        neg_batch = item_emb[neg_items]
-        
-        return user_batch, pos_batch, neg_batch
-    
-    def inductive_forward(
-        self,
-        adj: torch.Tensor,
-        users: torch.Tensor,
-        items: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+        users: torch.Tensor = None,
+        pos_items: torch.Tensor = None,
+        neg_items: torch.Tensor = None,
+        build_item_graph: bool = False,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        Inductive forward for cold items.
+        Forward pass with optional item graph rebuilding.
         
-        Cold items (idx >= n_warm) use ONLY modal embeddings.
+        Args:
+            adj: (N, N) user-item bipartite adjacency
+            users: (batch,) user indices (optional for get_embeddings mode)
+            pos_items: (batch,) positive item indices
+            neg_items: (batch,) or (batch, n_neg) negative item indices
+            build_item_graph: Whether to rebuild item graph (first batch of epoch)
+            
+        Returns:
+            (user_emb, pos_item_emb, neg_item_emb) for batch if users provided
+            (all_user_emb, all_item_emb, None) if users is None
         """
-        # Get user embeddings (standard path)
-        user_emb = self.user_embedding.weight
+        # Project modal features
+        image_feats = self.image_trs(self.image_embedding.weight)  # (n_items, feat_dim)
+        text_feats = self.text_trs(self.text_embedding.weight)  # (n_items, feat_dim)
         
-        # Get item embeddings - split warm/cold
-        item_emb = self.item_embedding.weight.clone()
+        if build_item_graph:
+            # Rebuild learned adjacency from projected features
+            weight = self.softmax(self.modal_weight)
+            
+            image_adj = build_sim(image_feats)
+            image_adj = build_knn_neighbourhood(image_adj, topk=self.topk)
+            
+            text_adj = build_sim(text_feats)
+            text_adj = build_knn_neighbourhood(text_adj, topk=self.topk)
+            
+            # Weighted fusion of learned adjacencies
+            learned_adj = weight[0] * image_adj + weight[1] * text_adj
+            learned_adj = compute_normalized_laplacian(learned_adj)
+            
+            # Combine with original adjacencies
+            original_adj = weight[0] * self.image_original_adj + weight[1] * self.text_original_adj
+            
+            # Interpolate: learned vs original
+            self.item_adj = (1 - self.lambda_coeff) * learned_adj + self.lambda_coeff * original_adj
+        else:
+            # Use cached adjacency (detach to avoid gradient flow through graph construction)
+            if self.item_adj is not None:
+                self.item_adj = self.item_adj.detach()
         
-        # For cold items, REPLACE ID embedding with modal embedding
-        cold_mask = items >= self.n_warm
+        # Item graph propagation (n_item_layers hops)
+        h = self.item_embedding.weight  # (n_items, dim)
+        if self.item_adj is not None:
+            for _ in range(self.n_item_layers):
+                h = torch.mm(self.item_adj, h)
         
-        if cold_mask.any():
-            cold_items = items[cold_mask]
-            modal_emb = self.get_modal_embeddings(cold_items)
-            item_emb[cold_items] = modal_emb
+        # LightGCN on user-item graph
+        ego_embeddings = torch.cat([
+            self.user_embedding.weight,
+            self.item_embedding.weight
+        ], dim=0)  # (N, dim)
         
-        # Warm items: ID + modal
-        warm_mask = items < self.n_warm
-        if warm_mask.any():
-            warm_items = items[warm_mask]
-            modal_emb = self.get_modal_embeddings(warm_items)
-            item_emb[warm_items] = item_emb[warm_items] + modal_emb
+        all_embeddings = [ego_embeddings]
+        for _ in range(self.n_layers):
+            side_embeddings = torch.sparse.mm(adj, ego_embeddings)
+            ego_embeddings = side_embeddings
+            all_embeddings.append(ego_embeddings)
         
-        # LightGCN propagation
-        user_emb, item_emb = self.lightgcn_propagate(adj, user_emb, item_emb[:self.n_items])
+        all_embeddings = torch.stack(all_embeddings, dim=1)
+        all_embeddings = all_embeddings.mean(dim=1)  # (N, dim)
         
-        # Item graph enhancement
-        item_emb = self.item_graph_enhance(item_emb)
+        u_g_embeddings, i_g_embeddings = torch.split(
+            all_embeddings, [self.n_users, self.n_items], dim=0
+        )
         
-        return user_emb[users], item_emb[items]
+        # Add item graph enhanced embeddings
+        i_g_embeddings = i_g_embeddings + F.normalize(h, p=2, dim=1)
+        
+        if users is None:
+            return u_g_embeddings, i_g_embeddings, None
+        
+        return (
+            u_g_embeddings[users],
+            i_g_embeddings[pos_items],
+            i_g_embeddings[neg_items],
+        )
     
     def compute_loss(
         self,
@@ -298,10 +272,23 @@ class LATTICEModel(BaseMultimodalModel):
         users: torch.Tensor,
         pos_items: torch.Tensor,
         neg_items: torch.Tensor,
-        l2_reg: float = 1e-4,
+        l2_reg: float = 1e-5,
+        build_item_graph: bool = False,
     ) -> dict:
-        """Compute BPR + L2 regularization loss."""
-        user_emb, pos_emb, neg_emb = self.forward(adj, users, pos_items, neg_items)
+        """
+        Compute BPR + L2 loss.
+        
+        Args:
+            adj: User-item adjacency
+            users: User indices
+            pos_items: Positive item indices
+            neg_items: Negative item indices
+            l2_reg: L2 regularization weight
+            build_item_graph: Whether to rebuild item graph
+        """
+        user_emb, pos_emb, neg_emb = self.forward(
+            adj, users, pos_items, neg_items, build_item_graph=build_item_graph
+        )
         
         return self._compute_loss_from_emb(
             user_emb, pos_emb, neg_emb,
@@ -311,56 +298,71 @@ class LATTICEModel(BaseMultimodalModel):
     
     def _compute_loss_from_emb(
         self,
-        user_emb: torch.Tensor,   # (batch, dim)
-        pos_emb: torch.Tensor,    # (batch, dim)
-        neg_emb: torch.Tensor,    # (batch, dim) or (batch, n_neg, dim)
-        users: torch.Tensor,      # (batch,)
-        pos_items: torch.Tensor,  # (batch,)
-        neg_items: torch.Tensor,  # (batch,) or (batch, n_neg)
-        adj: torch.Tensor = None, # Unused, for API compatibility with DiffMM
-        l2_reg: float = 1e-4,
-        cl_loss_precomputed: torch.Tensor = None,  # Unused, for API compatibility
+        user_emb: torch.Tensor,
+        pos_emb: torch.Tensor,
+        neg_emb: torch.Tensor,
+        users: torch.Tensor,
+        pos_items: torch.Tensor,
+        neg_items: torch.Tensor,
+        adj: torch.Tensor = None,
+        l2_reg: float = 1e-5,
+        cl_loss_precomputed: torch.Tensor = None,
     ) -> dict:
-        """
-        Compute loss from pre-computed embeddings.
+        """Compute loss from pre-computed embeddings."""
+        # BPR loss
+        pos_scores = (user_emb * pos_emb).sum(dim=-1)
+        neg_scores = (user_emb * neg_emb).sum(dim=-1)
         
-        This is separated from forward() to allow AMP to run loss in FP16
-        while forward (with sparse ops) runs in FP32.
-        """
-        bpr = self.bpr_loss(user_emb, pos_emb, neg_emb)
+        mf_loss = -F.logsigmoid(pos_scores - neg_scores).mean()
         
-        # Handle multi-negative for L2 reg
-        if neg_items.dim() == 2:
-            neg_items_flat = neg_items.flatten()
-        else:
-            neg_items_flat = neg_items
-        
-        reg = self.l2_reg_loss(
-            self.user_embedding.weight[users],
-            self.item_embedding.weight[pos_items],
-            self.item_embedding.weight[neg_items_flat],
+        # L2 regularization
+        regularizer = (
+            0.5 * (user_emb ** 2).sum() +
+            0.5 * (pos_emb ** 2).sum() +
+            0.5 * (neg_emb ** 2).sum()
         )
+        regularizer = regularizer / user_emb.shape[0]
+        emb_loss = l2_reg * regularizer
         
-        total = bpr + l2_reg * reg
+        total = mf_loss + emb_loss
         
         return {
             "loss": total,
-            "bpr_loss": bpr.item(),
-            "reg_loss": reg.item(),
+            "bpr_loss": mf_loss.item(),
+            "reg_loss": emb_loss.item(),
         }
+    
+    def inductive_forward(
+        self,
+        adj: torch.Tensor,
+        users: torch.Tensor,
+        items: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Inductive forward for cold items.
+        
+        Cold items (idx >= n_warm) use modal features only.
+        """
+        # Get all embeddings
+        u_emb, i_emb, _ = self.forward(adj, build_item_graph=False)
+        
+        # Cold items: Replace with modal features
+        cold_mask = items >= self.n_warm
+        if cold_mask.any():
+            cold_items = items[cold_mask]
+            img_feats = self.image_trs(self.image_embedding.weight[cold_items])
+            txt_feats = self.text_trs(self.text_embedding.weight[cold_items])
+            modal_emb = 0.5 * img_feats + 0.5 * txt_feats
+            
+            i_emb = i_emb.clone()
+            i_emb[cold_items] = F.normalize(modal_emb, p=2, dim=1)
+        
+        return u_emb[users], i_emb[items]
     
     def _get_all_embeddings(
         self,
         adj: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get all embeddings after propagation."""
-        user_emb = self.user_embedding.weight
-        item_emb = self.item_embedding.weight
-        
-        modal_emb = self.get_modal_embeddings()
-        item_emb = item_emb + modal_emb
-        
-        user_emb, item_emb = self.lightgcn_propagate(adj, user_emb, item_emb)
-        item_emb = self.item_graph_enhance(item_emb)
-        
-        return user_emb, item_emb
+        u_emb, i_emb, _ = self.forward(adj, build_item_graph=False)
+        return u_emb, i_emb

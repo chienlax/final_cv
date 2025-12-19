@@ -360,7 +360,7 @@ class Config:
     # Regularization-aware: smaller batches = gradient noise = implicit regularization
     BATCH_SIZE = 1024        # Reduced from 2048 for regularization effect
     EPOCHS = 50
-    PATIENCE = 15           # Early stopping (generous for generative models)
+    PATIENCE = 10           # Early stopping (generous for generative models)
     LR = 5e-4                # Lower LR for deeper model (was 1e-3)
     L2_REG = 1e-3            # Strong weight decay for high param-to-data ratio
     LR_SCHEDULER = "cosine"  # Cosine annealing
@@ -394,25 +394,46 @@ class Config:
     NEGATIVE_STRATEGY = "uniform"
     
     # =========================================================================
-    # LATTICE SPECIFICS
+    # LATTICE SPECIFICS (Matching official CRIPAC-DIG/LATTICE)
     # =========================================================================
-    LATTICE_K = 40           # Increased from 20 → broader semantic neighborhoods
-    LATTICE_LAMBDA = 0.5     # Balance original vs learned graph
+    LATTICE_K = 10               # k for k-NN graph (original default)
+    LATTICE_LAMBDA = 0.9         # Weight for original vs learned graph (higher = more original)
+    LATTICE_FEAT_EMBED_DIM = 64  # Modal feature projection dimension
+    LATTICE_N_ITEM_LAYERS = 1    # Number of item graph conv layers
     
     # =========================================================================
-    # MICRO SPECIFICS
+    # MICRO SPECIFICS (Matching official CRIPAC-DIG/MICRO)
     # =========================================================================
-    MICRO_TAU = 0.2          # InfoNCE temperature
-    MICRO_ALPHA = 0.1        # Contrastive loss weight
+    MICRO_TAU = 0.5              # Contrastive temperature (original default)
+    MICRO_LOSS_RATIO = 0.03      # Contrastive loss weight (original loss_ratio)
+    MICRO_TOPK = 10              # k for k-NN graph
+    MICRO_LAMBDA = 0.9           # Weight for original vs learned graph
+    MICRO_ITEM_LAYERS = 1        # Number of item graph conv layers
+    MICRO_SPARSE = True          # Use sparse adjacency
+    MICRO_NORM_TYPE = "sym"      # Graph normalization type
     
     # =========================================================================
-    # DiffMM SPECIFICS (Compute Sink - Safe to dump params here)
+    # DiffMM SPECIFICS (Matching official HKUDS/DiffMM)
     # =========================================================================
-    DIFFMM_STEPS = 100       # Increased from 50 → higher precision generation
-    DIFFMM_NOISE_SCALE = 0.1
-    DIFFMM_LAMBDA_MSI = 1e-2
-    DIFFMM_MLP_WIDTH = 512   # Width of internal denoising MLP
+    # Diffusion parameters
+    DIFFMM_STEPS = 5             # Number of diffusion steps (original default)
+    DIFFMM_NOISE_SCALE = 0.1     # Noise scale factor
+    DIFFMM_NOISE_MIN = 0.0001    # Minimum noise level
+    DIFFMM_NOISE_MAX = 0.02      # Maximum noise level
+    DIFFMM_DIMS = "[1000]"       # Denoise MLP dimensions (string for eval)
+    DIFFMM_D_EMB_SIZE = 10       # Time embedding size
+    DIFFMM_SAMPLING_STEPS = 0    # Steps for p_sample (0 = full)
+    DIFFMM_SAMPLING_NOISE = False  # Add noise during sampling
+    DIFFMM_REBUILD_K = 1         # Top-k for UI matrix rebuild
     
-    # Cross-Modal Contrastive Learning (per official HKUDS/DiffMM)
-    DIFFMM_SSL_REG = 1e-2    # Weight for cross-modal contrastive loss (λ_cl)
-    DIFFMM_TEMP = 0.2        # Temperature for InfoNCE (τ)
+    # Loss weights
+    DIFFMM_E_LOSS = 0.1          # GraphCL loss weight
+    DIFFMM_SSL_REG = 1e-2        # Contrastive loss weight (λ_cl)
+    DIFFMM_TEMP = 0.5            # Contrastive temperature (τ)
+    
+    # Architecture
+    DIFFMM_KEEP_RATE = 0.5       # Edge dropout keep rate
+    DIFFMM_RIS_LAMBDA = 0.5      # Residual modal lambda
+    DIFFMM_RIS_ADJ_LAMBDA = 0.2  # Residual adjacency lambda
+    DIFFMM_TRANS = 0             # Transform type (0: param, 1: linear, 2: mixed)
+    DIFFMM_CL_METHOD = 0         # 0: modal-modal, 1: modal-main

@@ -10,6 +10,7 @@ trigger: always_on
         * *Exception:* Iterative algorithmic steps (e.g., Diffusion timesteps $T$ in DiffMM) are permitted but must be isolated.
     * Only introduce advanced patterns (e.g., custom Autograd functions) if strictly necessary for performance or gradient stability.
     * **Anti-Pattern:** Do not over-engineer class hierarchies. Do not densify sparse graph adjacency matrices.
+    * Implementation: You MUST respect the original implementation.
 
 2.  **Tensor Discipline (CRITICAL)**
     * **Shape Comments:** Mandatory for every tensor transformation. `x = x.view(B, N, -1) # [Batch, Nodes, Features]`
