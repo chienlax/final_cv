@@ -101,16 +101,24 @@ def create_model(
         logger.info(f"  loss_ratio: {config.MICRO_LOSS_RATIO}")
         logger.info(f"  topk: {config.MICRO_TOPK}")
         logger.info(f"  lambda_coeff: {config.MICRO_LAMBDA}")
-        logger.info(f"  item_layers: {config.MICRO_ITEM_LAYERS}")
+        logger.info(f"  layers (item graph): {config.MICRO_ITEM_LAYERS}")
+        logger.info(f"  n_ui_layers (LightGCN): {config.N_LAYERS}")
         model = MICROModel(
-            **common_args,
+            n_users=dataset.n_users,
+            n_items=dataset.n_items,
+            n_warm=dataset.n_warm,
+            embed_dim=config.EMBED_DIM,
+            n_ui_layers=config.N_LAYERS,  # LightGCN layers
+            feat_visual=dataset.feat_visual,
+            feat_text=dataset.feat_text,
             topk=config.MICRO_TOPK,
             lambda_coeff=config.MICRO_LAMBDA,
-            item_layers=config.MICRO_ITEM_LAYERS,
+            layers=config.MICRO_ITEM_LAYERS,  # Item graph layers
             tau=config.MICRO_TAU,
             loss_ratio=config.MICRO_LOSS_RATIO,
             sparse=config.MICRO_SPARSE,
             norm_type=config.MICRO_NORM_TYPE,
+            device=config.DEVICE,
         )
     elif model_name == "diffmm":
         logger.info("Model: DiffMM (Diffusion-based + Cross-Modal Contrastive)")

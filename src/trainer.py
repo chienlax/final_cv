@@ -155,12 +155,11 @@ class Trainer:
                     extra_kwargs = {}
                     
                 elif model_type == "MICROModel":
-                    # MICRO: forward returns 5 values
-                    result = self.model.forward(adj, users, pos_items, neg_items, build_item_graph=build_graph)
-                    user_emb, pos_emb, image_emb, text_emb, fusion_emb = result
-                    # Get neg embeddings
-                    _, all_item_emb, _, _, _ = self.model.forward(adj, build_item_graph=False)
-                    neg_emb = all_item_emb[neg_items]
+                    # MICRO: forward(adj, build_item_graph) -> (all_u, all_i, image_emb, text_emb, fusion_emb)
+                    all_u, all_i, image_emb, text_emb, fusion_emb = self.model.forward(adj, build_item_graph=build_graph)
+                    user_emb = all_u[users]
+                    pos_emb = all_i[pos_items]
+                    neg_emb = all_i[neg_items]
                     extra_kwargs = {'image_emb': image_emb, 'text_emb': text_emb, 'fusion_emb': fusion_emb}
                     
                 else:
