@@ -60,7 +60,7 @@ def plot_inductive_gap(
     model.eval()
     device = model.device
     
-    logger.info(f"🎨 Generating inductive gap visualization...")
+    logger.info(f"Generating inductive gap visualization...")
     n_cold = model.n_items - model.n_warm
     logger.info(f"   Warm items: {model.n_warm}, Cold items: {n_cold}")
     
@@ -155,7 +155,7 @@ def plot_inductive_gap(
     
     plt.tight_layout()
     plt.savefig(save_path, dpi=150, bbox_inches='tight')
-    logger.info(f"   ✓ Saved visualization to {save_path}")
+    logger.info(f"   Saved visualization to {save_path}")
     
     # Return statistics for programmatic use
     return {
@@ -280,7 +280,7 @@ def load_and_plot(
     save_path = output_path / f"inductive_gap_{dataset_name}_{model_name}.png"
     stats = plot_inductive_gap(model, dataset, str(save_path))
     
-    print(f"\n📊 Statistics:")
+    print(f"\nStatistics:")
     print(f"   Warm-Modal Alignment: {stats['warm_alignment']:.4f}")
     print(f"   Center Distance: {stats['center_distance']:.2f}")
     

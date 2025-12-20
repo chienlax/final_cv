@@ -1,10 +1,8 @@
 """
 DiffMM: Diffusion Model for Multimodal Recommendation.
 
-FAITHFUL implementation matching the official HKUDS/DiffMM (ACM MM'24).
+Based on the official HKUDS/DiffMM (ACM MM'24).
 Reference: https://github.com/HKUDS/DiffMM
-
-This is a DIRECT PORT of the original code with minimal adaptation.
 """
 
 import math
@@ -18,28 +16,18 @@ import scipy.sparse as sp
 from scipy.sparse import coo_matrix
 
 
-# =============================================================================
-# Utility Functions - EXACT COPY from original Utils/Utils.py
-# =============================================================================
-
 def innerProduct(usrEmbeds: torch.Tensor, itmEmbeds: torch.Tensor) -> torch.Tensor:
     """Dot product along last dimension."""
     return torch.sum(usrEmbeds * itmEmbeds, dim=-1)
 
 
 def pairPredict(ancEmbeds: torch.Tensor, posEmbeds: torch.Tensor, negEmbeds: torch.Tensor) -> torch.Tensor:
-    """BPR score difference.
-    
-    EXACT match to original Utils/Utils.py line 7-8.
-    """
+    """BPR score difference."""
     return innerProduct(ancEmbeds, posEmbeds) - innerProduct(ancEmbeds, negEmbeds)
 
 
 def contrastLoss(embeds1: torch.Tensor, embeds2: torch.Tensor, nodes: torch.Tensor, temp: float) -> torch.Tensor:
-    """InfoNCE contrastive loss.
-    
-    EXACT match to original Utils/Utils.py line 31-38.
-    """
+    """InfoNCE contrastive loss."""
     embeds1 = F.normalize(embeds1, p=2)
     embeds2 = F.normalize(embeds2, p=2)
     pckEmbeds1 = embeds1[nodes]
@@ -49,15 +37,8 @@ def contrastLoss(embeds1: torch.Tensor, embeds2: torch.Tensor, nodes: torch.Tens
     return -torch.log(nume / deno).mean()
 
 
-# =============================================================================
-# GCNLayer - EXACT COPY
-# =============================================================================
-
 class GCNLayer(nn.Module):
-    """Simple GCN layer.
-    
-    EXACT match to original Model.py line 215-220.
-    """
+    """Simple GCN layer."""
     def __init__(self):
         super(GCNLayer, self).__init__()
     
@@ -65,15 +46,8 @@ class GCNLayer(nn.Module):
         return torch.spmm(adj, embeds)
 
 
-# =============================================================================
-# SpAdjDropEdge - EXACT COPY
-# =============================================================================
-
 class SpAdjDropEdge(nn.Module):
-    """Edge dropout for sparse adjacency.
-    
-    EXACT match to original Model.py line 222-236.
-    """
+    """Edge dropout for sparse adjacency."""
     def __init__(self, keepRate: float):
         super(SpAdjDropEdge, self).__init__()
         self.keepRate = keepRate
@@ -90,15 +64,8 @@ class SpAdjDropEdge(nn.Module):
         return torch.sparse.FloatTensor(newIdxs, newVals, adj.shape)
 
 
-# =============================================================================
-# Denoise - EXACT COPY
-# =============================================================================
-
 class Denoise(nn.Module):
-    """Denoising network for diffusion.
-    
-    EXACT match to original Model.py line 238-296.
-    """
+    """Denoising network for diffusion."""
     def __init__(self, in_dims: List[int], out_dims: List[int], emb_size: int, norm: bool = False, dropout: float = 0.5):
         super(Denoise, self).__init__()
         self.in_dims = in_dims
@@ -158,15 +125,8 @@ class Denoise(nn.Module):
         return h
 
 
-# =============================================================================
-# GaussianDiffusion - EXACT COPY
-# =============================================================================
-
 class GaussianDiffusion(nn.Module):
-    """Gaussian Diffusion process.
-    
-    EXACT match to original Model.py line 298-420.
-    """
+    """Gaussian Diffusion process."""
     def __init__(self, noise_scale: float, noise_min: float, noise_max: float, steps: int, beta_fixed: bool = True):
         super(GaussianDiffusion, self).__init__()
         
@@ -295,19 +255,11 @@ class GaussianDiffusion(nn.Module):
         return self.alphas_cumprod[t] / (1 - self.alphas_cumprod[t])
 
 
-# =============================================================================
-# DiffMM Model - FAITHFUL PORT FROM ORIGINAL
-# =============================================================================
-
 class DiffMM(nn.Module):
     """
     DiffMM: Diffusion-based Multimodal Recommendation.
     
-    DIRECT PORT from original HKUDS/DiffMM with:
-    - Same architecture (Model.py)
-    - Same training logic (Main.py)
-    - Same variable names where practical
-    - LightGCN backbone
+    Uses LightGCN backbone with diffusion-based feature denoising.
     """
     
     def __init__(
@@ -372,22 +324,22 @@ class DiffMM(nn.Module):
         self.trans = trans
         self.cl_method = cl_method
         
-        # === Model.py __init__ line 17-18 ===
+        # ID embeddings
         init = nn.init.xavier_uniform_
         self.uEmbeds = nn.Parameter(init(torch.empty(n_users, embed_dim)))
         self.iEmbeds = nn.Parameter(init(torch.empty(n_items, embed_dim)))
         
-        # === GCN layers - line 19 ===
+        # GCN layers
         self.gcnLayers = nn.Sequential(*[GCNLayer() for i in range(n_layers)])
         
-        # === Edge dropper - line 21 ===
+        # Edge dropper
         self.edgeDropper = SpAdjDropEdge(keep_rate)
         
-        # === Feature dimensions ===
+        # Feature dimensions
         image_feat_dim = feat_visual.shape[1]
         text_feat_dim = feat_text.shape[1]
         
-        # === Modal transformations - line 23-31 ===
+        # Modal transformations
         if trans == 1:
             self.image_trans = nn.Linear(image_feat_dim, embed_dim)
             self.text_trans = nn.Linear(text_feat_dim, embed_dim)
@@ -398,22 +350,22 @@ class DiffMM(nn.Module):
             self.image_trans = nn.Parameter(init(torch.empty(size=(image_feat_dim, embed_dim))))
             self.text_trans = nn.Linear(text_feat_dim, embed_dim)
         
-        # === Feature embeddings - line 38-39 ===
+        # Feature embeddings
         self.register_buffer("image_embedding", feat_visual.clone())
         self.register_buffer("text_embedding", feat_text.clone())
         
-        # === Modal weight - line 48 ===
+        # Modal weight
         self.modal_weight = nn.Parameter(torch.Tensor([0.5, 0.5]))
         self.softmax = nn.Softmax(dim=0)
         
-        # === Misc - line 51-53 ===
+        # Misc
         self.dropout = nn.Dropout(p=0.1)
         self.leakyrelu = nn.LeakyReLU(0.2)
         
-        # === Diffusion model ===
+        # Diffusion model
         self.diffusion_model = GaussianDiffusion(noise_scale, noise_min, noise_max, steps)
         
-        # === Denoise models (per modality) ===
+        # Denoise models (per modality)
         out_dims = self.dims + [n_items]
         in_dims = out_dims[::-1]
         self.denoise_model_image = Denoise(in_dims, out_dims, d_emb_size, norm=False)
@@ -424,10 +376,6 @@ class DiffMM(nn.Module):
         self.text_UI_matrix: Optional[torch.Tensor] = None
         
         self.to(device)
-    
-    # =========================================================================
-    # Feature extraction - EXACT from Model.py line 55-73
-    # =========================================================================
     
     def getItemEmbeds(self) -> torch.Tensor:
         return self.iEmbeds
@@ -448,10 +396,6 @@ class DiffMM(nn.Module):
             return text_feats
         else:
             return self.text_trans(self.text_embedding)
-    
-    # =========================================================================
-    # forward_MM - EXACT from Model.py line 85-153
-    # =========================================================================
     
     def forward_MM(self, adj: torch.Tensor, image_adj: torch.Tensor, text_adj: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Main multimodal forward pass."""
@@ -503,10 +447,6 @@ class DiffMM(nn.Module):
         
         return embeds[:self.n_users], embeds[self.n_users:]
     
-    # =========================================================================
-    # forward_cl_MM - EXACT from Model.py line 155-207
-    # =========================================================================
-    
     def forward_cl_MM(self, adj: torch.Tensor, image_adj: torch.Tensor, text_adj: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Forward pass for contrastive views."""
         if self.trans == 0:
@@ -541,19 +481,11 @@ class DiffMM(nn.Module):
         
         return embeds1[:self.n_users], embeds1[self.n_users:], embeds2[:self.n_users], embeds2[self.n_users:]
     
-    # =========================================================================
-    # reg_loss - EXACT from Model.py line 209-213
-    # =========================================================================
-    
     def reg_loss(self) -> torch.Tensor:
         ret = 0
         ret += self.uEmbeds.norm(2).square()
         ret += self.iEmbeds.norm(2).square()
         return ret
-    
-    # =========================================================================
-    # UI Matrix Operations - EXACT from Main.py line 89-110
-    # =========================================================================
     
     def normalizeAdj(self, mat) -> sp.coo_matrix:
         degree = np.array(mat.sum(axis=-1))
@@ -578,10 +510,6 @@ class DiffMM(nn.Module):
         
         return torch.sparse.FloatTensor(idxs, vals, shape).to(self.device)
     
-    # =========================================================================
-    # Forward for compatibility
-    # =========================================================================
-    
     def forward(self, adj: torch.Tensor, users: torch.Tensor, pos_items: torch.Tensor, neg_items: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Forward pass for BPR training."""
         if self.image_UI_matrix is not None and self.text_UI_matrix is not None:
@@ -602,10 +530,6 @@ class DiffMM(nn.Module):
         all_emb = sum(embs)
         return all_emb[:self.n_users], all_emb[self.n_users:]
     
-    # =========================================================================
-    # compute_loss - matches Main.py training logic
-    # =========================================================================
-    
     def compute_loss(
         self,
         adj: torch.Tensor,
@@ -623,7 +547,7 @@ class DiffMM(nn.Module):
             regLoss = self.reg_loss() * l2_reg
             return {"loss": bprLoss + regLoss, "bpr_loss": bprLoss.item(), "reg_loss": regLoss.item(), "cl_loss": 0.0}
         
-        # Main training - EXACT from Main.py line 257-292
+        # Main training
         usrEmbeds, itmEmbeds = self.forward_MM(adj, self.image_UI_matrix, self.text_UI_matrix)
         ancEmbeds = usrEmbeds[users]
         posEmbeds = itmEmbeds[pos_items]
@@ -706,11 +630,7 @@ class DiffMM(nn.Module):
         if self.cl_method == 1:
             return clLoss_
         else:
-            return clLoss  # modal-modal only when cl_method == 0
-    
-    # =========================================================================
-    # For compatibility
-    # =========================================================================
+            return clLoss
     
     def inductive_forward(self, adj: torch.Tensor, users: torch.Tensor, items: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """Inductive forward for cold items."""
@@ -739,19 +659,13 @@ class DiffMM(nn.Module):
         else:
             return self._simple_forward(adj)
     
-    # =========================================================================
-    # Diffusion Training - EXACT from Main.py line 124-168
-    # =========================================================================
-    
     def train_diffusion_step(
         self,
-        batch_item: torch.Tensor,  # User interaction row from trnMat
-        batch_index: torch.Tensor,  # User index
+        batch_item: torch.Tensor,
+        batch_index: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Single diffusion training step.
-        
-        EXACT match to original Main.py line 124-159.
         
         Args:
             batch_item: User's interaction vector [batch, n_items]

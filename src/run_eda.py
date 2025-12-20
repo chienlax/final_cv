@@ -176,9 +176,7 @@ def run_eda_for_dataset(
         "timestamp": datetime.now().isoformat(),
     }
     
-    # =========================================================================
     # Phase 1: Load Data
-    # =========================================================================
     logger.info("Phase 1: Loading data...")
     
     # CSV for interactions, JSONL.gz for metadata
@@ -238,13 +236,11 @@ def run_eda_for_dataset(
     }
     
     if results["five_core_stats"]["is_5_core_valid"]:
-        logger.info(f"\n✅ 5-Core Validation PASSED: min user={min_user_interactions}, min item={min_item_interactions}")
+        logger.info(f"\n[PASS] 5-Core Validation PASSED: min user={min_user_interactions}, min item={min_item_interactions}")
     else:
-        logger.warning(f"\n⚠️ 5-Core Validation FAILED: min user={min_user_interactions}, min item={min_item_interactions}")
+        logger.warning(f"\n[FAIL] 5-Core Validation FAILED: min user={min_user_interactions}, min item={min_item_interactions}")
     
-    # =========================================================================
     # Phase 2: Basic Statistics
-    # =========================================================================
     logger.info("\nPhase 2: Computing basic statistics...")
     
     int_stats, meta_stats = compute_basic_statistics(interactions_df, metadata_df)
@@ -262,9 +258,7 @@ def run_eda_for_dataset(
     temporal_stats = compute_temporal_statistics(interactions_df)
     results["temporal_stats_monthly"] = temporal_stats.to_dict("records") if len(temporal_stats) > 0 else []
     
-    # =========================================================================
     # Phase 3: Generate Visualizations
-    # =========================================================================
     logger.info("\nPhase 3: Generating visualizations...")
     
     # Rating distribution
@@ -290,9 +284,7 @@ def run_eda_for_dataset(
         plot_category_distribution(metadata_df, figures_dir, display_name)
         plot_multimodal_coverage(metadata_df, figures_dir, display_name)
     
-    # =========================================================================
     # Phase 4: Advanced Analysis
-    # =========================================================================
     logger.info("\nPhase 4: Running advanced analysis...")
     
     # User/item patterns
@@ -325,9 +317,7 @@ def run_eda_for_dataset(
         completeness = analyze_feature_completeness_matrix(metadata_df)
         results["feature_completeness"] = completeness.to_dict("records")
     
-    # =========================================================================
     # Phase 5: Sparsity and K-Core Analysis
-    # =========================================================================
     logger.info("\nPhase 5: Sparsity and k-core analysis...")
     
     sparsity_stats = analyze_sparsity(interactions_df)
@@ -344,9 +334,7 @@ def run_eda_for_dataset(
     kcore_results = simulate_kcore_filtering(interactions_df, k_values=[5, 10, 15, 20])
     results["kcore_analysis"] = kcore_results
     
-    # =========================================================================
     # Phase 6: Image Download (Optional)
-    # =========================================================================
     if download_images and len(metadata_df) > 0:
         logger.info(f"\nPhase 6: Downloading {image_sample_size} sample images...")
         
@@ -367,10 +355,7 @@ def run_eda_for_dataset(
             img_stats = compute_image_statistics(images_dir)
             results["image_statistics"] = img_stats
     
-    # =========================================================================
     # Phase 7: Academic Analysis (Optional - requires CLIP)
-    # Implements Liu et al. (2024) and Xu et al. (2025) analysis
-    # =========================================================================
     if academic_analysis and len(metadata_df) > 0:
         logger.info("\nPhase 7: Running academic analysis...")
         
@@ -664,9 +649,7 @@ def run_eda_for_dataset(
             if not all_pass:
                 logger.warning("    Recommendation: Revisit Feature Extraction (e.g., use CLIP-Fashion)")
     
-    # =========================================================================
     # Save Results
-    # =========================================================================
     results_path = output_dir / f"{dataset_name}_eda_results.json"
     with open(results_path, "w") as f:
         json.dump(results, f, indent=2, default=str)

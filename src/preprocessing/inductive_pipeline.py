@@ -159,7 +159,7 @@ def sample_and_prune(
             logger.warning(f"Graph too large ({n_total} > {config.max_total_nodes}). "
                           f"Decreasing seed: {old_seed:,} → {seed_users:,}")
         else:
-            logger.info(f"✓ Graph size {n_total:,} within target range [{config.min_total_nodes}, {config.max_total_nodes}]")
+            logger.info(f"[OK] Graph size {n_total:,} within target range [{config.min_total_nodes}, {config.max_total_nodes}]")
             return df_sub
     
     logger.warning(f"Could not achieve target size after {max_attempts} attempts. Using last result.")
@@ -333,7 +333,7 @@ def generate_split_files(
     if max_train_item >= n_warm_items:
         raise ValueError(f"CRITICAL: Train contains cold items! max={max_train_item}, n_warm={n_warm_items}")
     
-    logger.info(f"✓ Verified: max train item ({max_train_item}) < n_warm ({n_warm_items})")
+    logger.info(f"[OK] Verified: max train item ({max_train_item}) < n_warm ({n_warm_items})")
     
     stats = {
         "n_train": len(df_train),
@@ -454,9 +454,7 @@ def extract_features(
     # Create item_id to metadata lookup
     metadata_lookup = {row["item_id"]: row for _, row in metadata_df.iterrows()}
     
-    # =========================================================================
-    # Text Features (SBERT) - Already batched, just run it
-    # =========================================================================
+    # Text Features (SBERT)
     logger.info(f"Loading SBERT model: {config.sbert_model}")
     sbert = SentenceTransformer(config.sbert_model, device=device)
     
@@ -494,9 +492,7 @@ def extract_features(
     if device == "cuda":
         torch.cuda.empty_cache()
     
-    # =========================================================================
-    # Visual Features (CLIP) - OPTIMIZED with parallel downloads + batched inference
-    # =========================================================================
+    # Visual Features (CLIP) - Optimized with parallel downloads + batched inference
     logger.info(f"Loading CLIP model: {config.clip_model}")
     clip_model = CLIPModel.from_pretrained(config.clip_model).to(device)
     clip_processor = CLIPProcessor.from_pretrained(config.clip_model, use_fast=True)

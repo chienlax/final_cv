@@ -82,13 +82,13 @@ class RecDataset:
             # (pure zeros cause 0/0 in cosine similarity and L2 normalization)
             eps = 1e-6
             if ablation_mode == "no_visual":
-                logger.info("🙈 ABLATION MODE: Masking VISUAL features (Blindfold Mode)")
+                logger.info("ABLATION MODE: Masking VISUAL features (Blindfold Mode)")
                 logger.info("   The model is now 'blind' - testing text-only hypothesis")
                 # Random noise with same shape, very small magnitude
                 self.feat_visual = torch.randn_like(self.feat_visual) * eps
                 
             elif ablation_mode == "no_text":
-                logger.info("🙊 ABLATION MODE: Masking TEXT features (Silence Mode)")
+                logger.info("ABLATION MODE: Masking TEXT features (Silence Mode)")
                 logger.info("   The model is now 'deaf' - testing visual-only hypothesis")
                 # Random noise with same shape, very small magnitude
                 self.feat_text = torch.randn_like(self.feat_text) * eps
@@ -99,7 +99,7 @@ class RecDataset:
             logger.info(f"Feature Norms - Visual: {v_norm:.2f}, Text: {t_norm:.2f}")
             
             if ablation_mode != "none":
-                logger.info(f"   ⚠️  One modality is masked: expect performance drop!")
+                logger.info(f"   [WARNING] One modality is masked: expect performance drop!")
             
             logger.info(f"Features: visual={self.feat_visual.shape}, text={self.feat_text.shape}")
         else:

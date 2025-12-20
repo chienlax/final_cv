@@ -1,10 +1,8 @@
 """
 MICRO: Multimodal Item-wise Contrastive Recommendation.
 
-FAITHFUL implementation matching the official CRIPAC-DIG/MICRO (SIGIR'22).
+Based on the official CRIPAC-DIG/MICRO (SIGIR'22).
 Reference: https://github.com/CRIPAC-DIG/MICRO
-
-This is a DIRECT PORT of the original code with minimal adaptation.
 """
 
 import torch
@@ -14,15 +12,8 @@ import torch.nn.functional as F
 from typing import Tuple, Optional
 
 
-# =============================================================================
-# Utility Functions - EXACT COPY from original utility/norm.py
-# =============================================================================
-
 def build_sim(context: torch.Tensor) -> torch.Tensor:
-    """Build cosine similarity matrix.
-    
-    EXACT match to original MICRO/codes/utility/norm.py line 3-6.
-    """
+    """Build cosine similarity matrix."""
     context_norm = context.div(torch.norm(context, p=2, dim=-1, keepdim=True))
     sim = torch.mm(context_norm, context_norm.transpose(1, 0))
     return sim
@@ -34,11 +25,7 @@ def build_knn_normalized_graph(
     is_sparse: bool = True,
     norm_type: str = "sym",
 ) -> torch.Tensor:
-    """Build k-NN normalized graph.
-    
-    EXACT match to original MICRO/codes/utility/norm.py line 8-21.
-    NOTE: Original uses torch_scatter for sparse, we use dense fallback.
-    """
+    """Build k-NN normalized graph."""
     device = adj.device
     knn_val, knn_ind = torch.topk(adj, topk, dim=-1)
     
@@ -57,10 +44,7 @@ def build_knn_normalized_graph(
 
 
 def get_dense_laplacian(adj: torch.Tensor, normalization: str = 'sym') -> torch.Tensor:
-    """Compute normalized Laplacian for dense matrix.
-    
-    EXACT match to original MICRO/codes/utility/norm.py line 39-54.
-    """
+    """Compute normalized Laplacian for dense matrix."""
     if normalization == 'sym':
         rowsum = torch.sum(adj, -1)
         d_inv_sqrt = torch.pow(rowsum, -0.5)
@@ -78,19 +62,11 @@ def get_dense_laplacian(adj: torch.Tensor, normalization: str = 'sym') -> torch.
     return L_norm
 
 
-# =============================================================================
-# MICRO Model - FAITHFUL TO ORIGINAL
-# =============================================================================
-
 class MICROModel(nn.Module):
     """
     MICRO: Multimodal Item-wise Contrastive Recommendation.
     
-    DIRECT PORT from original MICRO/codes/Models.py with:
-    - Same architecture
-    - Same forward pass logic  
-    - Same variable names where practical
-    - LightGCN backbone only (per user request)
+    Uses LightGCN backbone with attention-based modal fusion.
     """
     
     def __init__(
@@ -116,20 +92,19 @@ class MICROModel(nn.Module):
         device: str = "cuda",
     ):
         """
-        Args match original MICRO __init__ from Models.py line 14.
-        
-        n_users, n_items: Dataset sizes  
-        embed_dim: embedding_dim in original (args.embed_size)
-        n_ui_layers: len(weight_size) for UI GCN layers
-        feat_visual: image_feats in original
-        feat_text: text_feats in original
-        topk: args.topk
-        lambda_coeff: args.lambda_coeff
-        layers: args.layers for item graph conv
-        tau: Hardcoded 0.5 in original (line 62)
-        loss_ratio: args.loss_ratio
-        sparse: args.sparse
-        norm_type: args.norm_type
+        Args:
+            n_users, n_items: Dataset sizes
+            embed_dim: Embedding dimension
+            n_ui_layers: Number of UI GCN layers
+            feat_visual: Image features
+            feat_text: Text features
+            topk: K for KNN graph
+            lambda_coeff: Interpolation coefficient
+            layers: Number of item graph layers
+            tau: Contrastive temperature
+            loss_ratio: Contrastive loss weight
+            sparse: Use sparse adjacency
+            norm_type: Normalization type
         """
         super().__init__()
         
@@ -147,13 +122,13 @@ class MICROModel(nn.Module):
         self.norm_type = norm_type
         self.device = device
         
-        # ID Embeddings - EXACT match to original line 22-25
+        # ID Embeddings
         self.user_embedding = nn.Embedding(n_users, self.embedding_dim)
         self.item_id_embedding = nn.Embedding(n_items, self.embedding_dim)
         nn.init.xavier_uniform_(self.user_embedding.weight)
         nn.init.xavier_uniform_(self.item_id_embedding.weight)
         
-        # Modal Embeddings - EXACT match to original line 37-38
+        # Modal Embeddings
         self.image_embedding = nn.Embedding.from_pretrained(
             feat_visual.clone() if isinstance(feat_visual, torch.Tensor) else torch.Tensor(feat_visual),
             freeze=False
@@ -163,7 +138,7 @@ class MICROModel(nn.Module):
             freeze=False
         )
         
-        # Build original adjacencies - EXACT match to original line 41-48
+        # Build original adjacencies
         image_adj = build_sim(self.image_embedding.weight.detach())
         image_adj = build_knn_normalized_graph(image_adj, topk=topk, is_sparse=sparse, norm_type=norm_type)
         
@@ -173,14 +148,14 @@ class MICROModel(nn.Module):
         self.text_original_adj = text_adj
         self.image_original_adj = image_adj
         
-        # Modal transformation - EXACT match to original line 50-51
+        # Modal transformation
         self.image_trs = nn.Linear(feat_visual.shape[1], embed_dim)
         self.text_trs = nn.Linear(feat_text.shape[1], embed_dim)
         
-        # Softmax - line 53
+        # Softmax
         self.softmax = nn.Softmax(dim=-1)
         
-        # Query network - EXACT match to original line 56-60
+        # Query network
         self.query = nn.Sequential(
             nn.Linear(self.embedding_dim, self.embedding_dim),
             nn.Tanh(),
@@ -194,14 +169,14 @@ class MICROModel(nn.Module):
         self.to(device)
     
     def mm(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Matrix multiply - EXACT match to original line 64-68."""
+        """Matrix multiply."""
         if self.sparse:
             return torch.sparse.mm(x, y)
         else:
             return torch.mm(x, y)
     
     def sim(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-        """Cosine similarity - EXACT match to original line 69-72."""
+        """Cosine similarity."""
         z1 = F.normalize(z1)
         z2 = F.normalize(z2)
         return torch.mm(z1, z2.t())
@@ -212,7 +187,7 @@ class MICROModel(nn.Module):
         z2: torch.Tensor, 
         batch_size: int = 4096,
     ) -> torch.Tensor:
-        """Batched contrastive loss - EXACT match to original line 74-93."""
+        """Batched contrastive loss."""
         device = z1.device
         num_nodes = z1.size(0)
         num_batches = (num_nodes - 1) // batch_size + 1
@@ -239,17 +214,15 @@ class MICROModel(nn.Module):
         build_item_graph: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        Forward pass - EXACT match to original Models.py line 95-157.
+        Forward pass.
         
         Returns (u_g_embeddings, i_g_embeddings, image_item_embeds, text_item_embeds, h)
-        as in original.
         """
-        # Line 96-97: Project modal features
+        # Project modal features
         image_feats = self.image_trs(self.image_embedding.weight)
         text_feats = self.text_trs(self.text_embedding.weight)
         
-        # Line 98-109: Build or reuse item adjacencies
-        # Must build on first call if adj is None
+        # Build or reuse item adjacencies
         if build_item_graph or self.image_adj is None:
             self.image_adj = build_sim(image_feats)
             self.image_adj = build_knn_normalized_graph(self.image_adj, topk=self.topk, is_sparse=self.sparse, norm_type=self.norm_type)
@@ -262,7 +235,7 @@ class MICROModel(nn.Module):
             self.image_adj = self.image_adj.detach()
             self.text_adj = self.text_adj.detach()
         
-        # Line 111-118: Item graph propagation
+        # Item graph propagation
         image_item_embeds = self.item_id_embedding.weight
         text_item_embeds = self.item_id_embedding.weight
         
@@ -272,12 +245,12 @@ class MICROModel(nn.Module):
         for i in range(self.layers):
             text_item_embeds = self.mm(self.text_adj, text_item_embeds)
         
-        # Line 121-123: Attention-based fusion
+        # Attention-based fusion
         att = torch.cat([self.query(image_item_embeds), self.query(text_item_embeds)], dim=-1)
         weight = self.softmax(att)
         h = weight[:, 0].unsqueeze(dim=1) * image_item_embeds + weight[:, 1].unsqueeze(dim=1) * text_item_embeds
         
-        # Line 146-157: LightGCN on user-item graph
+        # LightGCN on user-item graph
         ego_embeddings = torch.cat((self.user_embedding.weight, self.item_id_embedding.weight), dim=0)
         all_embeddings = [ego_embeddings]
         for i in range(self.n_ui_layers):
@@ -301,7 +274,7 @@ class MICROModel(nn.Module):
         build_item_graph: bool = False,
     ) -> dict:
         """
-        Compute loss - matches original main.py training loop (line 88-104).
+        Compute combined BPR + contrastive loss.
         """
         # Get all embeddings
         ua_embeddings, ia_embeddings, image_item_embeds, text_item_embeds, fusion_embed = self.forward(
@@ -313,7 +286,7 @@ class MICROModel(nn.Module):
         pos_i_g_embeddings = ia_embeddings[pos_items]
         neg_i_g_embeddings = ia_embeddings[neg_items]
         
-        # BPR loss - EXACT match to original main.py line 168-180
+        # BPR loss
         pos_scores = torch.sum(torch.mul(u_g_embeddings, pos_i_g_embeddings), dim=1)
         neg_scores = torch.sum(torch.mul(u_g_embeddings, neg_i_g_embeddings), dim=1)
         
@@ -325,7 +298,7 @@ class MICROModel(nn.Module):
         
         emb_loss = l2_reg * regularizer
         
-        # Contrastive loss - EXACT match to original main.py line 99-103
+        # Contrastive loss
         batch_contrastive_loss = self.batched_contrastive_loss(image_item_embeds, fusion_embed)
         batch_contrastive_loss += self.batched_contrastive_loss(text_item_embeds, fusion_embed)
         batch_contrastive_loss *= self.loss_ratio

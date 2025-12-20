@@ -74,7 +74,7 @@ class Trainer:
                 lr=config.LR,
                 weight_decay=0,
             )
-            # Denoiser optimizer - EXACT from Main.py line 76-81
+            # Denoiser optimizer
             self.denoise_optimizer = Adam(
                 model.get_denoiser_parameters(),
                 lr=config.LR,
@@ -266,9 +266,9 @@ class Trainer:
     
     def train_epoch_diffmm(self, bpr_dataloader: DataLoader, diffusion_data: torch.Tensor) -> dict:
         """
-        Train DiffMM for one epoch with two-phase training.
+        DiffMM-specific training epoch.
         
-        EXACT match to original Main.py trainEpoch() structure:
+        Structure:
         1. Phase 1: Train denoisers on diffusion task
         2. Phase 2: Rebuild UI matrices using denoised samples
         3. Phase 3: Train main model with BPR + CL
@@ -287,9 +287,7 @@ class Trainer:
         batch_size = self.config.BATCH_SIZE
         n_users = diffusion_data.shape[0]
         
-        # =================================================================
-        # PHASE 1: Diffusion Training - EXACT from Main.py line 124-168
-        # =================================================================
+        # PHASE 1: Diffusion Training
         logger.info("  Phase 1: Diffusion training...")
         
         diff_loss_image_total = 0.0
@@ -319,18 +317,14 @@ class Trainer:
         meters["diff_loss_image"].update(diff_loss_image_total / max(n_diff_batches, 1))
         meters["diff_loss_text"].update(diff_loss_text_total / max(n_diff_batches, 1))
         
-        # =================================================================
-        # PHASE 2: Rebuild UI Matrices - EXACT from Main.py line 173-245
-        # =================================================================
+        # PHASE 2: Rebuild UI Matrices
         logger.info("  Phase 2: Rebuilding UI matrices...")
         
         self.model.rebuild_ui_matrices(diffusion_data, batch_size=batch_size)
         
         logger.info("  Phase 3: BPR + CL training...")
         
-        # =================================================================
-        # PHASE 3: BPR + CL Training - EXACT from Main.py line 247-305
-        # =================================================================
+        # PHASE 3: BPR + CL Training
         pbar = tqdm(bpr_dataloader, desc="BPR+CL Training", leave=False)
         
         for users, pos_items, neg_items in pbar:
@@ -346,7 +340,7 @@ class Trainer:
             )
             
             if torch.isnan(losses["loss"]) or torch.isinf(losses["loss"]):
-                logger.warning("⚠️ NaN/Inf detected in loss! Skipping this batch.")
+                logger.warning("NaN/Inf detected in loss! Skipping this batch.")
                 continue
             
             losses["loss"].backward()
@@ -399,7 +393,6 @@ class Trainer:
         )
         
         # DiffMM needs diffusion_data: dense training matrix [n_users, n_items]
-        # EXACT match to original DataHandler.py line 81-82: DiffusionData(torch.FloatTensor(self.trnMat.A))
         diffusion_data = None
         if self.is_diffmm:
             logger.info("DiffMM: Building diffusion training matrix (dense user-item matrix)...")

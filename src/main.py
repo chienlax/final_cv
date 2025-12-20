@@ -320,7 +320,7 @@ def main():
     logger.info(f"  Negative samples: {config.N_NEGATIVES}")
     logger.info(f"  Seed: {config.SEED}")
     if args.ablation != "none":
-        logger.info(f"  ⚠️  ABLATION MODE: {args.ablation}")
+        logger.info(f"  [ABLATION MODE]: {args.ablation}")
     
     # Set seed FIRST (critical for reproducibility)
     set_seed(config.SEED)
