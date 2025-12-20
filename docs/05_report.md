@@ -73,29 +73,6 @@ Based on typical recommendation system evaluation practices:
 
 > **Primary Metric:** `Recall@20` is used for early stopping and model selection, following conventions in LATTICE and MICRO papers.
 
-### 2.3 Metric Computation Details
-
-```python
-# Implementation from src/evaluator.py
-def compute_metrics(scores, ground_truth, train_positive, k_list=[10, 20, 50]):
-    """
-    All-ranking evaluation with training item masking.
-    
-    Args:
-        scores: (n_users, n_items) prediction scores
-        ground_truth: {user_idx: set(item_idx)} test positive items
-        train_positive: {user_idx: set(item_idx)} training items to mask
-        k_list: List of K values [10, 20, 50]
-    """
-    # Mask training items (set to -inf)
-    for user, items in train_positive.items():
-        scores[user, items] = -inf
-    
-    # Get top-K items and compute metrics
-    topk_indices = torch.topk(scores, max(k_list), dim=1)[1]
-    # ... compute Recall, NDCG, Precision
-```
-
 ---
 
 ## 3. Experiment Setup
@@ -147,9 +124,9 @@ We evaluate on three distinct tracks to answer different research questions:
 
 ### 3.2 Data Split Strategy
 
-```
+
 Raw 5-core CSV → Seed Sampling → Recursive k-Core → Warm/Cold Item Split → Temporal Train/Val/Test
-```
+
 
 **Configuration Parameters:**
 
@@ -183,15 +160,14 @@ For Track 3, all models use projection-based cold-start strategies (no ID embedd
 
 ### 3.4 Dataset Configuration
 
-**Experiment Datasets (Amazon Review 2023):**
+**Target Datasets:**
 
-| Dataset | Users | Items (Warm/Cold) | Train Interactions | Train Density | Cold Item Ratio |
-|---------|-------|-------------------|-------------------|---------------|-----------------|
-| **Beauty** | 13,367 | 8,790 (7,032 / 1,758) | 66,296 | 0.0705% | 20% |
-| **Clothing** | 13,410 | 9,255 (7,404 / 1,851) | 60,733 | 0.0612% | 20% |
-| **Electronics** | 12,722 | 8,138 (6,511 / 1,627) | 64,605 | 0.0780% | 20% |
+| Dataset | Full Size | Experiment Subset | Sparsity |
+|---------|-----------|-------------------|----------|
+| **Beauty** | 729K users, 207K items, 6.6M interactions | ~12-15K users, ~8-10K items | 99.996% |
+| **Electronics** | 1.6M users, 368K items, 15.5M interactions | ~12-15K users, ~8-10K items | 99.997% |
 
-> **Preprocessing:** Seed sampling (10K users) → 5-core filtering → 80/20 warm/cold item split → 80/10/10 train/val/test temporal split.
+> **Note:** Clothing dataset (2.5M users, 715K items) may be included as a stretch goal but requires careful memory management.
 
 ### 3.5 Model Configuration
 
@@ -207,7 +183,7 @@ All models share the following hyperparameters to ensure fair comparison. Values
 | `LR` | 5e-4 | Lower LR for deeper models |
 | `L2_REG` | 1e-3 | Strong weight decay |
 | `EMBED_DIM` | 384 | Divisible by attention heads (6, 12) |
-| `N_LAYERS` | 3 | Sweet spot (4 → oversmoothing) |
+| `N_LAYERS` | 3 | Sweet spot for LightLGN (4 → oversmoothing) |
 | `N_NEGATIVES` | 1 | Single negative per sample (original paper setting) |
 
 **Modality Projection (MLP Bridge):**
@@ -253,14 +229,6 @@ All models share the following hyperparameters to ensure fair comparison. Values
 - Output: 768-dimensional embeddings
 - Anisotropy correction: Mean centering on warm items
 
-**Preprocessing Pipeline:**
-```python
-# Mean centering (critical for LATTICE/MICRO performance)
-x = x / norm(x)              # L2 normalize
-mu = x[:n_warm].mean(axis=0) # Mean from WARM items only
-x = x - mu                    # Center
-x = x / norm(x)              # Re-normalize
-```
 
 ### 3.7 Loss Functions
 
@@ -299,8 +267,6 @@ Where:
 ## 4. Experiment Results
 
 This section presents the experimental results from training LATTICE, MICRO, and DiffMM on three Amazon 2023 datasets (Beauty, Clothing, Electronics).
-
-> Generated tables and figures are saved in `experiment_result/`.
 
 ### 4.1 Main Results (Track 1: Warm Performance)
 
