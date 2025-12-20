@@ -1,0 +1,4 @@
+Dataset,N Pairs Sampled,Pearson r,Pearson p-value,Spearman r,Spearman p-value,Visual Sim (Mean),Visual Sim (Std),Interaction Sim (Mean),Interaction Sim (Std),Interpretation
+beauty,20000,-0.0009,0.900618355290688,0.0012,0.8707867443916968,0.4967,0.0876,0.0001,0.0023,No significant correlation - visual features may not align with user preferences
+clothing,20000,0.019,0.007187555926982086,0.0205,0.0037401797997411303,0.6194,0.088,0.0,0.0006,Very weak correlation - visual signal exists but is minimal
+electronics,20000,0.0158,0.025103928237586687,0.0131,0.06447018542474056,0.5627,0.0849,0.0,0.0006,Very weak correlation - visual signal exists but is minimal

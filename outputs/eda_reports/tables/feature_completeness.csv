@@ -1,0 +1,22 @@
+Dataset,Feature,Coverage (%)
+beauty,title,99.99614734479819
+beauty,description,48.29833035555192
+beauty,features,82.5965932896378
+beauty,image_count,99.99951841809977
+beauty,main_category,100.0
+beauty,price,58.22662281060828
+beauty,all_features,25.19106761891461
+clothing,title,99.99146801835634
+clothing,description,49.41961544540441
+clothing,features,95.36573528198198
+clothing,image_count,99.95090613841113
+clothing,main_category,100.0
+clothing,price,54.069545441194364
+clothing,all_features,24.883454529433237
+electronics,title,99.99538329513237
+electronics,description,56.015294871655605
+electronics,features,84.0712819231563
+electronics,image_count,99.98913716501733
+electronics,main_category,100.0
+electronics,price,44.33883354877956
+electronics,all_features,23.5240122967292

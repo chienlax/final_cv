@@ -1,0 +1,19 @@
+Dataset,Section,Recommendation
+beauty,BPR Hardness,Consider mixing random and hard negative sampling
+beauty,Semantic Alignment,"Deprioritize text encoder in final model, or use text only as filter/fallback."
+beauty,Cross-Modal,"Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches."
+beauty,CCA Alignment,MICRO contrastive loss should converge well.
+beauty,Anisotropy,Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance.
+beauty,User Consistency,Visual features have some predictive power. Consider combining with text features for better performance.
+clothing,BPR Hardness,Consider mixing random and hard negative sampling
+clothing,Semantic Alignment,"Deprioritize text encoder in final model, or use text only as filter/fallback."
+clothing,Cross-Modal,"Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches."
+clothing,CCA Alignment,MICRO contrastive loss should converge well.
+clothing,Anisotropy,Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance.
+clothing,User Consistency,Visual features have some predictive power. Consider combining with text features for better performance.
+electronics,BPR Hardness,Consider mixing random and hard negative sampling
+electronics,Semantic Alignment,"Deprioritize text encoder in final model, or use text only as filter/fallback."
+electronics,Cross-Modal,"Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches."
+electronics,CCA Alignment,MICRO contrastive loss should converge well.
+electronics,Anisotropy,Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance.
+electronics,User Consistency,Visual features have some predictive power. Consider combining with text features for better performance.

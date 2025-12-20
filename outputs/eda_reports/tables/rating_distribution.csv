@@ -1,0 +1,16 @@
+Dataset,Rating,Count,Percentage
+beauty,1.0,524838,7.92
+beauty,2.0,334932,5.06
+beauty,3.0,547736,8.27
+beauty,4.0,872391,13.17
+beauty,5.0,4344544,65.58
+clothing,1.0,1415199,6.13
+clothing,2.0,1139555,4.93
+clothing,3.0,2001386,8.66
+clothing,4.0,3359236,14.54
+clothing,5.0,15187161,65.74
+electronics,1.0,1287788,8.32
+electronics,2.0,713558,4.61
+electronics,3.0,1074820,6.95
+electronics,4.0,2190347,14.16
+electronics,5.0,10207023,65.96

@@ -1,0 +1,4 @@
+Dataset,Users,Items,Interactions,Sparsity,Mean Rating,Visual Alignment (r),Text Alignment (r),Cross-Modal Agreement,CCA Correlation,Feature Collapse (Avg Sim),Anisotropic,Graph Connected (%),LATTICE Decision
+beauty,729576,207649,6624441,99.99562731%,4.234,-0.0009,0.025,0.0088,0.9025579830451423,0.4964,True,99.94,PROCEED
+clothing,2524981,714957,23102537,99.99872026%,4.288,0.019,-0.0058,-0.0204,0.9999999999999899,0.6199,True,100.0,STOP
+electronics,1641026,368228,15473536,99.99743931%,4.248,0.0158,0.0176,-0.0053,0.999999798501731,0.5625,True,99.58,STOP

@@ -1,0 +1,4 @@
+Dataset,Items Attempted,Items Successful,Success Rate (%),Embedding Dim,Model,Device,Processing Time (s),Items/Second,Avg Text Length
+beauty,25000,25000,100.0,768,sentence-transformers/all-mpnet-base-v2,cuda,141.6,176.55,415.5
+clothing,25000,25000,100.0,768,sentence-transformers/all-mpnet-base-v2,cuda,184.6,135.43,429.3
+electronics,25000,25000,100.0,768,sentence-transformers/all-mpnet-base-v2,cuda,268.11,93.25,438.3

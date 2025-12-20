@@ -1,0 +1,4 @@
+Dataset,Alignment Pass,Alignment Value,Connectivity Pass,Connectivity Value,Collapse Pass,Collapse Value,Decision
+beauty,True,-0.0009,True,99.94,True,0.4964,PROCEED
+clothing,True,0.019,True,100.0,False,0.6199,STOP
+electronics,True,0.0158,True,99.58,False,0.5625,STOP

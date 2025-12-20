@@ -1,0 +1,4 @@
+Dataset,N Items,K Neighbors,N Components,Giant Component Size,Giant Component (%),Avg Component Size,Pass Threshold,Is Pass,Interpretation
+beauty,10000,5,2,9994,99.94,5000.0,50.0,True,PASS: Giant component covers 99.9% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE.
+clothing,10000,5,1,10000,100.0,10000.0,50.0,True,PASS: Giant component covers 100.0% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE.
+electronics,9999,5,4,9957,99.58,2499.75,50.0,True,PASS: Giant component covers 99.6% of items (threshold: 50.0%). Graph is sufficiently connected for LATTICE.

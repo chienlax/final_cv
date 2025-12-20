@@ -1,0 +1,4 @@
+Dataset,Display Name,Data Format,Timestamp,Total Users,Total Items,Total Interactions,Memory (MB)
+beauty,Beauty and Personal Care,5-core CSV,2025-12-18T13:34:56.748259,729576,207649,6624441,1636.28
+clothing,"Clothing, Shoes and Jewelry",5-core CSV,2025-12-18T13:52:55.870148,2524981,714957,23102537,5706.39
+electronics,Electronics,5-core CSV,2025-12-18T14:19:59.652981,1641026,368228,15473536,3822.0

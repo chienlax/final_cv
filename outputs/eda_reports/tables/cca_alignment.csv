@@ -1,0 +1,4 @@
+Dataset,N Items,N Components,Mean Correlation,Top 3 Correlations,Interpretation,Recommendation
+beauty,4884,10,0.9025579830451423,"[0.9629198593336944, 0.9389461345426553, 0.9316125190504481]",STRONG CCA correlation (0.903). Good linear relationship between modalities.,MICRO contrastive loss should converge well.
+clothing,438,10,0.9999999999999899,"[0.9999999999999951, 0.9999999999999889, 0.9999999999999953]",STRONG CCA correlation (1.000). Good linear relationship between modalities.,MICRO contrastive loss should converge well.
+electronics,926,10,0.999999798501731,"[0.999999949974311, 0.9999997607160492, 0.9999997345920432]",STRONG CCA correlation (1.000). Good linear relationship between modalities.,MICRO contrastive loss should converge well.

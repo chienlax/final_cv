@@ -12,7 +12,6 @@ logs/
 checkpoints_ablation/
 checkpoints_sensitivity/
 *.rar
-outputs/
 LATTICE/
 MICRO/
 DiffMM/

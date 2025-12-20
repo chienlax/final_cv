@@ -1,0 +1,4 @@
+Dataset,N Items,N Pairs Sampled,Mean Similarity,Std Similarity,Min Similarity,Max Similarity,Very Low (%),Low (%),Medium (%),High (%),Very High (%),Is Pass,Is Collapsed,Interpretation
+beauty,10000,50000,0.4964,0.0879,0.1158,0.9348,0.0,1.3,50.28,48.41,0.01,True,False,PASS: Avg cosine similarity = 0.496 (threshold: 0.5). Features show good variance. Visual encoder is producing discriminative embeddings.
+clothing,10000,50000,0.6199,0.0881,0.1995,0.9315,0.0,0.04,8.71,91.22,0.03,False,False,"WARNING: Avg cosine similarity = 0.620 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder."
+electronics,9999,50000,0.5625,0.0847,0.1695,0.9468,0.0,0.24,21.63,78.11,0.02,False,False,"WARNING: Avg cosine similarity = 0.563 (pass: <0.5, collapse: >0.9). Features show moderate similarity. May work but suboptimal. Consider testing with alternative visual encoder."

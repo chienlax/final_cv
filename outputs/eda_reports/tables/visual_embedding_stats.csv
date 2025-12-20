@@ -1,0 +1,4 @@
+Dataset,Items Attempted,Items Successful,Success Rate (%),Embedding Dim,Device,Processing Time (s),Items/Second
+beauty,10000,10000,100.0,768,cuda,707.76,14.13
+clothing,10000,10000,100.0,768,cuda,709.4,14.1
+electronics,10000,9999,99.99,768,cuda,714.38,14.0

@@ -1,0 +1,182 @@
+{
+  "generation_date": "2025-12-19 12:43:38",
+  "datasets": [
+    "beauty",
+    "clothing",
+    "electronics"
+  ],
+  "summary_statistics": [
+    {
+      "Dataset": "beauty",
+      "Users": 729576,
+      "Items": 207649,
+      "Interactions": 6624441,
+      "Sparsity": "99.99562731%",
+      "Mean Rating": 4.234,
+      "Visual Alignment (r)": -0.0009,
+      "Text Alignment (r)": 0.025,
+      "Cross-Modal Agreement": 0.0088,
+      "CCA Correlation": 0.9025579830451423,
+      "Feature Collapse (Avg Sim)": 0.4964,
+      "Anisotropic": true,
+      "Graph Connected (%)": 99.94,
+      "LATTICE Decision": "PROCEED"
+    },
+    {
+      "Dataset": "clothing",
+      "Users": 2524981,
+      "Items": 714957,
+      "Interactions": 23102537,
+      "Sparsity": "99.99872026%",
+      "Mean Rating": 4.288,
+      "Visual Alignment (r)": 0.019,
+      "Text Alignment (r)": -0.0058,
+      "Cross-Modal Agreement": -0.0204,
+      "CCA Correlation": 0.9999999999999899,
+      "Feature Collapse (Avg Sim)": 0.6199,
+      "Anisotropic": true,
+      "Graph Connected (%)": 100.0,
+      "LATTICE Decision": "STOP"
+    },
+    {
+      "Dataset": "electronics",
+      "Users": 1641026,
+      "Items": 368228,
+      "Interactions": 15473536,
+      "Sparsity": "99.99743931%",
+      "Mean Rating": 4.248,
+      "Visual Alignment (r)": 0.0158,
+      "Text Alignment (r)": 0.0176,
+      "Cross-Modal Agreement": -0.0053,
+      "CCA Correlation": 0.999999798501731,
+      "Feature Collapse (Avg Sim)": 0.5625,
+      "Anisotropic": true,
+      "Graph Connected (%)": 99.58,
+      "LATTICE Decision": "STOP"
+    }
+  ],
+  "recommendations": [
+    {
+      "Dataset": "beauty",
+      "Section": "BPR Hardness",
+      "Recommendation": "Consider mixing random and hard negative sampling"
+    },
+    {
+      "Dataset": "beauty",
+      "Section": "Semantic Alignment",
+      "Recommendation": "Deprioritize text encoder in final model, or use text only as filter/fallback."
+    },
+    {
+      "Dataset": "beauty",
+      "Section": "Cross-Modal",
+      "Recommendation": "Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches."
+    },
+    {
+      "Dataset": "beauty",
+      "Section": "CCA Alignment",
+      "Recommendation": "MICRO contrastive loss should converge well."
+    },
+    {
+      "Dataset": "beauty",
+      "Section": "Anisotropy",
+      "Recommendation": "Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance."
+    },
+    {
+      "Dataset": "beauty",
+      "Section": "User Consistency",
+      "Recommendation": "Visual features have some predictive power. Consider combining with text features for better performance."
+    },
+    {
+      "Dataset": "clothing",
+      "Section": "BPR Hardness",
+      "Recommendation": "Consider mixing random and hard negative sampling"
+    },
+    {
+      "Dataset": "clothing",
+      "Section": "Semantic Alignment",
+      "Recommendation": "Deprioritize text encoder in final model, or use text only as filter/fallback."
+    },
+    {
+      "Dataset": "clothing",
+      "Section": "Cross-Modal",
+      "Recommendation": "Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches."
+    },
+    {
+      "Dataset": "clothing",
+      "Section": "CCA Alignment",
+      "Recommendation": "MICRO contrastive loss should converge well."
+    },
+    {
+      "Dataset": "clothing",
+      "Section": "Anisotropy",
+      "Recommendation": "Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance."
+    },
+    {
+      "Dataset": "clothing",
+      "Section": "User Consistency",
+      "Recommendation": "Visual features have some predictive power. Consider combining with text features for better performance."
+    },
+    {
+      "Dataset": "electronics",
+      "Section": "BPR Hardness",
+      "Recommendation": "Consider mixing random and hard negative sampling"
+    },
+    {
+      "Dataset": "electronics",
+      "Section": "Semantic Alignment",
+      "Recommendation": "Deprioritize text encoder in final model, or use text only as filter/fallback."
+    },
+    {
+      "Dataset": "electronics",
+      "Section": "Cross-Modal",
+      "Recommendation": "Investigate: (1) Check if product images match descriptions, (2) Fine-tune encoders on domain, (3) Use separate modality branches."
+    },
+    {
+      "Dataset": "electronics",
+      "Section": "CCA Alignment",
+      "Recommendation": "MICRO contrastive loss should converge well."
+    },
+    {
+      "Dataset": "electronics",
+      "Section": "Anisotropy",
+      "Recommendation": "Apply mean centering to all embeddings before using in MRS models. This should significantly improve LATTICE/MICRO performance."
+    },
+    {
+      "Dataset": "electronics",
+      "Section": "User Consistency",
+      "Recommendation": "Visual features have some predictive power. Consider combining with text features for better performance."
+    }
+  ],
+  "feasibility": [
+    {
+      "Dataset": "beauty",
+      "Alignment Pass": true,
+      "Alignment Value": -0.0009,
+      "Connectivity Pass": true,
+      "Connectivity Value": 99.94,
+      "Collapse Pass": true,
+      "Collapse Value": 0.4964,
+      "Decision": "PROCEED"
+    },
+    {
+      "Dataset": "clothing",
+      "Alignment Pass": true,
+      "Alignment Value": 0.019,
+      "Connectivity Pass": true,
+      "Connectivity Value": 100.0,
+      "Collapse Pass": false,
+      "Collapse Value": 0.6199,
+      "Decision": "STOP"
+    },
+    {
+      "Dataset": "electronics",
+      "Alignment Pass": true,
+      "Alignment Value": 0.0158,
+      "Connectivity Pass": true,
+      "Connectivity Value": 99.58,
+      "Collapse Pass": false,
+      "Collapse Value": 0.5625,
+      "Decision": "STOP"
+    }
+  ]
+}
